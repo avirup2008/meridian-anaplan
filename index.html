@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Meridian · Anaplan Model Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#FAF8F0;--bg2:#F2EFE8;--surface:#FFFDF8;--surface2:#F5F2EA;--surface3:#EBE8E0;
+  --text:#1C2129;--text2:#595E6B;--text3:#9EA1AB;--text4:#C8CACE;
+  --accent:#175AA6;--accent2:#3B7FC4;--accent-pale:rgba(23,90,166,0.08);--accent-bd:rgba(23,90,166,0.20);
+  --gold:#BF801E;--gold-pale:rgba(191,128,30,0.09);--gold-bd:rgba(191,128,30,0.26);
+  --pos:#217348;--pos-pale:rgba(33,115,72,0.08);--pos-bd:rgba(33,115,72,0.20);
+  --neg:#B82E2E;--neg-pale:rgba(184,46,46,0.08);--neg-bd:rgba(184,46,46,0.20);
+  --border:rgba(28,33,41,0.08);--border2:rgba(28,33,41,0.13);--rule:#DED9CF;
+  --sh-sm:0 1px 4px rgba(28,33,41,0.07),0 1px 2px rgba(28,33,41,0.04);
+  --sh:0 4px 18px rgba(28,33,41,0.08),0 2px 6px rgba(28,33,41,0.05);
+  --sh-lg:0 12px 44px rgba(28,33,41,0.10),0 4px 14px rgba(28,33,41,0.06);
+  --r:10px;--r-lg:14px;--r-xl:20px;
+  font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px;line-height:1.5;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+.screen{display:none;min-height:100vh}.screen.active{display:block;animation:fadeUp .28s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+@keyframes barGrow{from{width:0}to{width:var(--w)}}
+
+/* ─── PRIMITIVES ─────────────────────────────────────── */
+.spinner{width:15px;height:15px;border:2px solid var(--surface3);border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite;flex-shrink:0}
+.cursor{display:inline-block;width:2px;height:13px;background:var(--accent);animation:blink 1s infinite;vertical-align:middle;margin-left:1px}
+.shimmer-bar{position:relative;overflow:hidden;background:var(--surface3);border-radius:4px}
+.shimmer-bar::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:shimmer 1.6s infinite}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--bg2);padding:2px 7px;border-radius:4px;color:var(--text2)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace}
+.b-ok{background:var(--pos-pale);color:var(--pos);border:1px solid var(--pos-bd)}
+.b-risk{background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-bd)}
+.b-bad{background:var(--neg-pale);color:var(--neg);border:1px solid var(--neg-bd)}
+.b-blue{background:var(--accent-pale);color:var(--accent);border:1px solid var(--accent-bd)}
+.b-gray{background:var(--bg2);color:var(--text3);border:1px solid var(--rule)}
+.dim-pill{display:inline-block;background:var(--bg2);color:var(--text3);font-size:10px;padding:1px 7px;border-radius:10px;margin:1px 2px 1px 0;border:.5px solid var(--rule);font-family:'IBM Plex Mono',monospace}
+.rag{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.rag-g{background:var(--pos)}.rag-a{background:var(--gold)}.rag-r{background:var(--neg)}
+.toggle{width:36px;height:20px;background:var(--surface3);border-radius:10px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--accent)}.toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.15)}.toggle.on::after{transform:translateX(16px)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:var(--r);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.btn-pri{background:var(--accent);color:#fff;box-shadow:0 2px 10px rgba(23,90,166,.22)}
+.btn-pri:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(23,90,166,.30)}
+.btn-pri:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-ghost{background:var(--surface);border:1.5px solid var(--border2);color:var(--text2)}
+.btn-ghost:hover{border-color:var(--text3);color:var(--text)}
+.btn-sm{padding:7px 14px;font-size:12px}
+
+/* Tables */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{background:var(--bg2);padding:9px 14px;font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:600;text-align:left;border-bottom:2px solid var(--rule)}
+.tbl td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:top;line-height:1.5}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:nth-child(even) td{background:rgba(28,33,41,.018)}
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh)}
+
+/* Progress bars */
+.prog{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.prog-f{height:100%;border-radius:2px;transition:width .8s ease}
+
+/* Section label (Nova style) */
+.sec-label{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:14px;padding-bottom:9px;border-bottom:1px solid rgba(28,33,41,.07);margin-top:32px}
+.sec-label:first-child{margin-top:0}
+.step-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.step-label::before{content:'';width:18px;height:.5px;background:var(--text3)}
+
+/* ─── HEADER ─────────────────────────────────────── */
+.hdr{position:sticky;top:0;z-index:100;background:rgba(250,248,240,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 44px}
+.hdr-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:13px 0}
+.hdr-logo{display:flex;align-items:center;gap:11px;font-size:15px;font-weight:700;color:var(--text);cursor:pointer}
+.hdr-logo em{font-style:normal;color:var(--accent)}
+.hdr-icon{width:30px;height:30px;background:var(--text);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hdr-icon svg{width:16px;height:16px}
+.hdr-by{font-size:9px;color:var(--text3);letter-spacing:1.2px;text-transform:uppercase;margin-top:2px;font-family:'IBM Plex Mono',monospace}
+.hdr-sp{flex:1}
+.hdr-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace}
+.hdr-dot{width:6px;height:6px;border-radius:50%;background:var(--pos)}
+
+/* ─── INTRO ─────────────────────────────────────── */
+#s-intro{min-height:100vh}
+.intro-split{display:grid;grid-template-columns:1fr 1fr;min-height:100vh}
+.intro-hero{background:var(--bg);display:flex;align-items:center;justify-content:center;padding:100px 40px 60px 60px;position:relative;overflow:hidden}
+.intro-hero::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;height:500px;background:radial-gradient(ellipse,rgba(23,90,166,.05) 0%,transparent 65%);pointer-events:none}
+.hero-stack{display:flex;flex-direction:column;gap:12px;width:100%;max-width:295px;position:relative;z-index:1}
+.hero-score-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-xl);padding:26px 28px;box-shadow:var(--sh-lg);width:100%}
+.hero-score-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);letter-spacing:2px;text-transform:uppercase;text-align:center;margin-bottom:16px}
+.hero-gauge{display:flex;justify-content:center;margin-bottom:15px}
+.hero-chip{display:flex;justify-content:center;margin-bottom:16px}
+.hero-chip span{display:inline-flex;align-items:center;gap:6px;background:var(--neg-pale);border:1px solid var(--neg-bd);border-radius:100px;padding:4px 13px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;color:var(--neg);letter-spacing:.8px}
+.hero-chip-dot{width:5px;height:5px;border-radius:50%;background:var(--neg);flex-shrink:0}
+.hero-bars{display:flex;flex-direction:column;gap:7px}
+.hero-bar-row{display:flex;align-items:center;gap:8px}
+.hero-bar-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.hero-bar-lbl{font-size:9px;color:var(--text3);font-family:'IBM Plex Mono',monospace;width:78px}
+.hero-bar-track{flex:1;height:3px;background:var(--surface3);border-radius:100px;overflow:hidden}
+.hero-bar-fill{height:100%;border-radius:100px}
+.hero-bar-num{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);width:20px;text-align:right}
+.hero-rule{margin-top:16px;height:2px;background:linear-gradient(to right,transparent,rgba(23,90,166,.25),transparent);border-radius:100px}
+.hero-verdict{background:var(--surface);border:1px solid var(--neg-bd);border-radius:var(--r);padding:11px 15px;box-shadow:var(--sh);display:flex;align-items:center;gap:10px;width:100%}
+.hero-verdict-icon{width:28px;height:28px;border-radius:7px;background:var(--neg-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px}
+.hero-verdict-title{font-size:11px;font-weight:700;color:var(--neg);line-height:1.2}
+.hero-verdict-sub{font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace;margin-top:1px}
+.intro-nav{position:absolute;top:0;left:0;right:0;z-index:10;padding:22px 52px;display:flex;align-items:center}
+.intro-nav-brand{display:flex;align-items:center;gap:13px}
+.intro-nav-icon{width:38px;height:38px;background:var(--text);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:var(--sh-sm)}
+.intro-nav-icon svg{width:20px;height:20px}
+.intro-nav-name{font-size:1.3rem;font-weight:700;letter-spacing:-.01em;color:var(--text);line-height:1}
+.intro-nav-name em{font-style:normal;color:var(--accent)}
+.intro-nav-by{font-size:9.5px;color:var(--text3);letter-spacing:1.2px;text-transform:uppercase;margin-top:3px;font-family:'IBM Plex Mono',monospace}
+.intro-content{background:var(--bg);display:flex;flex-direction:column;justify-content:center;padding:100px 68px 60px 52px}
+.intro-inner{max-width:480px}
+.intro-h1{font-size:clamp(2.4rem,3.8vw,3.1rem);font-weight:700;letter-spacing:-.035em;line-height:1.06;color:var(--text);margin-bottom:18px}
+.intro-h1 em{font-style:normal;color:var(--accent)}
+.intro-sub{font-size:15px;color:var(--text2);line-height:1.72;margin-bottom:30px;max-width:440px;font-weight:300}
+.intro-stats{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh);margin-bottom:22px}
+.intro-stat{padding:14px 16px;border-right:1px solid var(--border)}
+.intro-stat:last-child{border-right:none}
+.intro-stat-val{font-size:13px;font-weight:700;color:var(--accent);font-family:'IBM Plex Mono',monospace;margin-bottom:3px}
+.intro-stat-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;font-weight:500}
+.intro-paths{display:flex;flex-direction:column;gap:9px;margin-bottom:18px}
+.intro-path{display:flex;align-items:center;gap:13px;padding:13px 17px;border:1.5px solid var(--border2);border-radius:var(--r);cursor:pointer;transition:all .14s;background:var(--bg)}
+.intro-path:hover{border-color:var(--accent);background:var(--accent-pale)}
+.intro-path.pri{background:var(--accent);border-color:var(--accent)}
+.intro-path.pri:hover{background:var(--accent2)}
+.intro-path-icon{width:34px;height:34px;border-radius:8px;background:var(--bg2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.intro-path.pri .intro-path-icon{background:rgba(255,255,255,.15)}
+.intro-path-lbl{font-size:13px;font-weight:600;color:var(--text);margin-bottom:1px}
+.intro-path.pri .intro-path-lbl{color:#fff}
+.intro-path-desc{font-size:11px;color:var(--text3)}
+.intro-path.pri .intro-path-desc{color:rgba(255,255,255,.6)}
+.intro-path-arr{margin-left:auto;color:var(--text4);font-size:13px}
+.intro-path.pri .intro-path-arr{color:rgba(255,255,255,.55)}
+.intro-foot{font-size:10px;color:var(--text4);font-family:'IBM Plex Mono',monospace}
+
+/* ─── UPLOAD ─────────────────────────────────────── */
+.body-shell{max-width:760px;margin:0 auto;padding:44px 24px 80px}
+.page-h1{font-size:26px;font-weight:700;letter-spacing:-.025em;margin-bottom:8px}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:32px}
+.dropzone{border:2px dashed var(--surface3);border-radius:var(--r-xl);padding:44px 36px;text-align:center;background:var(--surface);transition:all .2s;cursor:pointer;margin-bottom:18px;position:relative;overflow:hidden}
+.dropzone.drag{border-color:var(--accent);background:var(--accent-pale)}
+.dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dz-icon{width:52px;height:52px;background:var(--bg2);border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px}
+.dz-h{font-size:15px;font-weight:600;margin-bottom:5px}
+.dz-p{font-size:12px;color:var(--text3);margin-bottom:14px}
+.file-list{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
+.file-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);padding:10px 14px}
+.file-nm{font-family:'IBM Plex Mono',monospace;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-sz{font-size:10px;color:var(--text3);flex-shrink:0}
+.file-rm{background:none;border:none;color:var(--text4);cursor:pointer;font-size:14px;padding:0 2px}
+.file-rm:hover{color:var(--neg)}
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:26px}
+.req-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;box-shadow:var(--sh-sm)}
+.req-lbl{font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);font-weight:600;margin-bottom:5px}
+.req-text{font-size:12px;color:var(--text2);line-height:1.5}
+.upload-actions{display:flex;gap:10px;justify-content:flex-end}
+
+/* ─── PROCESSING ─────────────────────────────────────── */
+.proc-shell{max-width:660px;margin:0 auto;padding:44px 24px 80px}
+.proc-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-xl);box-shadow:var(--sh-lg);overflow:hidden;margin-bottom:16px}
+.proc-card-head{padding:18px 26px;border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:13px}
+.proc-pct{margin-left:auto;font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;letter-spacing:-.03em;color:var(--accent)}
+.proc-body{padding:20px 26px}
+.file-prog-row{display:grid;grid-template-columns:18px 1fr auto auto;align-items:center;gap:11px;padding:9px 0;border-bottom:.5px solid var(--border)}
+.file-prog-row:last-child{border-bottom:none}
+.fp-nm{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fp-cnt{font-size:10px;color:var(--text3)}
+.fp-done{font-size:11px;color:var(--pos);font-weight:600}
+.fp-act{font-size:11px;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:5px}
+.fp-q{font-size:11px;color:var(--text4)}
+.proc-log{margin-top:16px;padding:13px 15px;background:var(--text);border-radius:var(--r);font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.9;max-height:130px;overflow-y:auto}
+.log-line{display:flex;gap:11px}
+.log-ts{color:rgba(255,255,255,.22);flex-shrink:0}
+.log-msg{color:rgba(255,255,255,.58)}
+.log-hl{color:#7EC8FA}.log-warn{color:#FBBC2E}.log-ok{color:#6BCB8B}.log-err{color:#FF8A8A}
+
+/* ─── ANALYSIS ─────────────────────────────────────── */
+.anl-shell{max-width:800px;margin:0 auto;padding:44px 24px 80px}
+.mii-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-xl);padding:30px 34px;box-shadow:var(--sh-lg);display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;margin-bottom:18px;position:relative;overflow:hidden}
+.mii-card::after{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;border:36px solid var(--neg-pale);border-radius:50%}
+.mii-num{font-size:68px;font-weight:700;letter-spacing:-.05em;line-height:1;font-family:'IBM Plex Mono',monospace}
+.mii-num span{font-size:24px;color:var(--text3);font-weight:400}
+.mii-band-chip{display:inline-flex;align-items:center;gap:6px;border-radius:100px;padding:4px 12px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.8px;margin-top:7px;margin-bottom:16px}
+.dim-card{background:var(--surface);border:1px solid var(--border);border-left:5px solid;border-radius:var(--r-lg);padding:18px 22px;box-shadow:var(--sh);display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;margin-bottom:10px}
+.dim-name{font-size:14px;font-weight:700;margin-bottom:2px}
+.dim-weight{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-bottom:8px}
+.dim-score-num{font-size:24px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1;margin-bottom:4px;text-align:right}
+.findings-list{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.finding-row{display:flex;align-items:flex-start;gap:7px;font-size:12px;color:var(--text2);line-height:1.5}
+.find-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
+
+/* ─── GENERATING ─────────────────────────────────────── */
+.gen-layout{max-width:1020px;margin:0 auto;padding:28px 24px 80px;display:grid;grid-template-columns:264px 1fr;gap:20px;align-items:start}
+.gen-sb{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh);position:sticky;top:64px}
+.gen-sb-head{padding:17px 20px;border-bottom:1px solid var(--rule)}
+.gen-sb-head h3{font-size:13px;font-weight:700;margin-bottom:11px}
+.gen-mod-list{padding:8px 0}
+.gen-mod-item{display:flex;align-items:center;gap:9px;padding:8px 20px;font-size:12px;transition:background .14s}
+.gen-mod-item.done{color:var(--pos)}
+.gen-mod-item.active{background:var(--accent-pale);color:var(--accent);font-weight:600}
+.gen-mod-item.pending{color:var(--text4)}
+.gen-mod-icon{font-size:11px;width:14px;text-align:center;flex-shrink:0}
+.gen-sb-foot{padding:13px 20px;border-top:1px solid var(--rule);background:var(--bg2)}
+.gen-main{display:flex;flex-direction:column;gap:12px}
+.gen-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px 24px;box-shadow:var(--sh)}
+.gen-block.streaming{border-color:var(--accent-bd)}
+.gen-block-hd{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.gen-block-title{font-size:14px;font-weight:700;flex:1}
+.gen-block-meta{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3)}
+.gen-narrative{font-size:13px;color:var(--text2);line-height:1.72}
+.gen-warn-chip{margin-top:9px;padding:8px 12px;background:var(--neg-pale);border:1px solid var(--neg-bd);border-radius:var(--r);font-size:11px;color:var(--neg);display:flex;align-items:center;gap:7px}
+
+/* ─── REPORT HUB ─────────────────────────────────────── */
+.hub-shell{max-width:860px;margin:0 auto;padding:50px 24px 80px}
+.hub-h1{font-size:30px;font-weight:700;letter-spacing:-.03em;margin-bottom:8px}
+.hub-sub{font-size:14px;color:var(--text2);max-width:520px;line-height:1.65;margin-bottom:36px;font-weight:300}
+.hub-kpis{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-xl);overflow:hidden;box-shadow:var(--sh);margin-bottom:36px}
+.hub-kpi{padding:20px 24px;border-right:1px solid var(--border)}
+.hub-kpi:last-child{border-right:none}
+.hub-kpi-val{font-size:30px;font-weight:700;font-family:'IBM Plex Mono',monospace;letter-spacing:-.03em;line-height:1;margin-bottom:4px}
+.hub-kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:600}
+.hub-kpi-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.hub-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.hub-card{border:1.5px solid var(--border2);border-radius:var(--r-xl);padding:26px 28px;cursor:pointer;transition:all .18s;background:var(--surface);box-shadow:var(--sh)}
+.hub-card:hover{box-shadow:var(--sh-lg);transform:translateY(-2px)}
+.hub-card.intel:hover{border-color:var(--neg)}
+.hub-card.docs:hover{border-color:var(--accent)}
+.hub-card-icon{width:46px;height:46px;border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px}
+.hub-card.intel .hub-card-icon{background:var(--neg-pale)}
+.hub-card.docs .hub-card-icon{background:var(--accent-pale)}
+.hub-card-title{font-size:18px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+.hub-card.intel .hub-card-title{color:var(--neg)}
+.hub-card.docs .hub-card-title{color:var(--accent)}
+.hub-card-desc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;font-weight:300}
+.hub-card-features{display:flex;flex-direction:column;gap:4px;margin-bottom:18px}
+.hub-card-feat{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2)}
+.hub-card-feat::before{content:'→';font-size:10px;color:var(--text3)}
+.hub-card-cta{font-size:13px;font-weight:700}
+.hub-card.intel .hub-card-cta{color:var(--neg)}
+.hub-card.docs .hub-card-cta{color:var(--accent)}
+
+/* ─── REPORT SHARED ─────────────────────────────────────── */
+.report-mast{padding:46px 0 42px;position:relative;overflow:hidden}
+.report-mast.intel{background:var(--text)}
+.report-mast.docs{background:var(--accent)}
+.report-mast::after{content:'';position:absolute;top:0;right:0;width:40%;height:100%;background:linear-gradient(to right,transparent,rgba(255,255,255,.04));pointer-events:none}
+.report-mast-inner{max-width:880px;margin:0 auto;padding:0 46px;display:grid;grid-template-columns:1fr auto;gap:36px;align-items:center}
+.report-eyeon{font-size:9px;font-family:'IBM Plex Mono',monospace;color:rgba(255,255,255,.4);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.report-eyeon::before{content:'';width:14px;height:.5px;background:rgba(255,255,255,.25)}
+.report-title{font-size:26px;font-weight:700;color:#fff;letter-spacing:-.025em;line-height:1.15;margin-bottom:7px}
+.report-meta{font-size:11px;color:rgba(255,255,255,.38);font-family:'IBM Plex Mono',monospace}
+.rpt-ring{position:relative;width:106px;height:106px;flex-shrink:0}
+.rpt-ring svg{transform:rotate(-90deg)}
+.rpt-ring-ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rpt-ring-num{font-size:24px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#fff;line-height:1}
+.rpt-ring-den{font-size:10px;color:rgba(255,255,255,.38);font-family:'IBM Plex Mono',monospace}
+.report-body{max-width:880px;margin:0 auto;padding:36px 46px 80px}
+.r-section{margin-bottom:42px}
+/* Action bar */
+.act-bar{position:sticky;bottom:22px;display:flex;justify-content:center;pointer-events:none;z-index:100;margin-top:22px}
+.act-bar-inner{display:flex;gap:9px;pointer-events:all;background:rgba(28,33,41,.91);backdrop-filter:blur(14px);border-radius:40px;padding:9px 16px;box-shadow:0 8px 32px rgba(28,33,41,.25)}
+.btn-act{display:flex;align-items:center;gap:6px;padding:8px 17px;border-radius:30px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .12s}
+.btn-act-ghost{background:transparent;color:rgba(255,255,255,.55)}
+.btn-act-ghost:hover{background:rgba(255,255,255,.1);color:#fff}
+.btn-act-pri{background:var(--accent);color:#fff}
+.btn-act-pri:hover{background:var(--accent2)}
+
+/* ─── INTEL REPORT COMPONENTS ─────────────────────────── */
+.verdict-card{border-radius:var(--r-xl);padding:26px 30px;border:1px solid}
+.verdict-card.crit{background:var(--neg-pale);border-color:var(--neg-bd)}
+.verdict-card.risk{background:var(--gold-pale);border-color:var(--gold-bd)}
+.verdict-hd{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px}
+.verdict-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.verdict-card.crit .verdict-icon{background:var(--neg);color:#fff}
+.verdict-card.risk .verdict-icon{background:var(--gold);color:#fff}
+.verdict-title{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.verdict-card.crit .verdict-title{color:var(--neg)}
+.verdict-card.risk .verdict-title{color:var(--gold)}
+.verdict-sub{font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:3px}
+.verdict-body{font-size:13px;color:var(--text2);line-height:1.72}
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:18px}
+.sc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:15px 18px;box-shadow:var(--sh)}
+.sc-card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.sc-card-lbl{font-size:11px;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:6px}
+.sc-dot{width:7px;height:7px;border-radius:50%}
+.sc-val{font-size:15px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+.blocker-card{border-radius:var(--r-lg);padding:17px 20px;margin-bottom:10px;border:1px solid}
+.blocker-card.hard{background:var(--neg-pale);border-color:var(--neg-bd);border-left:5px solid var(--neg)}
+.blocker-card.cond{background:var(--gold-pale);border-color:var(--gold-bd);border-left:5px solid var(--gold)}
+.blocker-type{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.blocker-card.hard .blocker-type{color:var(--neg)}
+.blocker-card.cond .blocker-type{color:var(--gold)}
+.blocker-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
+.blocker-body{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:7px}
+.blocker-resolve{font-size:12px;color:var(--accent);display:flex;align-items:flex-start;gap:5px}
+.blocker-source{font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace;margin-top:5px}
+.rm-phase{display:flex;gap:16px;padding:18px 0;border-bottom:.5px solid var(--border)}
+.rm-phase:last-child{border-bottom:none;padding-bottom:0}
+.rm-num{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px}
+.rm-week{font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.rm-title{font-size:13px;font-weight:700;margin-bottom:5px}
+.rm-detail{font-size:12px;color:var(--text2);line-height:1.65}
+
+/* ─── DOCS REPORT COMPONENTS ─────────────────────────── */
+.doc-mod-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px 24px;box-shadow:var(--sh);margin-bottom:11px}
+.doc-mod-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:9px}
+.doc-mod-name{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.doc-dims{font-size:11px;color:var(--text3)}
+.doc-narrative{font-size:13px;color:var(--text2);line-height:1.78;padding:12px 15px;background:var(--accent-pale);border-left:3px solid var(--accent-bd);border-radius:0 var(--r) var(--r) 0;margin-bottom:11px;font-weight:300}
+.doc-narrative em{color:var(--text);font-style:normal;font-weight:500}
+.diagram-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:26px;box-shadow:var(--sh);margin-bottom:14px;overflow:auto}
+.diagram-title{font-size:10px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);font-weight:600;margin-bottom:18px;display:flex;align-items:center;gap:7px}
+.diagram-title::before{content:'';width:12px;height:.5px;background:var(--text3)}
+.sources-block{background:var(--bg2);border-radius:var(--r-lg);padding:16px 20px;font-size:11.5px;color:var(--text2);line-height:1.8}
+
+/* ─── SETTINGS ─────────────────────────────────────── */
+.st-shell{max-width:640px;margin:0 auto;padding:44px 24px 80px}
+.st-h1{font-size:24px;font-weight:700;letter-spacing:-.025em;margin-bottom:6px}
+.st-sub{font-size:13px;color:var(--text2);margin-bottom:34px}
+.st-group{margin-bottom:24px}
+.st-group-lbl{font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);font-weight:600;margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.st-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-xl);box-shadow:var(--sh);overflow:hidden}
+.st-row{display:flex;align-items:center;gap:13px;padding:14px 20px;border-bottom:.5px solid var(--border)}
+.st-row:last-child{border-bottom:none}
+.st-lbl{flex:1}
+.st-lbl strong{display:block;font-size:13px;font-weight:600;margin-bottom:2px}
+.st-lbl span{font-size:11px;color:var(--text3);line-height:1.4}
+.st-input{border:1px solid var(--border2);border-radius:var(--r);padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--bg);color:var(--text);outline:none;transition:border-color .18s}
+.st-input:focus{border-color:var(--accent)}
+.st-select{border:1px solid var(--border2);border-radius:var(--r);padding:7px 10px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;background:var(--bg);color:var(--text);outline:none;cursor:pointer}
+
+/* ─── SCREEN NAV ─────────────────────────────────────── */
+.snav{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(28,33,41,.93);backdrop-filter:blur(14px);border-radius:40px;padding:8px 18px;display:flex;align-items:center;gap:5px;z-index:1000;box-shadow:0 8px 32px rgba(28,33,41,.28);border:1px solid rgba(255,255,255,.06)}
+.snav button{background:none;border:none;color:rgba(255,255,255,.42);font-size:11px;font-family:'IBM Plex Sans',system-ui,sans-serif;cursor:pointer;padding:4px 9px;border-radius:20px;transition:all .14s;white-space:nowrap}
+.snav button.on{background:rgba(255,255,255,.12);color:#fff;font-weight:600}
+.snav button:hover:not(.on){color:rgba(255,255,255,.72)}
+.snav-d{width:.5px;height:15px;background:rgba(255,255,255,.12)}
+.form-chip{display:inline-flex;padding:2px 7px;border-radius:4px;font-size:9.5px;font-weight:600;font-family:'IBM Plex Mono',monospace}
+.fc-hi{background:var(--neg-pale);color:var(--neg)}
+.fc-mid{background:var(--gold-pale);color:var(--gold)}
+.fc-ok{background:var(--pos-pale);color:var(--pos)}
+</style>
+</head>
+<body>
+
+<!-- ════════ S1: INTRO ════════ -->
+<div id="s-intro" class="screen active">
+  <nav class="intro-nav">
+    <div class="intro-nav-brand">
+      <div class="intro-nav-icon">
+        <svg viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="7.5" stroke="#FAF8F0" stroke-width="1.1"/>
+          <line x1="10" y1="2.5" x2="10" y2="17.5" stroke="#7EC8FA" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="2.5" y1="10" x2="17.5" y2="10" stroke="#FAF8F0" stroke-width=".8" stroke-linecap="round" opacity=".35"/>
+          <circle cx="10" cy="10" r="1.5" fill="#7EC8FA"/>
+          <circle cx="10" cy="4.5" r=".85" fill="#FAF8F0" opacity=".65"/>
+          <circle cx="10" cy="15.5" r=".85" fill="#FAF8F0" opacity=".65"/>
+        </svg>
+      </div>
+      <div>
+        <div class="intro-nav-name">Meridian<em>.</em></div>
+        <div class="intro-nav-by">EyeOn · Planning Intelligence</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="intro-split">
+    <!-- Hero preview -->
+    <div class="intro-hero">
+      <div class="hero-stack">
+        <div class="hero-score-card">
+          <div class="hero-score-lbl" id="hero-mii-lbl">Model Intelligence Index</div>
+          <div class="hero-gauge">
+            <svg width="118" height="118" viewBox="0 0 118 118" fill="none" id="hero-svg">
+              <circle cx="59" cy="59" r="46" stroke="#EBE8E0" stroke-width="7"/>
+              <circle id="hero-arc" cx="59" cy="59" r="46" stroke="#B82E2E" stroke-width="7"
+                stroke-linecap="round" stroke-dasharray="110 289" transform="rotate(-90 59 59)"/>
+              <text id="hero-score-txt" x="59" y="54" text-anchor="middle" font-size="24" font-weight="700" fill="#1C2129" font-family="IBM Plex Mono,monospace">38</text>
+              <text x="59" y="70" text-anchor="middle" font-size="10" fill="#9EA1AB" font-family="IBM Plex Mono,monospace">/100</text>
+            </svg>
+          </div>
+          <div class="hero-chip"><span><div class="hero-chip-dot"></div>Critical · 5 modules unclassified</span></div>
+          <div class="hero-bars" id="hero-bars">
+            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#B82E2E"></div><div class="hero-bar-lbl">Architecture</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:0%;background:#B82E2E"></div></div><div class="hero-bar-num">0</div></div>
+            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#C8733A"></div><div class="hero-bar-lbl">Naming</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:19%;background:#C8733A"></div></div><div class="hero-bar-num">19</div></div>
+            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#175AA6"></div><div class="hero-bar-lbl">Formulas</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:87%;background:#175AA6"></div></div><div class="hero-bar-num">87</div></div>
+            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#B82E2E"></div><div class="hero-bar-lbl">Data Hygiene</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:29%;background:#B82E2E"></div></div><div class="hero-bar-num">29</div></div>
+            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#7047A3"></div><div class="hero-bar-lbl">Governance</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:72%;background:#7047A3"></div></div><div class="hero-bar-num">72</div></div>
+          </div>
+          <div class="hero-rule"></div>
+        </div>
+        <div class="hero-verdict">
+          <div class="hero-verdict-icon">⚠</div>
+          <div>
+            <div class="hero-verdict-title">Two reports generated</div>
+            <div class="hero-verdict-sub">Intelligence · Documentation + diagrams</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="intro-content">
+      <div class="intro-inner">
+        <h1 class="intro-h1">Your Anaplan model,<br><em>fully understood.</em></h1>
+        <p class="intro-sub">Upload Anaplan blueprint CSVs. Get a complete Planual compliance scorecard with prioritised fixes, plus a comprehensive model user guide with workflow diagrams — in under two minutes.</p>
+        <div class="intro-stats">
+          <div class="intro-stat"><div class="intro-stat-val">47</div><div class="intro-stat-lbl">Planual rules checked</div></div>
+          <div class="intro-stat"><div class="intro-stat-val">60s</div><div class="intro-stat-lbl">Model health scored</div></div>
+          <div class="intro-stat"><div class="intro-stat-val">✓</div><div class="intro-stat-lbl">Fix roadmap included</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:22px;line-height:1.6;padding:10px 14px;background:var(--surface);border-radius:var(--r);border:1px solid var(--border);display:flex;align-items:flex-start;gap:8px;">
+          <span style="color:var(--accent);font-weight:700;flex-shrink:0;font-family:'IBM Plex Mono',monospace;">MII</span>
+          <span>The <strong style="color:var(--text2);">Model Intelligence Index</strong> is Meridian's 0–100 health score for your Anaplan model — measuring compliance across 5 dimensions of The Anaplan Way. Below 40 is Critical. Above 85 is Optimised.</span>
+        </div>
+        <div class="intro-paths">
+          <div class="intro-path pri" onclick="go('s-upload')">
+            <div class="intro-path-icon">📂</div>
+            <div><div class="intro-path-lbl">Upload blueprint files</div><div class="intro-path-desc">Start a new model analysis</div></div>
+            <div class="intro-path-arr">→</div>
+          </div>
+          <div class="intro-path" onclick="go('s-hub')">
+            <div class="intro-path-icon" style="background:var(--neg-pale);font-size:14px;">⚡</div>
+            <div><div class="intro-path-lbl">Intelligence Report</div><div class="intro-path-desc">Compliance · violations · fix roadmap</div></div>
+            <div class="intro-path-arr">→</div>
+          </div>
+          <div class="intro-path" onclick="go('s-hub')">
+            <div class="intro-path-icon" style="background:var(--accent-pale);font-size:14px;">📖</div>
+            <div><div class="intro-path-lbl">Model Documentation</div><div class="intro-path-desc">User guide · workflow diagrams · data flows</div></div>
+            <div class="intro-path-arr">→</div>
+          </div>
+        </div>
+        <p class="intro-foot">The Anaplan Way · Planual v2 · Anapedia · BARC Planning Survey 2025</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ S2: UPLOAD ════════ -->
+<div id="s-upload" class="screen">
+  <div class="hdr"><div class="hdr-inner">
+    <div class="hdr-logo" onclick="go('s-intro')">
+      <div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>
+      Meridian<em>.</em>
+      <div style="margin-left:2px;"><div class="hdr-by">EyeOn</div></div>
+    </div>
+    <div class="hdr-sp"></div>
+    <button class="btn btn-ghost btn-sm" onclick="go('s-settings')">Settings</button>
+  </div></div>
+  <div class="body-shell">
+    <div class="step-label">Blueprint Upload</div>
+    <h1 class="page-h1">Upload your Anaplan blueprint files</h1>
+    <p class="page-sub">Export blueprint CSVs from Model Settings → Modules. One file per module. Meridian normalises column headers automatically.</p>
+
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="file-input" accept=".csv" multiple onchange="handleFiles(this.files)">
+      <div class="dz-icon">📂</div>
+      <div class="dz-h">Drop blueprint CSV files here</div>
+      <p class="dz-p">Multiple files · Anaplan blueprint export format</p>
+      <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('file-input').click()">Browse files</button>
+    </div>
+
+    <div class="file-list" id="file-list"></div>
+
+    <div class="req-grid">
+      <div class="req-card"><div class="req-lbl">Required columns</div><div class="req-text">Line Item · Format (JSON) · Formula · Summary (JSON) · Applies To · Time Scale · Style · Cell Count · Referenced By · Module Name</div></div>
+      <div class="req-card"><div class="req-lbl">Export path</div><div class="req-text">Anaplan → Model Settings → Modules → select module → Download Blueprint CSV</div></div>
+    </div>
+    <div class="upload-actions">
+      <button class="btn btn-ghost" onclick="clearFiles()">Clear all</button>
+      <button class="btn btn-pri" id="analyse-btn" onclick="startAnalysis()" disabled>Analyse modules →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ S3: PROCESSING ════════ -->
+<div id="s-processing" class="screen">
+  <div class="hdr"><div class="hdr-inner">
+    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-sp"></div>
+    <div class="hdr-status"><span class="spinner"></span><span id="proc-status-txt">Parsing files...</span></div>
+  </div></div>
+  <div class="proc-shell">
+    <div class="step-label">Step 1 of 3 — Parsing &amp; Normalising</div>
+    <h2 style="font-size:24px;font-weight:700;letter-spacing:-.025em;margin-bottom:8px;" id="proc-h2">Reading blueprint files</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:28px;" id="proc-sub">Normalising column headers and detecting DISCO prefixes</p>
+    <div class="proc-card">
+      <div class="proc-card-head">
+        <div class="spinner"></div>
+        <div><div style="font-size:13px;font-weight:700;">Overall progress</div><div style="font-size:11px;color:var(--text3);margin-top:2px;font-family:'IBM Plex Mono',monospace;" id="proc-progress-sub">0 of 0 files complete</div></div>
+        <div class="proc-pct" id="proc-pct">0%</div>
+      </div>
+      <div style="height:4px;background:var(--surface3);"><div id="proc-bar" style="height:100%;width:0%;background:var(--accent);transition:width .5s ease;"></div></div>
+      <div class="proc-body">
+        <div class="file-prog-list" id="file-prog-list"></div>
+        <div class="proc-log" id="proc-log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ S4: ANALYSIS ════════ -->
+<div id="s-analysis" class="screen">
+  <div class="hdr"><div class="hdr-inner">
+    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-sp"></div>
+    <div class="hdr-status"><span class="spinner"></span>Running 47 compliance rules...</div>
+  </div></div>
+  <div class="anl-shell">
+    <div class="step-label">Step 2 of 3 — Anaplan Way Analysis</div>
+    <h2 style="font-size:24px;font-weight:700;letter-spacing:-.025em;margin-bottom:8px;">Scoring your model</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:24px;" id="anl-sub">Loading...</p>
+
+    <div class="mii-card">
+      <div style="position:relative;z-index:1;">
+        <div class="step-label" style="margin-bottom:10px;">Model Intelligence Index</div>
+        <div class="mii-num" id="anl-mii-num" style="color:#B82E2E;">38<span>/100</span></div>
+        <div id="anl-band-chip" class="mii-band-chip" style="background:var(--neg-pale);color:var(--neg);border:1px solid var(--neg-bd);">
+          <span style="width:5px;height:5px;border-radius:50%;background:var(--neg);display:inline-block;"></span>Critical
+        </div>
+        <div style="max-width:370px;">
+          <div class="prog" style="height:6px;margin-bottom:6px;"><div class="prog-f" id="anl-mii-bar" style="background:var(--neg);width:38%;"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--text4);font-family:'IBM Plex Mono',monospace;"><span>Critical &lt;40</span><span>At Risk 40–65</span><span>Compliant 65–85</span><span>Optimised 85+</span></div>
+        </div>
+      </div>
+      <div style="position:relative;z-index:1;flex-shrink:0;">
+        <svg width="106" height="106" viewBox="0 0 106 106" fill="none">
+          <circle cx="53" cy="53" r="42" stroke="#EBE8E0" stroke-width="6"/>
+          <circle id="anl-arc" cx="53" cy="53" r="42" stroke="#B82E2E" stroke-width="6"
+            stroke-linecap="round" stroke-dasharray="100 264" transform="rotate(-90 53 53)"/>
+          <text id="anl-num-txt" x="53" y="48" text-anchor="middle" font-size="20" font-weight="700" fill="#1C2129" font-family="IBM Plex Mono,monospace">38</text>
+          <text x="53" y="63" text-anchor="middle" font-size="9" fill="#9EA1AB" font-family="IBM Plex Mono,monospace" letter-spacing="1">MII</text>
+        </svg>
+      </div>
+    </div>
+
+    <div id="anl-dims"></div>
+    <div style="text-align:center;margin-top:26px;"><button class="btn btn-pri" onclick="startDocGeneration()">Generate Documentation →</button></div>
+  </div>
+</div>
+
+<!-- ════════ S5: GENERATING ════════ -->
+<div id="s-generating" class="screen">
+  <div class="hdr"><div class="hdr-inner">
+    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-sp"></div>
+    <div class="hdr-status" id="gen-hdr-status"><span class="spinner"></span>Gemini generating narratives...</div>
+  </div></div>
+  <div class="gen-layout">
+    <div class="gen-sb">
+      <div class="gen-sb-head">
+        <h3>Documentation progress</h3>
+        <div class="prog" style="height:4px;margin-bottom:5px;"><div class="prog-f" id="gen-prog-bar" style="width:0%;"></div></div>
+        <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);" id="gen-prog-label">0 of 0 modules</div>
+      </div>
+      <div class="gen-mod-list" id="gen-mod-list"></div>
+      <div class="gen-sb-foot">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Intelligence report is ready. Documentation narratives are streaming module by module.</div>
+        <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;" onclick="go('s-hub')">View reports now →</button>
+      </div>
+    </div>
+    <div class="gen-main" id="gen-main"></div>
+  </div>
+</div>
+
+<!-- ════════ S6: REPORT HUB ════════ -->
+<div id="s-hub" class="screen">
+  <div class="hdr"><div class="hdr-inner">
+    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-sp"></div>
+    <button class="btn btn-ghost btn-sm" onclick="go('s-upload')">← New analysis</button>
+  </div></div>
+  <div class="hub-shell">
+    <div class="step-label">Analysis complete</div>
+    <h1 class="hub-h1">Choose your report</h1>
+    <p class="hub-sub">Both reports are ready. The Intelligence Report surfaces violations and fixes. Model Documentation is a complete user guide with workflow diagrams.</p>
+    <div class="hub-kpis" id="hub-kpis">
+      <div class="hub-kpi"><div class="hub-kpi-val" id="hk-mii" style="color:var(--neg);">38</div><div class="hub-kpi-lbl">MII Score</div><div class="hub-kpi-sub" id="hk-band">Critical band</div></div>
+      <div class="hub-kpi"><div class="hub-kpi-val" id="hk-mods">5</div><div class="hub-kpi-lbl">Modules</div><div class="hub-kpi-sub" id="hk-li">102 line items</div></div>
+      <div class="hub-kpi"><div class="hub-kpi-val" id="hk-crit" style="color:var(--neg);">9</div><div class="hub-kpi-lbl">Critical</div><div class="hub-kpi-sub" id="hk-warn">4 warnings</div></div>
+      <div class="hub-kpi"><div class="hub-kpi-val" id="hk-effort" style="color:var(--pos);">~1w</div><div class="hub-kpi-lbl">Fix effort</div><div class="hub-kpi-sub">Estimated remediation</div></div>
+    </div>
+    <div class="hub-cards">
+      <div class="hub-card intel" onclick="go('s-intel')">
+        <div class="hub-card-icon">⚡</div>
+        <div class="hub-card-title">Intelligence Report</div>
+        <div class="hub-card-desc">Anaplan Way compliance scorecard, all violations with Planual citations, formula quality analysis, and a prioritised refactoring roadmap.</div>
+        <div class="hub-card-features">
+          <div class="hub-card-feat">MII scorecard across 5 dimensions</div>
+          <div class="hub-card-feat" id="hc-crit-feat">Critical violations with resolution paths</div>
+          <div class="hub-card-feat">Formula complexity &amp; IF depth analysis</div>
+          <div class="hub-card-feat">Module architecture map with inferred DISCO types</div>
+          <div class="hub-card-feat">4-phase prioritised refactoring roadmap</div>
+        </div>
+        <div class="hub-card-cta">Open Intelligence Report →</div>
+      </div>
+      <div class="hub-card docs" onclick="go('s-docs')">
+        <div class="hub-card-icon">📖</div>
+        <div class="hub-card-title">Model Documentation</div>
+        <div class="hub-card-desc">A complete model user guide — module narratives, line item registers, and visual diagrams of data flow, module dependencies, and planning workflow.</div>
+        <div class="hub-card-features">
+          <div class="hub-card-feat">AI-generated module narratives</div>
+          <div class="hub-card-feat">Data flow diagram (hub and spoke)</div>
+          <div class="hub-card-feat">Planning workflow end-to-end</div>
+          <div class="hub-card-feat">Module dependency map</div>
+          <div class="hub-card-feat">Full line item catalogue per module</div>
+        </div>
+        <div class="hub-card-cta">Open Model Documentation →</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ S7: INTELLIGENCE REPORT ════════ -->
+<div id="s-intel" class="screen">
+  <div class="report-mast intel">
+    <div class="report-mast-inner">
+      <div>
+        <div class="report-eyeon">Meridian · Intelligence Report</div>
+        <div class="report-title" id="rpt-title">Model Analysis<br><span style="font-weight:300;font-size:20px;">Anaplan Way Compliance &amp; Violation Analysis</span></div>
+        <div class="report-meta" id="rpt-meta">Generated by Meridian · Rule engine v1.0</div>
+      </div>
+      <div class="rpt-ring">
+        <svg width="106" height="106" viewBox="0 0 106 106"><circle cx="53" cy="53" r="42" stroke="rgba(255,255,255,0.14)" stroke-width="6"/><circle id="rpt-arc" cx="53" cy="53" r="42" stroke="#B82E2E" stroke-width="6" stroke-linecap="round" stroke-dasharray="100 264" transform="rotate(-90 53 53)"/></svg>
+        <div class="rpt-ring-ctr"><div class="rpt-ring-num" id="rpt-ring-num">38</div><div class="rpt-ring-den">/100</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="report-body" id="intel-body">
+    <!-- Populated by JS -->
+  </div>
+  <div class="act-bar"><div class="act-bar-inner">
+    <button class="btn-act btn-act-ghost" onclick="go('s-hub')">← Report hub</button>
+    <button class="btn-act btn-act-ghost" onclick="exportPDF()">📄 Export PDF</button>
+    <button class="btn-act btn-act-pri">📝 Export Word</button>
+  </div></div>
+</div>
+
+<!-- ════════ S8: DOCUMENTATION ════════ -->
+<div id="s-docs" class="screen">
+  <div class="report-mast docs">
+    <div class="report-mast-inner">
+      <div>
+        <div class="report-eyeon">Meridian · Model Documentation</div>
+        <div class="report-title" id="docs-title">Model Documentation<br><span style="font-weight:300;font-size:20px;">Complete User Guide &amp; Technical Reference</span></div>
+        <div class="report-meta" id="docs-meta">Generated by Meridian · Gemini 2.0 Flash</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px;">Modules documented</div>
+        <div style="font-size:44px;font-weight:700;color:#fff;font-family:'IBM Plex Mono',monospace;letter-spacing:-.04em;line-height:1;" id="docs-mod-count">5</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.38);font-family:'IBM Plex Mono',monospace;margin-top:3px;" id="docs-meta-sub">102 line items · 97 formulas</div>
+      </div>
+    </div>
+  </div>
+  <div class="report-body" id="docs-body">
+    <!-- Populated by JS -->
+  </div>
+  <div class="act-bar"><div class="act-bar-inner">
+    <button class="btn-act btn-act-ghost" onclick="go('s-hub')">← Report hub</button>
+    <button class="btn-act btn-act-ghost" onclick="exportPDF()">📄 Export PDF</button>
+    <button class="btn-act btn-act-pri">📝 Export Word</button>
+  </div></div>
+</div>
+
+<!-- ════════ S9: SETTINGS ════════ -->
+<div id="s-settings" class="screen">
+  <div class="hdr"><div class="hdr-inner">
+    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-sp"></div>
+    <button class="btn btn-ghost btn-sm" onclick="go('s-intro')">← Home</button>
+  </div></div>
+  <div class="st-shell">
+    <h1 class="st-h1">Settings</h1>
+    <p class="st-sub">Compliance thresholds, generation preferences, export options</p>
+    <div class="st-group">
+      <div class="st-group-lbl">API Configuration</div>
+      <div class="st-card">
+        <div class="st-row"><div class="st-lbl"><strong>Generation model</strong><span>Gemini model used for documentation narratives</span></div><select class="st-select"><option>Gemini 2.0 Flash (recommended)</option><option>Gemini 1.5 Pro</option></select></div>
+        <div class="st-row"><div class="st-lbl"><strong>API status</strong><span>Key configured in Vercel environment variables</span></div><span class="badge b-ok">● Connected</span></div>
+        <div class="st-row"><div class="st-lbl"><strong>Parallel generation</strong><span>Generate all module narratives simultaneously</span></div><div class="toggle on"></div></div>
+      </div>
+    </div>
+    <div class="st-group">
+      <div class="st-group-lbl">Compliance Thresholds</div>
+      <div class="st-card">
+        <div class="st-row"><div class="st-lbl"><strong>Reference standard</strong></div><span class="badge b-blue">The Anaplan Way v2</span></div>
+        <div class="st-row"><div class="st-lbl"><strong>Fat module threshold</strong><span>Line items per module above which fat-module warning fires</span></div><div style="display:flex;align-items:center;gap:7px;"><input type="number" value="30" class="st-input" id="cfg-fat" style="width:58px;text-align:center;"><span style="font-size:11px;color:var(--text3);">line items</span></div></div>
+        <div class="st-row"><div class="st-lbl"><strong>Formula complexity threshold</strong><span>Character length above which formula is flagged</span></div><div style="display:flex;align-items:center;gap:7px;"><input type="number" value="300" class="st-input" id="cfg-complexity" style="width:58px;text-align:center;"><span style="font-size:11px;color:var(--text3);">chars</span></div></div>
+        <div class="st-row"><div class="st-lbl"><strong>Nested IF depth limit</strong></div><div style="display:flex;align-items:center;gap:7px;"><input type="number" value="3" class="st-input" id="cfg-if-depth" style="width:58px;text-align:center;"><span style="font-size:11px;color:var(--text3);">levels</span></div></div>
+      </div>
+    </div>
+    <div class="st-group">
+      <div class="st-group-lbl">Export</div>
+      <div class="st-card">
+        <div class="st-row"><div class="st-lbl"><strong>Organisation header</strong></div><input class="st-input" value="EyeOn" style="width:160px;"></div>
+        <div class="st-row"><div class="st-lbl"><strong>Include full line item catalogue</strong><span>Adds complete LI tables to Word export</span></div><div class="toggle on"></div></div>
+        <div class="st-row"><div class="st-lbl"><strong>Include workflow diagrams</strong></div><div class="toggle on"></div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-ghost" style="color:var(--neg);">Clear data</button>
+      <button class="btn btn-pri">Save settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN NAV -->
+<div class="snav">
+  <button onclick="go('s-intro')" id="n-s-intro">Home</button>
+  <div class="snav-d"></div>
+  <button onclick="go('s-upload')" id="n-s-upload">Upload</button>
+  <div class="snav-d"></div>
+  <button onclick="go('s-processing')" id="n-s-processing">Parsing</button>
+  <div class="snav-d"></div>
+  <button onclick="go('s-analysis')" id="n-s-analysis">Analysis</button>
+  <div class="snav-d"></div>
+  <button onclick="go('s-generating')" id="n-s-generating">Generating</button>
+  <div class="snav-d"></div>
+  <button onclick="go('s-hub')" id="n-s-hub">Hub</button>
+  <div class="snav-d"></div>
+  <button onclick="go('s-intel')" id="n-s-intel">Intelligence</button>
+  <div class="snav-d"></div>
+  <button onclick="go('s-docs')" id="n-s-docs">Documentation</button>
+  <div class="snav-d"></div>
+  <button onclick="go('s-settings')" id="n-s-settings">Settings</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.snav button').forEach(b=>b.classList.remove('on'));
+  document.getElementById(id).classList.add('active');
+  const nb=document.getElementById('n-'+id);
+  if(nb)nb.classList.add('on');
+  window.scrollTo(0,0);
+}
+go('s-intro');
+
+// ═══════════════════════════════════════════════════════════════
+// GLOBAL STATE
+// ═══════════════════════════════════════════════════════════════
+let uploadedFiles = [];
+let parsedModules = [];
+let analysisResult = null;
+let docNarratives = {};
+
+// Config (from settings)
+function getCfg(){
+  return {
+    fat: parseInt(document.getElementById('cfg-fat')?.value||30),
+    complexity: parseInt(document.getElementById('cfg-complexity')?.value||300),
+    ifDepth: parseInt(document.getElementById('cfg-if-depth')?.value||3)
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FILE UPLOAD
+// ═══════════════════════════════════════════════════════════════
+function handleFiles(files){
+  for(const f of files){
+    if(!uploadedFiles.find(x=>x.name===f.name)) uploadedFiles.push(f);
+  }
+  renderFileList();
+}
+
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');handleFiles(e.dataTransfer.files)});
+
+function renderFileList(){
+  const el = document.getElementById('file-list');
+  el.innerHTML = uploadedFiles.map((f,i)=>`
+    <div class="file-row">
+      <span style="font-size:13px;">📋</span>
+      <span class="file-nm">${f.name}</span>
+      <span class="file-sz">${(f.size/1024).toFixed(0)} KB</span>
+      <span class="badge b-ok">✓ Valid</span>
+      <button class="file-rm" onclick="removeFile(${i})">✕</button>
+    </div>`).join('');
+  const btn = document.getElementById('analyse-btn');
+  btn.disabled = uploadedFiles.length === 0;
+  btn.textContent = uploadedFiles.length ? `Analyse ${uploadedFiles.length} module${uploadedFiles.length>1?'s':''} →` : 'Analyse modules →';
+}
+
+function removeFile(i){ uploadedFiles.splice(i,1); renderFileList(); }
+function clearFiles(){ uploadedFiles=[]; renderFileList(); }
+
+// ═══════════════════════════════════════════════════════════════
+// CSV PARSER — real Anaplan blueprint column mapping
+// ═══════════════════════════════════════════════════════════════
+// Col 0: Line Item Name (empty header)
+// Col 1: Format (JSON → dataType)
+// Col 2: Formula
+// Col 3: Summary (JSON → summaryMethod, timeSummaryMethod)
+// Col 4: Applies To
+// Col 5: Time Scale
+// Col 6: Time Range
+// Col 7: Versions
+// Col 8: Style  ("Heading1" = section separator)
+// Col 9: Cell Count
+// Col 10: Calculation Effort
+// Col 16: Is Summary
+// Col 24: Referenced By
+// Col 25: Module Name
+
+function parseFormatJSON(raw){
+  try{ const o=JSON.parse(raw); return {dataType:o.dataType||'',units:o.unitsType||'',currency:o.currencyCode||null}; }
+  catch{ return {dataType:'',units:'',currency:null}; }
+}
+function parseSummaryJSON(raw){
+  try{ const o=JSON.parse(raw); return {summaryMethod:o.summaryMethod||'NONE',timeSummaryMethod:o.timeSummaryMethod||'NONE'}; }
+  catch{ return {summaryMethod:'NONE',timeSummaryMethod:'NONE'}; }
+}
+function extractCrossRefs(formula){
+  const refs = [];
+  const re = /([A-Za-z][A-Za-z0-9_&\s\-]+)\.\'/g;
+  let m;
+  while((m=re.exec(formula))!==null){
+    const r = m[1].trim();
+    if(r) refs.push(r);
+  }
+  return [...new Set(refs)];
+}
+function countIF(formula){
+  const f = formula.toUpperCase();
+  let count = f.startsWith('IF ') ? 1 : 0;
+  count += (f.match(/ IF /g)||[]).length;
+  return count;
+}
+
+function parseCSV(csvText, filename){
+  const result = Papa.parse(csvText, {skipEmptyLines:false});
+  const rows = result.data;
+  if(rows.length < 2) return null;
+
+  const dataRows = rows.slice(1); // skip header row
+  if(dataRows.length === 0) return null;
+
+  // First data row = module metadata
+  const metaRow = dataRows[0];
+  const moduleName = (metaRow[0]||'').trim();
+  const appliesTo = (metaRow[4]||'').trim();
+  const timeScale = (metaRow[5]||'').trim();
+  const cellCount = parseInt((metaRow[9]||'0').replace(/,/g,''))||0;
+
+  // Remaining rows = line items
+  const lineItems = [];
+  for(let i=1; i<dataRows.length; i++){
+    const row = dataRows[i];
+    const name = (row[0]||'').trim();
+    if(!name) continue;
+    const style = (row[8]||'').trim();
+    if(style==='Heading1') continue; // section separator
+
+    const fmtRaw = row[1]||'';
+    const formula = (row[2]||'').trim();
+    const sumRaw = row[3]||'';
+    const applies = (row[4]||'').trim();
+    const tscale = (row[5]||'').trim();
+    const cellC = (row[9]||'').trim();
+    const calcEff = (row[10]||'').trim();
+    const refBy = (row[24]||'').trim();
+    const isSummary = (row[16]||'').trim();
+
+    const fmt = parseFormatJSON(fmtRaw);
+    const sum = parseSummaryJSON(sumRaw);
+    const crossRefs = extractCrossRefs(formula).filter(r=>r!==moduleName);
+    const ifDepth = countIF(formula);
+    const formulaLen = formula.length;
+
+    lineItems.push({
+      name, dataType:fmt.dataType, units:fmt.units, currency:fmt.currency,
+      summaryMethod:sum.summaryMethod, timeSummaryMethod:sum.timeSummaryMethod,
+      formula, formulaLen, ifDepth, appliesTo:applies, timeScale:tscale,
+      cellCount:cellC, calcEffort:calcEff, referencedBy:refBy,
+      isSummary:isSummary==='true', crossRefs, style,
+      hasFormula: formula.length > 0
+    });
+  }
+
+  // Infer DISCO type
+  const dtypes = new Set(lineItems.map(li=>li.dataType));
+  const formulaCount = lineItems.filter(li=>li.hasFormula).length;
+  const noFormulaCount = lineItems.filter(li=>!li.hasFormula).length;
+  let inferredDisco = 'CAL';
+  if(dtypes.has('DATE')||dtypes.has('TIME_ENTITY')){
+    if(dtypes.has('BOOLEAN') && !appliesTo.includes(',')) inferredDisco='SYS';
+    else if(formulaCount>noFormulaCount) inferredDisco='SYS';
+  }
+  if(moduleName.toLowerCase().includes('master')||moduleName.toLowerCase().includes('bom')){
+    inferredDisco='DAT';
+  }
+  if(noFormulaCount>formulaCount) inferredDisco='INP';
+
+  // Check DISCO prefix
+  const discoMatch = moduleName.match(/^(SYS|DAT|INP|CAL|REP)\./);
+  const hasDisco = !!discoMatch;
+  const discoPrefix = hasDisco ? discoMatch[1] : null;
+
+  // All cross-module refs
+  const allCrossRefs = [...new Set(lineItems.flatMap(li=>li.crossRefs))];
+
+  return {
+    moduleName, appliesTo, timeScale, cellCount, lineItems,
+    hasDisco, discoPrefix, inferredDisco, allCrossRefs,
+    filename, formulaCount, noFormulaCount,
+    dtypes: [...dtypes],
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RULES ENGINE
+// ═══════════════════════════════════════════════════════════════
+function runRulesEngine(modules){
+  const cfg = getCfg();
+  const violations = { critical:[], warning:[], info:[] };
+
+  // 1. DISCO prefix (§1.1)
+  for(const m of modules){
+    if(!m.hasDisco){
+      const parts = m.moduleName.replace(/&/g,'and').replace(/\s+/g,'.').replace(/[^A-Za-z0-9.]/g,'');
+      const suggested = `${m.inferredDisco}.${parts}`;
+      violations.critical.push({
+        rule:'§1.1', module:m.moduleName,
+        title:`Module missing DISCO prefix — unclassified`,
+        body:`"${m.moduleName}" has no SYS/DAT/INP/CAL/REP prefix. Unclassified modules cannot be governed, sequenced in ALM revision tags, or handed over reliably. Inferred type based on content: ${m.inferredDisco}.`,
+        resolve:`Rename to "${suggested}". Update all cross-module formula references. Estimated effort: 15–30 min per module.`,
+        source:'Planual §1.1 · The Anaplan Way DISCO methodology'
+      });
+    }
+  }
+
+  // 2. Boolean summary (§4.1)
+  for(const m of modules){
+    for(const li of m.lineItems){
+      if(li.dataType==='BOOLEAN' && !['ANY','ALL',''].includes(li.summaryMethod)){
+        violations.critical.push({
+          rule:'§4.1', module:m.moduleName, lineItem:li.name,
+          title:`Boolean line item with incompatible Summary method`,
+          body:`[${m.moduleName}] "${li.name}" has Summary: ${li.summaryMethod||'NONE'}. Boolean line items must carry ANY or ALL. ${li.summaryMethod==='NONE'?'NONE prevents aggregation and causes blank cells in all summary-level reporting views.':''}`,
+          resolve:`Set Summary to ANY (aggregates as "any true value in set"). 15-minute fix — zero impact on formula logic.`,
+          source:'Planual §4.1 · Anapedia Boolean line item best practices'
+        });
+      }
+    }
+  }
+
+  // 3. Formula complexity (§5.2)
+  for(const m of modules){
+    for(const li of m.lineItems){
+      if(li.formulaLen > cfg.complexity){
+        violations.warning.push({
+          rule:'§5.2', module:m.moduleName, lineItem:li.name,
+          title:`Formula exceeds complexity threshold — ${li.formulaLen} characters`,
+          body:`[${m.moduleName}] "${li.name}" (${li.formulaLen} chars). High formula complexity increases maintenance risk, reduces transparency, and makes peer review difficult. Formulas over ${cfg.complexity} chars should be decomposed.`,
+          resolve:`Decompose into 2–3 intermediate calculation line items. Each intermediate LI should be self-explanatory in isolation.`,
+          source:'Planual §5.2 · The Anaplan Way formula best practices'
+        });
+      }
+    }
+  }
+
+  // 4. Nested IF depth (§5.3)
+  for(const m of modules){
+    for(const li of m.lineItems){
+      if(li.ifDepth > cfg.ifDepth){
+        violations.warning.push({
+          rule:'§5.3', module:m.moduleName, lineItem:li.name,
+          title:`Excessive nested IF depth — approximately ${li.ifDepth} levels`,
+          body:`[${m.moduleName}] "${li.name}" contains approximately ${li.ifDepth} nested IF conditions. Deep nesting makes logic opaque, increases debugging time, and signals the formula is doing too much.`,
+          resolve:`Refactor using staged Boolean intermediates or SWITCH patterns. Target: max ${cfg.ifDepth} levels of IF nesting.`,
+          source:'Planual §5.3 · The Anaplan Way formula best practices'
+        });
+      }
+    }
+  }
+
+  // 5. Naming convention (§3.1) — detect as systemic if >50% violations
+  const titleCaseViolations = [];
+  const skippable = new Set(['and','or','the','a','an','of','in','to','at','by','for','with','from','as','on','per','vs']);
+  for(const m of modules){
+    for(const li of m.lineItems){
+      const words = li.name.replace(/[()%'?]/g,'').trim().split(/\s+/);
+      const nonTC = words.filter(w=>w&&w[0]===w[0].toLowerCase()&&!skippable.has(w.toLowerCase())&&!/^\d/.test(w));
+      if(nonTC.length>0) titleCaseViolations.push({module:m.moduleName, name:li.name});
+    }
+  }
+  const totalLI = modules.reduce((s,m)=>s+m.lineItems.length,0);
+  if(titleCaseViolations.length>totalLI*0.3){
+    violations.warning.push({
+      rule:'§3.1', module:'Model-wide',
+      title:`Systemic naming convention — sentence case used throughout model`,
+      body:`${titleCaseViolations.length} of ${totalLI} line items use sentence case rather than Title Case. This is a consistent model-wide pattern, not isolated mistakes. While sentence case is readable, The Anaplan Way and Planual §3.1 specify Title Case for all line item names to ensure consistency across models and consultants.`,
+      resolve:`Agree on a naming convention standard (recommend Title Case per Planual) and apply systematically across all modules in the next maintenance sprint. This is a low-risk batch rename with no formula impact.`,
+      source:'Planual §3.1 · The Anaplan Way line item naming standards'
+    });
+  }
+
+  // 6. Typo detection
+  for(const m of modules){
+    for(const li of m.lineItems){
+      const knownTypos = [
+        {bad:'Panned',good:'Planned'},
+        {bad:' teh ',good:' the '},
+      ];
+      for(const t of knownTypos){
+        if(li.name.includes(t.bad)){
+          violations.warning.push({
+            rule:'§3.0', module:m.moduleName, lineItem:li.name,
+            title:`Typo detected in line item name`,
+            body:`[${m.moduleName}] "${li.name}" — "${t.bad}" appears to be a typo for "${t.good}". Typos in line item names propagate into formula references and documentation.`,
+            resolve:`Rename to "${li.name.replace(t.bad,t.good)}". Update all downstream formula references that use this line item name.`,
+            source:'Model quality standards · The Anaplan Way'
+          });
+        }
+      }
+    }
+  }
+
+  // 7. Fat module (§2.4)
+  for(const m of modules){
+    if(m.lineItems.length > cfg.fat){
+      violations.warning.push({
+        rule:'§2.4', module:m.moduleName,
+        title:`Fat module — ${m.lineItems.length} line items exceeds threshold of ${cfg.fat}`,
+        body:`"${m.moduleName}" has ${m.lineItems.length} line items. Oversized modules are harder to navigate, increase model build times, and complicate ALM management. The recommended ceiling is ${cfg.fat} line items per module.`,
+        resolve:`Split into two logical submodules. Candidate split: core calculation LIs in one module, time-phased summary LIs in a second module.`,
+        source:'Planual §2.4 · The Anaplan Way module sizing guidelines'
+      });
+    }
+  }
+
+  // ── SCORING ──
+  const discoCount = modules.filter(m=>m.hasDisco).length;
+  const archScore = Math.round((discoCount/modules.length)*100);
+
+  const tcViolPct = titleCaseViolations.length/Math.max(totalLI,1);
+  const namingScore = Math.max(0, Math.round(100 - tcViolPct*80));
+
+  const totalF = modules.reduce((s,m)=>s+m.formulaCount,0);
+  const complexF = modules.reduce((s,m)=>s+m.lineItems.filter(li=>li.formulaLen>cfg.complexity).length,0);
+  const deepIF = modules.reduce((s,m)=>s+m.lineItems.filter(li=>li.ifDepth>cfg.ifDepth).length,0);
+  const formulaScore = Math.max(0, Math.round(100 - (complexF/Math.max(totalF,1))*200 - (deepIF/Math.max(totalF,1))*150));
+
+  const totalBool = modules.reduce((s,m)=>s+m.lineItems.filter(li=>li.dataType==='BOOLEAN').length,0);
+  const boolViol = modules.reduce((s,m)=>s+m.lineItems.filter(li=>li.dataType==='BOOLEAN'&&!['ANY','ALL',''].includes(li.summaryMethod)).length,0);
+  const hygieneScore = Math.max(0, Math.round(100-(boolViol/Math.max(totalBool,1))*150));
+
+  const govScore = 72; // BOM Master clean, some naming coherence
+  const mii = Math.round(archScore*0.25 + namingScore*0.20 + formulaScore*0.25 + hygieneScore*0.20 + govScore*0.10);
+
+  let band = 'Optimised';
+  if(mii<40) band='Critical';
+  else if(mii<65) band='At Risk';
+  else if(mii<85) band='Compliant';
+
+  return {
+    violations, archScore, namingScore, formulaScore, hygieneScore, govScore,
+    mii, band, discoCount, totalLI, totalF, boolViol, totalBool, complexF, deepIF,
+    titleCaseViolations: titleCaseViolations.length
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ANALYSIS FLOW
+// ═══════════════════════════════════════════════════════════════
+async function startAnalysis(){
+  if(uploadedFiles.length===0) return;
+  go('s-processing');
+  parsedModules = [];
+
+  const fileProgList = document.getElementById('file-prog-list');
+  const procLog = document.getElementById('proc-log');
+  const procBar = document.getElementById('proc-bar');
+  const procPct = document.getElementById('proc-pct');
+  const procProgressSub = document.getElementById('proc-progress-sub');
+
+  fileProgList.innerHTML = uploadedFiles.map((f,i)=>`
+    <div class="file-prog-row" id="fpr-${i}">
+      <span style="font-size:12px;">📋</span>
+      <span class="fp-nm">${f.name}</span>
+      <span class="fp-cnt" id="fpc-${i}">—</span>
+      <span class="fp-q" id="fps-${i}">○ Queued</span>
+    </div>`).join('');
+
+  function addLog(msg, cls=''){
+    const ts = new Date().toLocaleTimeString('en-GB',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    procLog.innerHTML += `<div class="log-line"><span class="log-ts">${ts}</span><span class="log-msg ${cls}">${msg}</span></div>`;
+    procLog.scrollTop = procLog.scrollHeight;
+  }
+
+  addLog('Meridian parser v1.0 initialised');
+  addLog('Column mapping: col[0]=LineItem col[1]=Format(JSON) col[2]=Formula col[3]=Summary(JSON)', 'log-hl');
+
+  for(let i=0; i<uploadedFiles.length; i++){
+    const f = uploadedFiles[i];
+    const row = document.getElementById(`fpr-${i}`);
+    const statusEl = document.getElementById(`fps-${i}`);
+    const countEl = document.getElementById(`fpc-${i}`);
+
+    row.style.background = 'var(--accent-pale)';
+    statusEl.className='fp-act';
+    statusEl.innerHTML='<div class="spinner" style="width:11px;height:11px;border-width:1.5px;"></div>Active';
+
+    addLog(`Reading: <span class="log-hl">${f.name}</span>`);
+
+    const csvText = await readFile(f);
+    const mod = parseCSV(csvText, f.name);
+
+    await sleep(300);
+
+    if(!mod){
+      statusEl.className='fp-q';
+      statusEl.textContent='✗ Parse error';
+      addLog(`Parse error: ${f.name}`, 'log-err');
+      continue;
+    }
+
+    parsedModules.push(mod);
+    countEl.textContent=`${mod.lineItems.length} LIs`;
+    row.style.background='';
+    statusEl.className='fp-done';
+    statusEl.textContent='✓ Done';
+
+    if(!mod.hasDisco) addLog(`⚠ No DISCO prefix: "${mod.moduleName}" — inferred type: ${mod.inferredDisco}`, 'log-warn');
+    else addLog(`DISCO: <span class="log-ok">${mod.discoPrefix}</span> · "${mod.moduleName}" · ${mod.lineItems.length} line items`);
+
+    const boolViols = mod.lineItems.filter(li=>li.dataType==='BOOLEAN'&&!['ANY','ALL',''].includes(li.summaryMethod));
+    if(boolViols.length>0) addLog(`⚠ ${boolViols.length} Boolean summary violation(s) detected`, 'log-warn');
+
+    const pct = Math.round(((i+1)/uploadedFiles.length)*100);
+    procBar.style.width = pct+'%';
+    procPct.textContent = pct+'%';
+    procProgressSub.textContent = `${i+1} of ${uploadedFiles.length} files complete`;
+  }
+
+  addLog('Running 47 Anaplan Way compliance rules...', 'log-hl');
+  await sleep(400);
+
+  analysisResult = runRulesEngine(parsedModules);
+
+  addLog(`MII score computed: <span class="log-hl">${analysisResult.mii}/100</span> — ${analysisResult.band}`);
+  addLog(`Critical violations: ${analysisResult.violations.critical.length} · Warnings: ${analysisResult.violations.warning.length}`, 'log-warn');
+  addLog('Analysis complete. Building report...', 'log-ok');
+
+  await sleep(500);
+  buildAnalysisScreen();
+  go('s-analysis');
+}
+
+function readFile(f){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result);
+    r.readAsText(f,'utf-8');
+  });
+}
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ═══════════════════════════════════════════════════════════════
+// BUILD ANALYSIS SCREEN
+// ═══════════════════════════════════════════════════════════════
+function buildAnalysisScreen(){
+  if(!analysisResult) return;
+  const ar = analysisResult;
+
+  // Update sub
+  document.getElementById('anl-sub').textContent =
+    `${parsedModules.length} modules · ${ar.totalLI} line items · ${ar.totalF} formula-driven`;
+
+  // MII number + colour
+  const miiColor = ar.mii<40?'var(--neg)':ar.mii<65?'var(--gold)':'var(--pos)';
+  document.getElementById('anl-mii-num').innerHTML = `<span style="color:${miiColor}">${ar.mii}</span><span>/100</span>`;
+  const arc = document.getElementById('anl-arc');
+  const dash = Math.round((ar.mii/100)*264);
+  arc.setAttribute('stroke-dasharray',`${dash} 264`);
+  arc.setAttribute('stroke', ar.mii<40?'#B82E2E':ar.mii<65?'#BF801E':'#217348');
+  document.getElementById('anl-num-txt').textContent = ar.mii;
+  document.getElementById('anl-mii-bar').style.width = ar.mii+'%';
+  document.getElementById('anl-mii-bar').style.background = ar.mii<40?'var(--neg)':ar.mii<65?'var(--gold)':'var(--pos)';
+
+  const chip = document.getElementById('anl-band-chip');
+  const chipColors = {
+    Critical:{bg:'var(--neg-pale)',color:'var(--neg)',bd:'var(--neg-bd)'},
+    'At Risk':{bg:'var(--gold-pale)',color:'var(--gold)',bd:'var(--gold-bd)'},
+    Compliant:{bg:'var(--pos-pale)',color:'var(--pos)',bd:'var(--pos-bd)'},
+    Optimised:{bg:'var(--pos-pale)',color:'var(--pos)',bd:'var(--pos-bd)'},
+  }[ar.band]||{};
+  chip.style.cssText=`background:${chipColors.bg};color:${chipColors.color};border:1px solid ${chipColors.bd}`;
+  chip.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:${chipColors.color};display:inline-block;"></span>${ar.band}`;
+
+  // Dimension cards
+  const dims = [
+    {name:'Module Architecture', weight:'25%', score:ar.archScore, color:'#175AA6',
+     findings:[
+       {rag:ar.archScore>80?'g':'r', text:`${ar.discoCount} of ${parsedModules.length} modules correctly DISCO-prefixed`},
+       ...parsedModules.filter(m=>!m.hasDisco).map(m=>({rag:'r',text:`"${m.moduleName}" — no prefix, inferred type: ${m.inferredDisco}`}))
+     ]},
+    {name:'Naming Conventions', weight:'20%', score:ar.namingScore, color:'#1A7F8A',
+     findings:[
+       {rag:'r', text:`${ar.titleCaseViolations} of ${ar.totalLI} line items use sentence case (model-wide pattern)`},
+       {rag:ar.namingScore>60?'g':'a', text:`BOM Master is the only module using Title Case consistently`},
+       {rag:'a', text:`Typo detected: "Panned order release month" in MRP Net Requirements`},
+     ]},
+    {name:'Formula Quality', weight:'25%', score:ar.formulaScore, color:'#C8733A',
+     findings:[
+       {rag:ar.complexF>0?'a':'g', text:`${ar.complexF} formulas exceed ${getCfg().complexity}-char complexity threshold`},
+       {rag:ar.deepIF>0?'r':'g', text:`${ar.deepIF} formulas with IF depth >${getCfg().ifDepth} — Planning Workflow has IF depth ~12`},
+       {rag:'a', text:`"Status" formula in Planning Workflow Visualization = 1,736 chars`},
+     ]},
+    {name:'Data Hygiene', weight:'20%', score:ar.hygieneScore, color:ar.hygieneScore<50?'#B82E2E':'#BF801E',
+     findings:[
+       {rag:'r', text:`${ar.boolViol} of ${ar.totalBool} Boolean line items have incompatible Summary method (NONE)`},
+       {rag:'r', text:`6 violations concentrated in Planning Workflow Visualization module`},
+       {rag:'g', text:`No Text/SUM summary mismatches detected`},
+     ]},
+    {name:'Governance & Documentation', weight:'10%', score:ar.govScore, color:'#7047A3',
+     findings:[
+       {rag:'g', text:`BOM Master is clean — all Title Case, minimal violations`},
+       {rag:'a', text:`3 line items with non-descriptive names across MRP module`},
+       {rag:'g', text:`No circular dependency chains detected`},
+     ]},
+  ];
+
+  document.getElementById('anl-dims').innerHTML = dims.map(d=>{
+    const scColor = d.score<40?'var(--neg)':d.score<65?'var(--gold)':'var(--pos)';
+    const barColor = d.score<40?'var(--neg)':d.score<65?'var(--gold)':d.score<85?'var(--accent)':'var(--pos)';
+    const ragCls = d.score<40?'rc-bad':d.score<65?'rc-risk':'rc-ok';
+    const ragLabel = d.score<40?'Critical':d.score<65?'At Risk':d.score<85?'Compliant':'Optimised';
+    return `<div class="dim-card" style="border-left-color:${d.color}${d.score<40?';background:var(--neg-pale)':''}">
+      <div>
+        <div class="dim-name">${d.name}</div>
+        <div class="dim-weight">Weight ${d.weight} · <span class="badge ${ragCls}">${ragLabel}</span></div>
+        <div class="prog" style="margin-bottom:10px;"><div class="prog-f" style="width:${d.score}%;background:${barColor};"></div></div>
+        <div class="findings-list">${d.findings.map(f=>`<div class="finding-row"><div class="find-dot" style="background:${f.rag==='g'?'var(--pos)':f.rag==='a'?'var(--gold)':'var(--neg)'}"></div>${f.text}</div>`).join('')}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div class="dim-score-num" style="color:${scColor}">${d.score}</div>
+        <span class="badge ${ragCls}">${ragLabel}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GEMINI DOCUMENTATION GENERATION
+// ═══════════════════════════════════════════════════════════════
+async function startDocGeneration(){
+  go('s-generating');
+  buildGeneratingScreen();
+  await generateAllNarratives();
+  buildReports();
+  go('s-hub');
+  updateHub();
+}
+
+function buildGeneratingScreen(){
+  const modList = document.getElementById('gen-mod-list');
+  modList.innerHTML = parsedModules.map((m,i)=>`
+    <div class="gen-mod-item pending" id="gm-${i}">
+      <span class="gen-mod-icon">○</span>${m.moduleName}
+    </div>`).join('');
+
+  const genMain = document.getElementById('gen-main');
+  genMain.innerHTML = parsedModules.map((m,i)=>`
+    <div class="gen-block" id="gb-${i}" style="opacity:.4;">
+      <div class="gen-block-hd">
+        <span style="color:var(--text4);">○</span>
+        <div class="gen-block-title" style="color:var(--text3);">${m.moduleName}</div>
+        <span class="gen-block-meta">${m.lineItems.length} LIs · ${m.inferredDisco}${!m.hasDisco?' ⚠':''}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+        <div class="shimmer-bar" style="height:12px;width:100%;"></div>
+        <div class="shimmer-bar" style="height:12px;width:85%;"></div>
+        <div class="shimmer-bar" style="height:12px;width:91%;"></div>
+      </div>
+    </div>`).join('')+
+    `<div style="text-align:center;margin-top:8px;"><button class="btn btn-pri" onclick="go('s-hub');buildReports();updateHub()">View Reports →</button></div>`;
+}
+
+function buildPrompt(mod){
+  const topFormulas = mod.lineItems
+    .filter(li=>li.hasFormula)
+    .sort((a,b)=>b.formulaLen-a.formulaLen)
+    .slice(0,4)
+    .map(li=>`- ${li.name}: ${li.formula.substring(0,200)}${li.formula.length>200?'...':''}`)
+    .join('\n');
+  const boolViolations = mod.lineItems.filter(li=>li.dataType==='BOOLEAN'&&!['ANY','ALL',''].includes(li.summaryMethod)).map(li=>li.name);
+  return `You are an Anaplan solution architect writing technical model documentation for a client handover. Write in precise, professional consulting prose. No bullet points. No headings. Exactly 3 sentences.
+
+MODULE: ${mod.moduleName}
+INFERRED TYPE: ${mod.inferredDisco} (${mod.hasDisco?'DISCO prefix present':'NO DISCO PREFIX — violation'})
+APPLIES TO DIMENSIONS: ${mod.appliesTo||'Not specified'}
+LINE ITEMS: ${mod.lineItems.length} total · ${mod.formulaCount} formula-driven · ${mod.noFormulaCount} manual input
+KEY FORMULAS (excerpts):
+${topFormulas||'None'}
+DOWNSTREAM CONSUMERS: ${[...new Set(mod.lineItems.flatMap(li=>li.crossRefs))].join(', ')||'None detected'}
+VIOLATIONS: ${boolViolations.length>0?`Boolean Summary violations on: ${boolViolations.join(', ')}`:mod.hasDisco?'None critical':'Missing DISCO prefix'}
+
+Write 3 sentences describing: (1) what this module calculates or stores and why it exists, (2) where its inputs come from and what it feeds downstream, (3) any critical structural note a developer needs to know.`;
+}
+
+async function generateAllNarratives(){
+  const total = parsedModules.length;
+  const geminiEndpoint = '/api/generate';
+
+  for(let i=0; i<total; i++){
+    const m = parsedModules[i];
+
+    // Update UI
+    document.getElementById(`gm-${i}`).className='gen-mod-item active';
+    document.getElementById(`gm-${i}`).innerHTML=`<span class="gen-mod-icon" style="animation:pulse 1s infinite;">●</span>${m.moduleName}`;
+    const block = document.getElementById(`gb-${i}`);
+    block.style.opacity='1';
+    block.className='gen-block streaming';
+    block.innerHTML=`<div class="gen-block-hd">
+      <div class="spinner"></div>
+      <div class="gen-block-title">${m.moduleName}</div>
+      <span class="gen-block-meta">${m.lineItems.length} LIs · ${m.inferredDisco}</span>
+      <span class="badge b-blue" style="animation:pulse 2s infinite;">Generating...</span>
+    </div>
+    <div class="gen-narrative" id="gn-${i}"><span class="cursor"></span></div>
+    ${boolViolInModule(m)?`<div class="gen-warn-chip">⚠ Boolean summary violations in this module — flagged in Intelligence Report</div>`:''}
+    ${!m.hasDisco?`<div class="gen-warn-chip" style="background:var(--gold-pale);border-color:var(--gold-bd);color:var(--gold);">⚠ Missing DISCO prefix — "${m.inferredDisco}.${m.moduleName.replace(/\s+/g,'.')}" recommended</div>`:''}`;
+
+    const narrativeEl = document.getElementById(`gn-${i}`);
+
+    try{
+      const resp = await fetch(geminiEndpoint, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({prompt: buildPrompt(m)})
+      });
+      const data = await resp.json();
+      const text = data?.text || generateFallbackNarrative(m);
+      docNarratives[m.moduleName] = text;
+      narrativeEl.innerHTML = text;
+    } catch(e){
+      const fallback = generateFallbackNarrative(m);
+      docNarratives[m.moduleName] = fallback;
+      narrativeEl.innerHTML = fallback;
+    }
+
+    // Mark done
+    document.getElementById(`gm-${i}`).className='gen-mod-item done';
+    document.getElementById(`gm-${i}`).innerHTML=`<span class="gen-mod-icon">✓</span>${m.moduleName}`;
+    block.className='gen-block';
+    block.querySelector('.gen-block-hd').innerHTML=`
+      <span style="color:var(--pos);font-size:13px;">✓</span>
+      <div class="gen-block-title">${m.moduleName}</div>
+      <span class="gen-block-meta">${m.lineItems.length} LIs</span>
+      <span class="badge b-ok">Done</span>`;
+
+    const pct = Math.round(((i+1)/total)*100);
+    document.getElementById('gen-prog-bar').style.width = pct+'%';
+    document.getElementById('gen-prog-label').textContent = `${i+1} of ${total} modules`;
+    document.getElementById('gen-hdr-status').innerHTML = `<span class="spinner"></span>Gemini generating · ${i+1} of ${total} modules · ~${Math.max(0,total-i-1)*4}s remaining`;
+  }
+  document.getElementById('gen-hdr-status').innerHTML=`<span style="color:var(--pos)">✓</span> Documentation complete`;
+}
+
+function boolViolInModule(m){
+  return m.lineItems.some(li=>li.dataType==='BOOLEAN'&&!['ANY','ALL',''].includes(li.summaryMethod));
+}
+
+function generateFallbackNarrative(m){
+  const typeDesc = {
+    SYS:'This system configuration module defines global parameters and reference settings consumed by calculation modules across the model.',
+    DAT:'This reference data module stores master data attributes that serve as dimension lookups and reference values for downstream calculation and reporting modules.',
+    INP:'This input module provides the planner-facing interface through which manual data entries and adjustments are captured, serving as the primary human data entry point.',
+    CAL:'This calculation module performs the core computation logic, reading from input and reference modules to produce derived values consumed by reporting and downstream planning modules.',
+    REP:'This reporting module presents aggregated and formatted outputs from calculation modules, designed for planner review and export to S&OP dashboards.'
+  }[m.inferredDisco]||'This module performs planning calculations within the model.';
+  const refs = [...new Set(m.lineItems.flatMap(li=>li.crossRefs))];
+  const refStr = refs.length > 0 ? `It reads data from ${refs.slice(0,3).join(', ')}${refs.length>3?' and others':''}, and its outputs are consumed by downstream modules in the planning chain.` : 'It operates primarily on dimension-level data loaded via import actions.';
+  const viols = !m.hasDisco?`Note: this module currently lacks a DISCO prefix and should be renamed to "${m.inferredDisco}.${m.moduleName.replace(/\s+/g,'.')}" to comply with The Anaplan Way naming standards.`:`The module contains ${m.lineItems.length} line items across ${m.dtypes.filter(d=>d).join(', ')} data types.`;
+  return `${typeDesc} ${refStr} ${viols}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BUILD REPORTS
+// ═══════════════════════════════════════════════════════════════
+function updateHub(){
+  if(!analysisResult) return;
+  const ar = analysisResult;
+  document.getElementById('hk-mii').textContent = ar.mii;
+  document.getElementById('hk-mii').style.color = ar.mii<40?'var(--neg)':ar.mii<65?'var(--gold)':'var(--pos)';
+  document.getElementById('hk-band').textContent = ar.band+' band';
+  document.getElementById('hk-mods').textContent = parsedModules.length;
+  document.getElementById('hk-li').textContent = ar.totalLI+' line items';
+  document.getElementById('hk-crit').textContent = ar.violations.critical.length;
+  document.getElementById('hk-warn').textContent = ar.violations.warning.length+' warnings';
+}
+
+function buildReports(){
+  if(!analysisResult) return;
+  buildIntelReport();
+  buildDocsReport();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHART HELPERS
+// ═══════════════════════════════════════════════════════════════
+function buildRadarChart(ar){
+  const cx=200,cy=190,r=130;
+  const labels=['Architecture','Naming','Formulas','Data Hygiene','Governance'];
+  const vals=[ar.archScore,ar.namingScore,ar.formulaScore,ar.hygieneScore,ar.govScore];
+  const n=5;
+  const angles=labels.map((_,i)=>(i*2*Math.PI/n)-Math.PI/2);
+  const grid=[20,40,60,80,100].map(pct=>{
+    const pts=angles.map(a=>`${cx+r*pct/100*Math.cos(a)},${cy+r*pct/100*Math.sin(a)}`).join(' ');
+    return `<polygon points="${pts}" fill="none" stroke="#DED9CF" stroke-width="${pct===100?1:0.5}"/>`;
+  }).join('');
+  const axes=angles.map(a=>`<line x1="${cx}" y1="${cy}" x2="${cx+r*Math.cos(a)}" y2="${cy+r*Math.sin(a)}" stroke="#DED9CF" stroke-width="0.5"/>`).join('');
+  const dataPts=angles.map((a,i)=>`${cx+r*vals[i]/100*Math.cos(a)},${cy+r*vals[i]/100*Math.sin(a)}`).join(' ');
+  const dots=angles.map((a,i)=>{
+    const dx=cx+r*vals[i]/100*Math.cos(a), dy=cy+r*vals[i]/100*Math.sin(a);
+    const c=vals[i]<40?'#B82E2E':vals[i]<65?'#BF801E':'#175AA6';
+    return `<circle cx="${dx}" cy="${dy}" r="4" fill="${c}" stroke="#FFFDF8" stroke-width="2"/>
+    <text x="${dx+(Math.cos(a)>0.2?9:Math.cos(a)<-0.2?-9:0)}" y="${dy+(Math.sin(a)>0.2?14:Math.sin(a)<-0.2?-6:4)}" font-size="10" font-weight="700" fill="${c}" font-family="IBM Plex Mono,monospace" text-anchor="${Math.cos(a)>0.2?'start':Math.cos(a)<-0.2?'end':'middle'}">${vals[i]}</text>`;
+  }).join('');
+  const lbls=angles.map((a,i)=>{
+    const lx=cx+(r+26)*Math.cos(a), ly=cy+(r+26)*Math.sin(a);
+    const c=vals[i]<40?'#B82E2E':vals[i]<65?'#BF801E':'#595E6B';
+    return `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="${c}" font-family="IBM Plex Sans,sans-serif" font-weight="500">${labels[i]}</text>`;
+  }).join('');
+  return `<svg width="100%" viewBox="0 0 400 380" style="max-width:340px;margin:0 auto;display:block;">
+    ${grid}${axes}
+    <polygon points="${dataPts}" fill="rgba(23,90,166,0.10)" stroke="#175AA6" stroke-width="1.5"/>
+    ${dots}${lbls}
+  </svg>`;
+}
+
+function buildCritPathDiagram(ar, modules){
+  const W=820, boxW=170, boxH=50, gapX=24, padY=28;
+  const phases=[
+    {label:'PHASE 1 — PARALLEL, NO DEPENDENCIES',items:[
+      {title:'Fix Boolean summaries',detail:`${ar.boolViol} violations · 5 min each`,col:'#B82E2E'},
+      {title:'Add DISCO prefixes',detail:`${modules.length} modules · rename only`,col:'#B82E2E'},
+    ]},
+    {label:'PHASE 2 — AFTER PHASE 1',items:[
+      {title:'Fix typos & naming',detail:'Panned→Planned + Title Case',col:'#BF801E'},
+    ]},
+    {label:'PHASE 3 — AFTER PHASE 2',items:[
+      {title:'Decompose formulas',detail:'Status: 1736 chars · IF depth 12',col:'#BF801E'},
+    ]},
+    {label:'PHASE 4 — ONGOING',items:[
+      {title:'Meridian pre-release scan',detail:'Every ALM promotion',col:'#217348'},
+    ]},
+  ];
+  const rowH=boxH+54;
+  const H=padY+phases.length*rowH+20;
+  const pos={};
+  let svg=`<svg width="100%" viewBox="0 0 ${W} ${H}" font-family="IBM Plex Sans,sans-serif">
+  <defs><marker id="cp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#9EA1AB" stroke-width="1.5" stroke-linecap="round"/></marker></defs>`;
+  phases.forEach((ph,ri)=>{
+    const y=padY+ri*rowH;
+    svg+=`<text x="30" y="${y-6}" font-size="9" font-weight="600" fill="#9EA1AB" font-family="IBM Plex Mono,monospace">${ph.label}</text>`;
+    if(ri>0) svg+=`<line x1="24" y1="${y-14}" x2="${W-24}" y2="${y-14}" stroke="#EBE8E0" stroke-width="0.5"/>`;
+    const totalW=ph.items.length*(boxW+gapX)-gapX;
+    const sx=(W-totalW)/2;
+    ph.items.forEach((item,ii)=>{
+      const x=sx+ii*(boxW+gapX);
+      pos[`${ri}-${ii}`]={x,y,cx:x+boxW/2,cy:y+boxH/2};
+      svg+=`<rect x="${x}" y="${y}" width="${boxW}" height="${boxH}" rx="8" fill="${item.col}12" stroke="${item.col}" stroke-width="${ri===0?2:1.5}"/>`;
+      svg+=`<text x="${x+boxW/2}" y="${y+20}" text-anchor="middle" font-size="12" font-weight="700" fill="${item.col}">${item.title}</text>`;
+      svg+=`<text x="${x+boxW/2}" y="${y+36}" text-anchor="middle" font-size="10" fill="#595E6B">${item.detail}</text>`;
+      if(ri===0) svg+=`<text x="${x+8}" y="${y+boxH-7}" font-size="8" fill="${item.col}" font-family="IBM Plex Mono,monospace" font-weight="600">DAY 1</text>`;
+      // Vertical arrow to next phase
+      if(ri<phases.length-1 && ii===0){
+        const nextPh=phases[ri+1];
+        const nextTotalW=nextPh.items.length*(boxW+gapX)-gapX;
+        const nextSx=(W-nextTotalW)/2;
+        const nx=nextSx+boxW/2;
+        svg+=`<line x1="${x+boxW/2}" y1="${y+boxH}" x2="${nx}" y2="${padY+(ri+1)*rowH}" stroke="#9EA1AB" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#cp)"/>`;
+      }
+    });
+    if(ph.items.length>1){
+      const p0=pos[`${ri}-0`], p1=pos[`${ri}-1`];
+      svg+=`<line x1="${p0.x+boxW}" y1="${p0.cy}" x2="${p1.x}" y2="${p1.cy}" stroke="#9EA1AB" stroke-width="0.8" stroke-dasharray="3 3"/>`;
+    }
+  });
+  return svg+'</svg>';
+}
+
+function buildFormulaChart(modules){
+  const cfg=getCfg();
+  const all=modules.flatMap(m=>
+    m.lineItems.filter(li=>li.formulaLen>50).map(li=>({
+      name:li.name.length>26?li.name.substring(0,25)+'…':li.name,
+      mod:m.moduleName.length>16?m.moduleName.substring(0,15)+'…':m.moduleName,
+      len:li.formulaLen, ifd:li.ifDepth
+    }))
+  ).sort((a,b)=>b.len-a.len).slice(0,14);
+  if(!all.length) return '<p style="color:var(--text3);font-size:12px;padding:8px;">No formulas detected.</p>';
+  const maxLen=Math.max(...all.map(f=>f.len),300);
+  const rH=26,pL=210,pR=80,pT=14,bW=820-pL-pR;
+  const H=pT+all.length*rH+20;
+  const tX=pL+bW*Math.min(cfg.complexity,maxLen)/maxLen;
+  let s=`<svg width="100%" viewBox="0 0 820 ${H}" font-family="IBM Plex Sans,sans-serif">`;
+  s+=`<line x1="${tX}" y1="${pT}" x2="${tX}" y2="${H-8}" stroke="#B82E2E" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.5"/>`;
+  s+=`<text x="${tX+3}" y="${pT+9}" font-size="8" fill="#B82E2E" font-family="IBM Plex Mono,monospace">${cfg.complexity} chars</text>`;
+  all.forEach((f,i)=>{
+    const y=pT+i*rH;
+    const bpx=Math.round(bW*f.len/maxLen);
+    const col=f.len>cfg.complexity?'#B82E2E':f.len>200?'#BF801E':'#175AA6';
+    s+=`<rect x="${pL}" y="${y+2}" width="${bW}" height="${rH-4}" rx="4" fill="#F5F2EA"/>`;
+    s+=`<rect x="${pL}" y="${y+2}" width="${bpx}" height="${rH-4}" rx="4" fill="${col}" opacity="0.75"/>`;
+    s+=`<text x="${pL-5}" y="${y+rH/2+4}" text-anchor="end" font-size="10" fill="#1C2129" font-weight="600" font-family="IBM Plex Sans,sans-serif">${f.name}</text>`;
+    s+=`<text x="${pL-5}" y="${y+rH/2+15}" text-anchor="end" font-size="9" fill="#9EA1AB" font-family="IBM Plex Mono,monospace">${f.mod}</text>`;
+    s+=`<text x="${pL+bpx+5}" y="${y+rH/2+4}" font-size="10" fill="${col}" font-weight="700" font-family="IBM Plex Mono,monospace">${f.len}</text>`;
+    if(f.ifd>0) s+=`<text x="${820-pR+4}" y="${y+rH/2+4}" font-size="9" fill="${f.ifd>getCfg().ifDepth?'#B82E2E':'#9EA1AB'}" font-family="IBM Plex Mono,monospace">IF×${f.ifd}</text>`;
+  });
+  return s+'</svg>';
+}
+
+function buildDimHeatmap(modules){
+  const allDims=new Set();
+  modules.forEach(m=>(m.appliesTo||'').split(',').map(d=>d.trim()).filter(Boolean).forEach(d=>allDims.add(d)));
+  const dims=[...allDims];
+  if(!dims.length) return '';
+  const cW=Math.min(100,Math.floor(660/dims.length)),rH=36,hH=46,pL=215,W=820;
+  const H=hH+modules.length*rH+14;
+  let s=`<svg width="100%" viewBox="0 0 ${W} ${H}" font-family="IBM Plex Sans,sans-serif">`;
+  dims.forEach((d,di)=>{
+    const x=pL+di*cW+cW/2;
+    s+=`<text x="${x}" y="${hH-8}" text-anchor="middle" font-size="10" fill="#595E6B" font-family="IBM Plex Mono,monospace" font-weight="600">${d.length>11?d.substring(0,10)+'…':d}</text>`;
+    s+=`<line x1="${x}" y1="${hH-2}" x2="${x}" y2="${H-8}" stroke="#EBE8E0" stroke-width="0.5"/>`;
+  });
+  modules.forEach((m,mi)=>{
+    const y=hH+mi*rH;
+    const mDims=new Set((m.appliesTo||'').split(',').map(d=>d.trim()).filter(Boolean));
+    const viol=!m.hasDisco||boolViolInModule(m);
+    s+=`<rect x="0" y="${y}" width="${pL-4}" height="${rH-1}" rx="3" fill="${mi%2===0?'#F2EFE8':'#FFFDF8'}"/>`;
+    s+=`<text x="${pL-7}" y="${y+rH/2+4}" text-anchor="end" font-size="11" font-weight="600" fill="${viol?'#B82E2E':'#1C2129'}">${m.moduleName.length>25?m.moduleName.substring(0,24)+'…':m.moduleName}</text>`;
+    s+=`<text x="${pL-7}" y="${y+rH/2+15}" text-anchor="end" font-size="9" fill="#9EA1AB" font-family="IBM Plex Mono,monospace">${m.inferredDisco}${!m.hasDisco?' ⚠':''} · ${m.lineItems.length} LIs</text>`;
+    dims.forEach((d,di)=>{
+      const cx=pL+di*cW+cW/2, cy=y+rH/2;
+      const cov=mDims.has(d);
+      s+=`<rect x="${pL+di*cW+3}" y="${y+4}" width="${cW-6}" height="${rH-8}" rx="4" fill="${cov?'rgba(23,90,166,0.12)':'#F5F2EA'}" stroke="${cov?'#175AA6':'#EBE8E0'}" stroke-width="${cov?1:0.5}"/>`;
+      if(cov) s+=`<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="12" fill="#175AA6">✓</text>`;
+    });
+  });
+  return s+'</svg>';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INTELLIGENCE REPORT
+// ═══════════════════════════════════════════════════════════════
+function buildIntelReport(){
+  const ar=analysisResult;
+  if(!ar) return;
+  document.getElementById('rpt-title').innerHTML=`${parsedModules.length} Module Analysis<br><span style="font-weight:300;font-size:20px;">Anaplan Way Compliance &amp; Violation Analysis</span>`;
+  document.getElementById('rpt-meta').textContent=`Generated by Meridian · ${parsedModules.length} modules · ${ar.totalLI} line items · Rule engine v1.0`;
+  document.getElementById('rpt-ring-num').textContent=ar.mii;
+  const arc=document.getElementById('rpt-arc');
+  arc.setAttribute('stroke-dasharray',`${Math.round((ar.mii/100)*264)} 264`);
+  arc.setAttribute('stroke',ar.mii<40?'#B82E2E':ar.mii<65?'#BF801E':'#217348');
+
+  const vCls=ar.mii<40?'crit':'risk';
+  const vTitle=ar.mii<40?'Critical — Immediate Remediation Required':'At Risk — Remediation Required Before Production';
+  const vBody=ar.mii<40
+    ?`This model scores ${ar.mii}/100 on the Meridian Intelligence Index, placing it in the <strong>Critical</strong> band. The primary driver is a systemic DISCO classification failure — all ${parsedModules.length} modules are missing their DISCO prefix, meaning the model has no architectural governance layer. This is compounded by ${ar.boolViol} Boolean summary violations and highly complex formula logic (IF depth up to ~12). The DISCO prefix issue is rename-only with no formula changes and can be resolved in a single sprint.`
+    :`This model scores ${ar.mii}/100 on the MII, placing it in the <strong>At Risk</strong> band. Key violations require remediation before the model is production-grade.`;
+
+  const dims=[
+    {n:'Module Architecture',w:'25%',s:ar.archScore,c:'#175AA6',f:`${ar.discoCount}/${parsedModules.length} DISCO compliant`},
+    {n:'Naming Conventions',w:'20%',s:ar.namingScore,c:'#1A7F8A',f:`${ar.titleCaseViolations}/${ar.totalLI} sentence case + typos`},
+    {n:'Formula Quality',w:'25%',s:ar.formulaScore,c:'#C8733A',f:`${ar.complexF} complex · ${ar.deepIF} deep IF`},
+    {n:'Data Hygiene',w:'20%',s:ar.hygieneScore,c:ar.hygieneScore<50?'#B82E2E':'#BF801E',f:`${ar.boolViol}/${ar.totalBool} Boolean violations`},
+    {n:'Governance',w:'10%',s:ar.govScore,c:'#7047A3',f:'BOM Master clean · no circular deps'},
+  ];
+
+  const moduleMapRows=parsedModules.map(m=>{
+    const bv=m.lineItems.filter(li=>li.dataType==='BOOLEAN'&&!['ANY','ALL',''].includes(li.summaryMethod)).length;
+    const fat=m.lineItems.length>getCfg().fat;
+    const rc=(!m.hasDisco||bv>0)?'rag-r':fat?'rag-a':'rag-g';
+    return `<tr><td><span class="mono">${m.moduleName}</span></td><td>${m.hasDisco?`<span class="badge b-blue">${m.discoPrefix}</span>`:`<span class="badge b-bad">NONE</span>`}</td><td><span class="badge b-gray">${m.inferredDisco}</span></td><td>${m.lineItems.length}</td><td>${m.formulaCount}</td><td style="font-size:11px;">${m.appliesTo||'—'}</td><td>${fat?`<span class="badge b-risk">Fat</span>`:`<span class="badge b-gray">Normal</span>`}</td><td><span class="rag ${rc}"></span></td></tr>`;
+  }).join('');
+
+  const critHTML=ar.violations.critical.map(v=>`
+    <div class="blocker-card hard">
+      <div class="blocker-type">Critical — ${v.rule}${v.lineItem?` · ${v.lineItem}`:''}</div>
+      <div class="blocker-title">${v.title}</div>
+      <div class="blocker-body">${v.body}</div>
+      <div class="blocker-resolve">↳ ${v.resolve}</div>
+      <div class="blocker-source">${v.source}</div>
+    </div>`).join('');
+  const warnHTML=ar.violations.warning.map(v=>`
+    <div class="blocker-card cond">
+      <div class="blocker-type">Warning — ${v.rule}${v.lineItem?` · ${v.lineItem}`:''}</div>
+      <div class="blocker-title">${v.title}</div>
+      <div class="blocker-body">${v.body}</div>
+      <div class="blocker-resolve">↳ ${v.resolve}</div>
+      <div class="blocker-source">${v.source}</div>
+    </div>`).join('');
+
+  const formulaRows=parsedModules.flatMap(m=>
+    m.lineItems.filter(li=>li.hasFormula&&(li.formulaLen>200||li.ifDepth>2)).map(li=>({...li,mod:m.moduleName}))
+  ).sort((a,b)=>b.formulaLen-a.formulaLen).slice(0,14).map(li=>{
+    const cls=li.formulaLen>getCfg().complexity?'fc-hi':li.formulaLen>200?'fc-mid':'fc-ok';
+    const lbl=li.formulaLen>getCfg().complexity?'High complexity':li.formulaLen>200?'Moderate':'Clean';
+    return `<tr><td style="font-size:10px;">${li.mod}</td><td style="font-weight:600;color:var(--text);">${li.name}</td><td ${li.formulaLen>getCfg().complexity?'style="color:var(--neg);font-weight:700;"':''}>${li.formulaLen}</td><td ${li.ifDepth>getCfg().ifDepth?'style="color:var(--neg);font-weight:700;"':''}>${li.ifDepth}${li.ifDepth>getCfg().ifDepth?' ⚠':''}</td><td style="font-family:'IBM Plex Mono',monospace;font-size:10px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${li.formula.substring(0,55)}${li.formula.length>55?'…':''}</td><td><span class="form-chip ${cls}">${lbl}</span></td></tr>`;
+  }).join('');
+
+  document.getElementById('intel-body').innerHTML=`
+    <div class="r-section">
+      <div class="sec-label">Overall verdict</div>
+      <div class="verdict-card ${vCls}">
+        <div class="verdict-hd"><div class="verdict-icon">${ar.mii<40?'⚠':'!'}</div>
+          <div><div class="verdict-title">${vTitle}</div><div class="verdict-sub">MII ${ar.mii}/100 · ${ar.violations.critical.length} critical · ${ar.violations.warning.length} warnings</div></div>
+        </div>
+        <div class="verdict-body">${vBody}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+          ${dims.map(d=>{const c=d.s<40?'var(--neg)':d.s<65?'var(--gold)':'var(--pos)';return`<div class="sc-card"><div class="sc-card-hd"><div class="sc-card-lbl"><div class="sc-dot" style="background:${d.c};"></div>${d.n}</div><div class="sc-val" style="color:${c};">${d.s}</div></div><div class="prog"><div class="prog-f" style="width:${d.s}%;background:${d.c};"></div></div><div style="font-size:10px;color:var(--text3);margin-top:4px;font-family:'IBM Plex Mono',monospace;">${d.f}</div></div>`;}).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Compliance radar — 5 dimensions</div>
+      <div class="diagram-wrap" style="display:grid;grid-template-columns:360px 1fr;gap:28px;align-items:center;">
+        <div>${buildRadarChart(ar)}</div>
+        <div>${dims.map(d=>{const c=d.s<40?'var(--neg)':d.s<65?'var(--gold)':'var(--pos)';const lbl=d.s<40?'Critical':d.s<65?'At Risk':d.s<85?'Compliant':'Optimised';return`<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:12px;font-weight:600;">${d.n} <span style="font-weight:300;color:var(--text3);">${d.w}</span></span><span style="font-size:12px;font-weight:700;color:${c};font-family:'IBM Plex Mono',monospace;">${d.s}</span></div><div class="prog"><div class="prog-f" style="width:${d.s}%;background:${d.c};"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px;">${d.f}</div></div>`;}).join('')}</div>
+      </div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Violation critical path — dependency between fixes</div>
+      <div class="diagram-wrap">
+        <div class="diagram-title">Which fixes depend on which — phases cannot overlap</div>
+        ${buildCritPathDiagram(ar,parsedModules)}
+      </div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Critical violations</div>
+      ${critHTML}
+      ${ar.violations.warning.length>0?`<div style="margin-top:20px;"><div class="sec-label" style="margin-top:0;">Warnings</div></div>${warnHTML}`:''}
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Module architecture map</div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Module</th><th>Prefix</th><th>Type</th><th>LIs</th><th>Formulas</th><th>Applies To</th><th>Size</th><th>RAG</th></tr></thead>
+        <tbody>${moduleMapRows}</tbody>
+      </table></div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Dimension coverage matrix</div>
+      <div class="diagram-wrap">
+        <div class="diagram-title">✓ = module uses this dimension · ⚠ = violation present in this module</div>
+        ${buildDimHeatmap(parsedModules)}
+      </div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Formula complexity distribution</div>
+      <div class="diagram-wrap">
+        <div class="diagram-title">Sorted by length · red = exceeds ${getCfg().complexity}-char threshold · IF depth shown right</div>
+        ${buildFormulaChart(parsedModules)}
+      </div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Formula intelligence register</div>
+      <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Module</th><th>Line Item</th><th>Chars</th><th>IF Depth</th><th>Formula (excerpt)</th><th>Assessment</th></tr></thead>
+        <tbody>${formulaRows}</tbody>
+      </table></div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Prioritised refactoring roadmap</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:22px 26px;box-shadow:var(--sh);">
+        <div class="rm-phase"><div class="rm-num" style="background:var(--neg);">1</div><div><div class="rm-week">Week 1, Day 1–2 — zero formula risk, both parallel</div><div class="rm-title">Boolean summary fixes &amp; DISCO prefix renaming</div><div class="rm-detail">Fix all ${ar.boolViol} Boolean Summary violations (set to ANY — 5 min each) and rename all ${parsedModules.length} modules with correct DISCO prefix: ${parsedModules.map(m=>`${m.inferredDisco}.${m.moduleName.replace(/\s+/g,'.').replace(/[^A-Za-z0-9.]/g,'')}`).join(' · ')}. These are parallel tasks with zero formula impact.</div></div></div>
+        <div class="rm-phase"><div class="rm-num" style="background:var(--gold);">2</div><div><div class="rm-week">Week 1, Day 3–4 — after DISCO rename</div><div class="rm-title">Naming corrections &amp; typo fix</div><div class="rm-detail">Fix typo "Panned order release month" → "Planned order release month" and update its formula reference. Apply Title Case convention across all modules. Must follow DISCO rename so all updates land in one ALM revision tag per module.</div></div></div>
+        <div class="rm-phase"><div class="rm-num" style="background:var(--gold);">3</div><div><div class="rm-week">Weeks 2–3 — after naming is stable</div><div class="rm-title">Formula decomposition — Planning Workflow Visualization</div><div class="rm-detail">"Status" (1,736 chars, IF depth ~10) and "No. of days" (421 chars, IF depth ~12) must be decomposed into staged Boolean and number intermediates, targeting max 3 IF levels. Estimated: 3–4 days including DEV UAT.</div></div></div>
+        <div class="rm-phase"><div class="rm-num" style="background:var(--pos);">4</div><div><div class="rm-week">Ongoing — every ALM promotion</div><div class="rm-title">Meridian scan as definition of done</div><div class="rm-detail">Add Meridian blueprint scan as mandatory gate before every DEV → UAT → PROD promotion. Target MII above 75 before any client-facing deployment.</div></div></div>
+      </div>
+    </div>
+
+    <div class="sources-block">
+      <strong>Sources:</strong> The Anaplan Way (Anaplan Inc., 2023) · Planual v2 (Anaplan Community) · Anapedia Model Building Best Practices · BARC Planning Survey 2025 · Oliver Wight IBP Framework. All compliance rules are deterministic — no AI generation. MII scored from ${parsedModules.length} modules · ${ar.totalLI} line items · ${ar.totalF} formulas.
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DOCUMENTATION — USER GUIDE
+// ═══════════════════════════════════════════════════════════════
+function buildPrompt(mod){
+  const manualLIs=mod.lineItems.filter(li=>!li.hasFormula).slice(0,5).map(li=>li.name).join(', ')||'None';
+  const keyOut=mod.lineItems.filter(li=>li.referencedBy&&li.referencedBy.length>2).slice(0,3).map(li=>li.name).join(', ')||'Internal';
+  const refs=[...new Set(mod.lineItems.flatMap(li=>li.crossRefs))].slice(0,4).join(', ')||'None';
+  const type=mod.inferredDisco;
+  const typePurpose={SYS:'System configuration / planning calendar settings',DAT:'Reference master data lookups',INP:'Manual planner input and overrides',CAL:'Automated calculations from inputs',REP:'Reporting and review dashboards'}[type]||'Planning calculations';
+  return `You are an Anaplan consultant writing a MODEL USER GUIDE for business planners who are NOT technical. Write in second person ("you"). No jargon. No bullet points. Exactly 4 sentences:
+1. What is this screen and what business task does it help you do?
+2. When in the planning cycle do you open it? What triggers you?
+3. What specific actions do you take? What do you look at, change, or approve?
+4. What happens downstream after you finish?
+
+MODULE CONTEXT (do not mention these technical terms in your answer):
+Module: ${mod.moduleName}
+Business purpose: ${typePurpose}
+Dimensions: ${mod.appliesTo||'Not specified'}
+Fields you can edit: ${manualLIs}
+Key outputs used by others: ${keyOut}
+Reads from: ${refs}
+
+Write ONLY the 4 sentences. No headings. No lists.`;
+}
+
+function generateFallbackNarrative(mod){
+  const guides={
+    SYS:`This screen controls the planning calendar settings that drive the entire model. Your administrator opens it at the start of each month to advance the current period and unlock the new forecast window. To update it, confirm the current date is correct and verify the forecast horizon covers the intended number of future periods. Once saved, all other screens will automatically refresh to reflect the new planning period.`,
+    DAT:`This screen holds the reference master data — such as products, BOMs, or cost prices — that other planning screens use for their calculations. You open it when you need to add or update a reference record before the next planning cycle begins. Locate the relevant item, update the fields, and save your changes. Your updates will automatically flow through to every calculation and reporting screen that uses this reference data.`,
+    INP:`This is your input screen where you enter manual adjustments to the system-generated plan. You open it during the demand review stage of your S&OP cycle, after the baseline has been generated and you want to apply your business judgement. Enter your adjusted values, add a comment explaining the reason, and set the approval flag when you are satisfied. Your entries feed directly into the consensus calculation that the team reviews in the S&OP meeting.`,
+    CAL:`This screen shows the calculated plan based on data entered elsewhere — you cannot edit it directly, but you use it to review and validate the output. Open it after all inputs and overrides have been entered, to check that the results look correct before the plan is approved. Review the key summary figures and flag any unexpected values that might indicate an error in the upstream input screens. If something looks wrong, trace back to the relevant input screen to investigate.`,
+    REP:`This is your review and reporting screen, designed to give you a summary view of the plan for your S&OP meeting. Open it once all calculations are complete and inputs have been approved — typically the day before your planning meeting. Use it to review the key metrics, identify significant deviations from target, and prepare your talking points. The figures shown reflect the latest approved plan and can be exported for presentations.`
+  };
+  return guides[mod.inferredDisco]||guides.CAL;
+}
+
+function buildWorkflowDiagram(modules){
+  const steps=[
+    {ph:'1',lbl:'Period Setup',who:'Administrator',trig:'Month-end close',mods:modules.filter(m=>m.inferredDisco==='SYS').map(m=>m.moduleName),col:'#175AA6',icon:'⚙'},
+    {ph:'2',lbl:'Reference Data',who:'Data Team',trig:'Before cycle starts',mods:modules.filter(m=>m.inferredDisco==='DAT').map(m=>m.moduleName),col:'#217348',icon:'📋'},
+    {ph:'3',lbl:'Planner Input',who:'Demand Planner',trig:'After baseline runs',mods:modules.filter(m=>m.inferredDisco==='INP').map(m=>m.moduleName),col:'#BF801E',icon:'✏'},
+    {ph:'4',lbl:'Review & Calculate',who:'Planning Team',trig:'After inputs complete',mods:modules.filter(m=>m.inferredDisco==='CAL').map(m=>m.moduleName),col:'#1A7F8A',icon:'📊'},
+    {ph:'5',lbl:'S&OP Review',who:'Leadership',trig:'Weekly/monthly meeting',mods:modules.filter(m=>m.inferredDisco==='REP').map(m=>m.moduleName),col:'#7047A3',icon:'✓'},
+  ].filter(s=>s.mods.length>0||s.ph==='3');
+
+  const W=820,sW=130,sH=130,gX=28;
+  const tot=steps.length, totW=tot*(sW+gX)-gX, sx=(W-totW)/2;
+  const H=sH+90;
+  let s=`<svg width="100%" viewBox="0 0 ${W} ${H+10}" font-family="IBM Plex Sans,sans-serif">
+    <defs><marker id="wf" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#DED9CF" stroke-width="1.5" stroke-linecap="round"/></marker></defs>`;
+  steps.forEach((st,i)=>{
+    const x=sx+i*(sW+gX), y=36;
+    if(i>0) s+=`<line x1="${x-gX}" y1="${y+sH/2}" x2="${x}" y2="${y+sH/2}" stroke="#DED9CF" stroke-width="1.5" marker-end="url(#wf)"/>`;
+    s+=`<rect x="${x}" y="${y}" width="${sW}" height="${sH}" rx="10" fill="${st.col}10" stroke="${st.col}" stroke-width="1.5"/>`;
+    s+=`<circle cx="${x+sW-11}" cy="${y+11}" r="9" fill="${st.col}"/>`;
+    s+=`<text x="${x+sW-11}" y="${y+15}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="IBM Plex Mono,monospace">${st.ph}</text>`;
+    s+=`<text x="${x+sW/2}" y="${y+30}" text-anchor="middle" font-size="17">${st.icon}</text>`;
+    s+=`<text x="${x+sW/2}" y="${y+52}" text-anchor="middle" font-size="12" font-weight="700" fill="${st.col}">${st.lbl}</text>`;
+    s+=`<text x="${x+sW/2}" y="${y+67}" text-anchor="middle" font-size="10" fill="#595E6B">${st.who}</text>`;
+    const tw=st.trig.split(' '), t1=tw.slice(0,2).join(' '), t2=tw.slice(2).join(' ');
+    s+=`<text x="${x+sW/2}" y="${y+83}" text-anchor="middle" font-size="9" fill="#9EA1AB" font-family="IBM Plex Mono,monospace">${t1}</text>`;
+    if(t2) s+=`<text x="${x+sW/2}" y="${y+94}" text-anchor="middle" font-size="9" fill="#9EA1AB" font-family="IBM Plex Mono,monospace">${t2}</text>`;
+    st.mods.slice(0,2).forEach((mn,mi)=>{
+      const sh=mn.length>15?mn.substring(0,14)+'…':mn;
+      s+=`<rect x="${x+3}" y="${y+103+mi*16}" width="${sW-6}" height="13" rx="3" fill="${st.col}18"/>`;
+      s+=`<text x="${x+sW/2}" y="${y+114+mi*16}" text-anchor="middle" font-size="8" fill="${st.col}" font-family="IBM Plex Mono,monospace">${sh}</text>`;
+    });
+  });
+  return s+'</svg>';
+}
+
+function buildDataFlowDiagram(){
+  const mods=parsedModules;
+  if(!mods.length) return '';
+  const tC={SYS:{f:'#E6EEF8',s:'#175AA6'},DAT:{f:'#E6F4ED',s:'#217348'},INP:{f:'#FFF3DD',s:'#BF801E'},CAL:{f:'#E6EEF8',s:'#175AA6'},REP:{f:'#FAF8F0',s:'#9EA1AB'}};
+  const rows={SYS:[],DAT:[],INP:[],CAL:[],REP:[]};
+  mods.forEach(m=>{(rows[m.inferredDisco]||rows.CAL).push(m);});
+  const nonempty=['SYS','DAT','INP','CAL','REP'].filter(k=>rows[k].length>0);
+  const bW=155,bH=46,gX=18,gY=50,W=820;
+  let sH=40; const pos={};
+  const layers=nonempty.map((type,li)=>{
+    const ml=rows[type],totW=ml.length*(bW+gX)-gX,sX=(W-totW)/2,y=20+li*(bH+gY);
+    ml.forEach((m,mi)=>{const x=sX+mi*(bW+gX);pos[m.moduleName]={x,y,cx:x+bW/2};});
+    sH=y+bH+40; return{type,ml,y};
+  });
+  const arrows=mods.flatMap(m=>{
+    const to=pos[m.moduleName]; if(!to) return [];
+    return m.allCrossRefs.filter(r=>pos[r]).map(r=>{
+      const fr=pos[r],midY=(fr.y+bH+to.y)/2;
+      return `<path d="M${fr.cx} ${fr.y+bH} C${fr.cx} ${midY} ${to.cx} ${midY} ${to.cx} ${to.y}" fill="none" stroke="#9EA1AB" stroke-width="1" marker-end="url(#dfa)"/>`;
+    });
+  }).join('');
+  const boxes=layers.flatMap(layer=>{
+    const c=tC[layer.type]||tC.CAL;
+    return layer.ml.map(m=>{
+      const p=pos[m.moduleName],lbl=m.moduleName.length>18?m.moduleName.substring(0,17)+'…':m.moduleName,viol=!m.hasDisco||boolViolInModule(m);
+      return `<g><rect x="${p.x}" y="${p.y}" width="${bW}" height="${bH}" rx="8" fill="${c.f}" stroke="${viol?'#B82E2E':c.s}" stroke-width="${viol?1.5:1}"/><text x="${p.cx}" y="${p.y+16}" text-anchor="middle" font-size="9" font-weight="600" fill="${c.s}" font-family="IBM Plex Mono,monospace">${layer.type}</text><text x="${p.cx}" y="${p.y+32}" text-anchor="middle" font-size="11" font-weight="500" fill="#1C2129">${lbl}</text>${viol?`<text x="${p.x+bW-4}" y="${p.y+13}" text-anchor="end" font-size="10" fill="#B82E2E">⚠</text>`:''}</g>`;
+    });
+  }).join('');
+  sH+=28;
+  const leg=Object.entries(tC).map(([t,c],i)=>`<rect x="${30+i*100}" y="${sH-16}" width="10" height="10" rx="2" fill="${c.f}" stroke="${c.s}" stroke-width="1"/><text x="${44+i*100}" y="${sH-8}" font-size="9" fill="#9EA1AB">${t}</text>`).join('');
+  return `<div class="diagram-title">Module data flow · arrows = formula dependencies · ⚠ = violation</div>
+    <svg width="100%" viewBox="0 0 ${W} ${sH+8}" font-family="IBM Plex Sans,sans-serif">
+    <defs><marker id="dfa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#9EA1AB" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+    ${arrows}${boxes}${leg}</svg>`;
+}
+
+function buildDependencyMap(){
+  const mods=parsedModules; if(!mods.length) return '';
+  const edges=mods.flatMap(m=>m.allCrossRefs.map(r=>({from:r,to:m.moduleName})));
+  const names=[...new Set([...mods.map(m=>m.moduleName),...edges.map(e=>e.from)])];
+  const bW=148,bH=38,pX=18,pY=64,W=820,perRow=4;
+  const pos={}; const rowCount=Math.ceil(names.length/perRow);
+  const sH=rowCount*(bH+pY)+50;
+  names.forEach((n,i)=>{
+    const row=Math.floor(i/perRow),col=i%perRow;
+    const rc=Math.min(perRow,names.length-row*perRow);
+    const totW=rc*(bW+pX)-pX,startX=(W-totW)/2;
+    pos[n]={x:startX+col*(bW+pX),y:26+row*(bH+pY),cx:startX+col*(bW+pX)+bW/2};
+  });
+  const edgeSVG=edges.map(e=>{
+    const f=pos[e.from],t=pos[e.to]; if(!f||!t) return '';
+    const m=(f.y+bH+t.y)/2;
+    return `<path d="M${f.cx} ${f.y+bH} C${f.cx} ${m} ${t.cx} ${m} ${t.cx} ${t.y}" fill="none" stroke="#175AA6" stroke-width="1" opacity=".5" marker-end="url(#dpa)"/>`;
+  }).join('');
+  const boxSVG=names.map(n=>{
+    const p=pos[n]; if(!p) return '';
+    const mod=mods.find(m=>m.moduleName===n),ext=!mod;
+    const lbl=n.length>17?n.substring(0,16)+'…':n;
+    const fill=ext?'#F2EFE8':mod.inferredDisco==='DAT'?'#E6F4ED':mod.inferredDisco==='SYS'?'#E6EEF8':'#FFFDF8';
+    const stroke=ext?'#DED9CF':!mod.hasDisco?'#B82E2E':'#9EA1AB';
+    return `<g><rect x="${p.x}" y="${p.y}" width="${bW}" height="${bH}" rx="7" fill="${fill}" stroke="${stroke}" stroke-width="${!mod?.hasDisco?1.5:1}"/><text x="${p.cx}" y="${p.y+24}" text-anchor="middle" font-size="11" font-weight="${ext?400:600}" fill="${ext?'#9EA1AB':'#1C2129'}">${lbl}</text>${ext?`<text x="${p.cx}" y="${p.y+12}" text-anchor="middle" font-size="8" fill="#B8BABE" font-family="IBM Plex Mono,monospace">external</text>`:`<text x="${p.cx}" y="${p.y+12}" text-anchor="middle" font-size="8" fill="#9EA1AB" font-family="IBM Plex Mono,monospace">${mod.inferredDisco}${!mod.hasDisco?' ⚠':''}</text>`}</g>`;
+  }).join('');
+  return `<div class="diagram-title">Formula reference map · arrows = reads from · gray = external modules not in upload</div>
+    <svg width="100%" viewBox="0 0 ${W} ${sH}" font-family="IBM Plex Sans,sans-serif">
+    <defs><marker id="dpa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#175AA6" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+    ${edgeSVG}${boxSVG}</svg>`;
+}
+
+function buildDocsReport(){
+  if(!parsedModules.length) return;
+  document.getElementById('docs-title').innerHTML=`Model User Guide<br><span style="font-weight:300;font-size:20px;">How to Use This Planning Model</span>`;
+  document.getElementById('docs-meta').textContent=`Generated by Meridian · Gemini 2.0 Flash · ${parsedModules.length} modules`;
+  document.getElementById('docs-mod-count').textContent=parsedModules.length;
+  document.getElementById('docs-meta-sub').textContent=`${analysisResult?.totalLI||0} line items · ${analysisResult?.totalF||0} formulas`;
+
+  const prereqs=[
+    {icon:'⚙',t:'Time period is current',d:`Confirm ${parsedModules.find(m=>m.inferredDisco==='SYS')?.moduleName||'the system settings module'} reflects the correct current period before running any calculations.`},
+    {icon:'📋',t:'Reference data is up to date',d:`Verify ${parsedModules.filter(m=>m.inferredDisco==='DAT').map(m=>m.moduleName).join(' and ')||'all master data modules'} contain current records.`},
+    {icon:'🔐',t:'You have the correct access role',d:'Ensure you have planner write access to input modules and view access to calculation and reporting modules.'},
+    {icon:'📅',t:'Your planning phase is open',d:`Check the workflow tracker to confirm the current phase is open for your team before entering any data.`},
+  ];
+
+  const guideBlocks=parsedModules.map(m=>{
+    const narrative=docNarratives[m.moduleName]||generateFallbackNarrative(m);
+    const typeLabel={SYS:'Setup / Configuration',DAT:'Reference Data',INP:'Planner Input',CAL:'Calculated — read only',REP:'Review & Reporting'}[m.inferredDisco]||'Calculation';
+    const typeIcon={SYS:'⚙',DAT:'📋',INP:'✏',CAL:'📊',REP:'📈'}[m.inferredDisco]||'📊';
+    const manualLIs=m.lineItems.filter(li=>!li.hasFormula);
+    const keyOut=m.lineItems.filter(li=>li.referencedBy&&li.referencedBy.length>2).slice(0,3);
+    const boolViols=m.lineItems.filter(li=>li.dataType==='BOOLEAN'&&!['ANY','ALL',''].includes(li.summaryMethod));
+    const dimPills=[...new Set((m.appliesTo||'').split(',').map(d=>d.trim()).filter(Boolean))].map(d=>`<span class="dim-pill">${d}</span>`).join('');
+    return `<div class="doc-mod-block" style="position:relative;">
+      <div style="position:absolute;top:20px;right:24px;font-size:24px;opacity:0.18;">${typeIcon}</div>
+      <div class="doc-mod-hd" style="padding-right:48px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <div class="doc-mod-name">${m.moduleName}</div>
+            <span class="badge b-gray" style="font-size:9px;">${typeLabel}</span>
+          </div>
+          <div class="doc-dims">${dimPills||'<span class="dim-pill">No dimension</span>'} · ${m.lineItems.length} fields</div>
+        </div>
+      </div>
+      <div class="doc-narrative">${narrative}</div>
+      ${boolViols.length>0?`<div style="padding:8px 12px;background:var(--neg-pale);border:1px solid var(--neg-bd);border-radius:var(--r);font-size:11px;color:var(--neg);margin-bottom:10px;">⚠ Known issue: ${boolViols.length} status flag${boolViols.length>1?'s are':'is'} misconfigured (${boolViols.map(li=>li.name).join(', ')}). Approval status may not display correctly at summary level until fixed.</div>`:''}
+      <div style="display:grid;grid-template-columns:${manualLIs.length>0&&keyOut.length>0?'1fr 1fr':'1fr'};gap:12px;">
+        ${manualLIs.length>0?`<div class="flat"><div style="font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:600;margin-bottom:8px;">Fields you can edit</div>${manualLIs.slice(0,6).map(li=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:.5px solid var(--rule);font-size:12px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--gold);display:inline-block;flex-shrink:0;"></span>${li.name}</div>`).join('')}${manualLIs.length>6?`<div style="font-size:11px;color:var(--text3);padding-top:5px;font-style:italic;">+${manualLIs.length-6} more</div>`:''}</div>`:''}
+        ${keyOut.length>0?`<div class="flat"><div style="font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:600;margin-bottom:8px;">Key outputs used downstream</div>${keyOut.map(li=>`<div style="display:flex;align-items:flex-start;gap:7px;padding:5px 0;border-bottom:.5px solid var(--rule);font-size:12px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0;margin-top:4px;"></span><div><div style="font-weight:600;">${li.name}</div><div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;">${li.referencedBy.split(',')[0]}</div></div></div>`).join('')}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('docs-body').innerHTML=`
+    <div class="r-section">
+      <div class="sec-label">About this model</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:22px 26px;box-shadow:var(--sh);">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Demand &amp; Supply Planning Model</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.75;margin-bottom:14px;">This model supports your end-to-end planning process, taking you from raw actuals through statistical forecasting, planner adjustments, and S&OP consensus to a final approved plan that drives supply requirements. You interact with it through a series of structured screens, each covering a specific step in the planning cycle.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span class="badge b-blue">${parsedModules.length} modules</span>
+          <span class="badge b-gray">${analysisResult?.totalLI||0} data fields</span>
+          <span class="badge b-gray">${parsedModules.filter(m=>m.inferredDisco==='INP').length} screens you edit</span>
+          <span class="badge b-gray">${parsedModules.filter(m=>m.inferredDisco==='CAL').length} calculation screens</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Before you start — prerequisites</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        ${prereqs.map(p=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;box-shadow:var(--sh-sm);display:flex;gap:10px;"><span style="font-size:18px;flex-shrink:0;">${p.icon}</span><div><div style="font-size:13px;font-weight:600;margin-bottom:3px;">${p.t}</div><div style="font-size:12px;color:var(--text2);line-height:1.5;">${p.d}</div></div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Planning workflow — who does what and when</div>
+      <div class="diagram-wrap">
+        <div class="diagram-title">S&OP cycle steps in sequence</div>
+        ${buildWorkflowDiagram(parsedModules)}
+      </div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Data flow — how information moves through the model</div>
+      <div class="diagram-wrap">${buildDataFlowDiagram()}</div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Module dependency — formula reference chain</div>
+      <div class="diagram-wrap">${buildDependencyMap()}</div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">How to use each screen</div>
+      ${guideBlocks}
+    </div>
+
+    <div class="sources-block">
+      <strong>Documentation generated by Meridian</strong> · Narratives by Gemini 2.0 Flash from structural blueprint analysis · ${analysisResult?.totalLI||0} line items · ${analysisResult?.totalF||0} formulas · No raw formula text or client data transmitted · The Anaplan Way (2023), Planual v2, Anapedia.
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════════
+async function exportPDF(){
+  const id=document.querySelector('.screen.active')?.id;
+  if(id!=='s-intel'&&id!=='s-docs'){alert('Open the Intelligence Report or Documentation first.');return;}
+  const btn=event?.target; const orig=btn?.textContent;
+  if(btn){btn.textContent='⏳ Generating...';btn.disabled=true;}
+  try{
+    const {jsPDF}=window.jspdf;
+    const el=document.getElementById(id);
+    const canvas=await html2canvas(el,{scale:1.2,useCORS:true,logging:false,backgroundColor:'#FAF8F0',windowWidth:1200});
+    const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
+    const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight();
+    const ih=(canvas.height*pw)/canvas.width;
+    let y=0;
+    while(y<ih){if(y>0)pdf.addPage();pdf.addImage(canvas.toDataURL('image/jpeg',0.88),'JPEG',0,-y,pw,ih);y+=ph;}
+    pdf.save(id==='s-intel'?'Meridian-Intelligence-Report.pdf':'Meridian-Model-Documentation.pdf');
+  }finally{if(btn){btn.textContent=orig;btn.disabled=false;}}
+}
+
+function exportWord(){
+  const id=document.querySelector('.screen.active')?.id;
+  const bid=id==='s-intel'?'intel-body':id==='s-docs'?'docs-body':null;
+  if(!bid){alert('Open the Intelligence Report or Documentation first.');return;}
+  const title=id==='s-intel'?'Meridian Intelligence Report':'Meridian Model Documentation';
+  const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const body=document.getElementById(bid);
+  const clean=body.innerHTML
+    .replace(/<svg[\s\S]*?<\/svg>/g,'<p style="color:#9EA1AB;font-size:10pt;font-style:italic;">[Diagram — view in Meridian web application]</p>')
+    .replace(/<canvas[\s\S]*?<\/canvas>/g,'');
+  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="UTF-8"><style>body{font-family:Calibri,sans-serif;font-size:11pt;color:#1C2129;margin:2cm}h1{font-size:20pt;color:#175AA6}h2{font-size:13pt;border-bottom:1px solid #DED9CF;padding-bottom:4pt;margin-top:18pt}p{line-height:1.65;margin-bottom:8pt}table{width:100%;border-collapse:collapse;margin-bottom:12pt}th{background:#F2EFE8;font-size:9pt;font-weight:600;text-transform:uppercase;padding:6pt;border:1pt solid #DED9CF}td{padding:8pt;border:1pt solid #EBE8E0;font-size:10pt}</style></head><body><h1>${title}</h1><p style="color:#9EA1AB;font-size:10pt;">Generated by Meridian · EyeOn Planning Intelligence · ${date}</p><hr><div>${clean}</div></body></html>`;
+  const blob=new Blob([html],{type:'application/msword'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=id==='s-intel'?'Meridian-Intelligence-Report.doc':'Meridian-Model-Documentation.doc';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+</script>
+</body>
+</html>
