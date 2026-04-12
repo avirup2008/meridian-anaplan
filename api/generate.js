@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { prompt } = req.body;
+  const { prompt, maxTokens } = req.body;
 
   if (!prompt) {
     return res.status(400).json({ error: 'Missing prompt' });
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 400,
+          maxOutputTokens: Math.min(maxTokens || 400, 4000),
         },
       }),
     });
