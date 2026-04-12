@@ -352,6 +352,158 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .fc-hi{background:var(--neg-pale);color:var(--neg)}
 .fc-mid{background:var(--gold-pale);color:var(--gold)}
 .fc-ok{background:var(--pos-pale);color:var(--pos)}
+
+/* ─── REPORT NAV (tab strip above intel + guide screens) ─── */
+.rpt-nav{position:sticky;top:0;z-index:100;background:rgba(28,33,41,.96);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.08)}
+.rpt-nav-inner{max-width:960px;margin:0 auto;padding:0 28px;display:flex;align-items:center;gap:12px;height:48px}
+.rnt{background:none;border:none;color:rgba(255,255,255,.42);font-size:12px;font-weight:600;font-family:'IBM Plex Sans',system-ui,sans-serif;cursor:pointer;padding:6px 14px;border-radius:20px;transition:all .15s;white-space:nowrap}
+.rnt.on{background:rgba(255,255,255,.12);color:#fff}
+.rnt:hover:not(.on){color:rgba(255,255,255,.72)}
+.rnt-d{width:.5px;height:14px;background:rgba(255,255,255,.12)}
+.rnt-ghost{background:none;border:1.5px solid rgba(255,255,255,.18);color:rgba(255,255,255,.55);font-size:11px;font-weight:600;font-family:'IBM Plex Sans',system-ui,sans-serif;cursor:pointer;padding:5px 12px;border-radius:20px;transition:all .15s;flex-shrink:0}
+.rnt-ghost:hover{border-color:rgba(255,255,255,.4);color:#fff}
+
+/* ─── HUB THIRD CARD ─────────────────── */
+.hub-card.guide:hover{border-color:var(--gold)}
+.hub-card.guide .hub-card-icon{background:var(--gold-pale)}
+.hub-card.guide .hub-card-title{color:var(--gold)}
+.hub-card.guide .hub-card-cta{color:var(--gold)}
+.hub-cards-row2{margin-top:16px}
+
+/* ─── GUIDE SCREEN ───────────────────── */
+.guide-mast{background:var(--accent);padding:42px 0 38px;position:relative;overflow:hidden}
+.guide-mast::after{content:'';position:absolute;top:0;right:0;width:40%;height:100%;background:linear-gradient(to right,transparent,rgba(255,255,255,.04));pointer-events:none}
+.guide-mast-inner{max-width:880px;margin:0 auto;padding:0 46px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.guide-eyeon{font-size:9px;font-family:'IBM Plex Mono',monospace;color:rgba(255,255,255,.4);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.guide-eyeon::before{content:'';width:14px;height:.5px;background:rgba(255,255,255,.25)}
+.guide-title{font-size:26px;font-weight:700;color:#fff;letter-spacing:-.025em;line-height:1.15;margin-bottom:7px}
+.guide-meta{font-size:11px;color:rgba(255,255,255,.38);font-family:'IBM Plex Mono',monospace}
+.guide-kpis{display:flex;gap:20px;flex-shrink:0;padding-bottom:2px}
+.guide-kpi{text-align:right}
+.guide-kpi-val{font-size:24px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#fff;line-height:1}
+.guide-kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.35);margin-top:3px;font-family:'IBM Plex Mono',monospace}
+.guide-body{max-width:880px;margin:0 auto;padding:36px 46px 100px}
+.guide-ai-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 13px;background:var(--accent-pale);border:1px solid var(--accent-bd);border-radius:20px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--accent);margin-bottom:28px}
+.guide-ai-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+
+/* ─── GUIDE SECTIONS ─────────────────── */
+.g-section{border:1px solid var(--border);border-radius:var(--r-xl);background:var(--surface);box-shadow:var(--sh);margin-bottom:12px;overflow:hidden}
+.g-sec-hd{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;cursor:pointer;transition:background .15s;user-select:none}
+.g-sec-hd:hover{background:rgba(28,33,41,.02)}
+.g-sec-left{display:flex;align-items:center;gap:14px}
+.g-sec-num{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--text3);min-width:20px}
+.g-sec-title{font-size:14px;font-weight:700;color:var(--text)}
+.g-sec-pills{display:flex;gap:6px;flex-wrap:wrap}
+.g-sec-pill{font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 7px;border-radius:10px;background:var(--bg2);color:var(--text3);border:.5px solid var(--rule)}
+.g-sec-chev{color:var(--text3);font-size:14px;transition:transform .2s;flex-shrink:0}
+.g-sec-chev.open{transform:rotate(180deg)}
+.g-sec-body{display:none;padding:0 22px 22px;border-top:1px solid var(--border)}
+.g-sec-body.open{display:block}
+
+/* ─── GUIDE STAGE BLOCKS ─────────────── */
+.guide-stage{border:1px solid var(--border);border-radius:var(--r-xl);background:var(--surface);box-shadow:var(--sh);margin-bottom:14px;overflow:hidden}
+.gs-hd{display:flex;align-items:flex-start;gap:16px;padding:18px 22px 16px;border-bottom:1px solid var(--border)}
+.gs-num{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#fff;background:var(--text);padding:3px 9px;border-radius:6px;flex-shrink:0;margin-top:2px;letter-spacing:.5px}
+.gs-right{flex:1}
+.gs-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px}
+.gs-owner{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);display:flex;align-items:center;gap:6px}
+.gs-owner::before{content:'Owned by';font-weight:600;color:var(--text4)}
+.gs-body{padding:18px 22px}
+.gs-body .g-p:last-child{margin-bottom:0}
+.gs-bullets{list-style:none;margin:6px 0 12px;padding:0}
+.gs-bullets li{padding:4px 0 4px 14px;font-size:13px;color:var(--text2);line-height:1.65;position:relative;font-weight:300}
+.gs-bullets li::before{content:'—';position:absolute;left:0;color:var(--text3);font-size:11px}
+.gs-bullets li strong{color:var(--text);font-weight:600}
+.gs-note{background:var(--accent-pale);border-left:3px solid var(--accent-bd);border-radius:0 var(--r) var(--r) 0;padding:10px 14px;margin-top:12px;font-size:12px;color:var(--text2);line-height:1.7}
+.gs-subsection{font-size:11px;font-weight:700;color:var(--text);margin:14px 0 6px;letter-spacing:.02em}
+.guide-sec-label{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin:20px 0 10px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.guide-sec-label:first-child{margin-top:16px}
+.role-wrap{border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:14px}
+.role-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.role-tbl th{background:var(--bg2);padding:9px 14px;font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:600;text-align:left;border-bottom:2px solid var(--rule)}
+.role-tbl td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.6}
+.role-tbl td:first-child{font-weight:600;color:var(--text);font-size:12px;white-space:nowrap}
+.role-tbl td:nth-child(2){color:var(--text2)}
+.role-tbl tr:last-child td{border-bottom:none}
+
+/* ─── GUIDE DIAGRAMS ─────────────────── */
+.arch-wrap{background:var(--bg2);border-radius:var(--r-lg);padding:20px 16px;margin:18px 0}
+.arch-row{display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center}
+.arch-node{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);padding:10px 16px;font-size:12px;font-weight:600;color:var(--text);text-align:center;flex-shrink:0;min-width:110px}
+.arch-node em{display:block;font-style:normal;font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:3px;font-weight:400}
+.arch-node.hi{border-color:var(--accent-bd);background:var(--accent-pale)}
+.arch-node.hi em{color:var(--accent)}
+.arch-arr{color:var(--text4);font-size:18px;padding:0 10px;flex-shrink:0}
+.demand-diag{background:var(--bg2);border-radius:var(--r-lg);padding:20px 16px;margin:18px 0}
+.dd-row{display:flex;align-items:center;gap:0;justify-content:center;flex-wrap:wrap;gap:4px}
+.dd-signal{display:flex;flex-direction:column;gap:10px;flex-shrink:0}
+.dd-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);padding:8px 14px;font-size:11px;font-weight:600;color:var(--text);text-align:center}
+.dd-mid{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0}
+.dd-override{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);text-align:center;border-top:1px dashed var(--rule);padding-top:6px}
+.pf-wrap{display:flex;align-items:center;gap:0;margin:18px 0;overflow-x:auto;padding:16px;background:var(--bg2);border-radius:var(--r-lg)}
+.pf-node{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);padding:9px 14px;font-size:11px;font-weight:600;color:var(--text2);white-space:nowrap;flex-shrink:0;text-align:center;line-height:1.4}
+.pf-node em{display:block;font-style:normal;font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:2px;font-weight:400}
+.pf-arr{color:var(--text4);font-size:16px;padding:0 8px;flex-shrink:0}
+
+/* ─── GUIDE LOADING ──────────────────── */
+.guide-loading{max-width:520px;margin:80px auto;text-align:center}
+.guide-loading-icon{font-size:32px;margin-bottom:16px}
+.guide-loading h3{font-size:16px;font-weight:700;margin-bottom:8px}
+.guide-loading p{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:24px;font-weight:300}
+
+/* ─── AI NOTES PANEL ─────────────────── */
+.notes-toolbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--rule);flex-wrap:wrap;gap:10px}
+.notes-col-hd{display:grid;grid-template-columns:26px 170px 1fr 84px;gap:8px;padding:7px 16px;background:var(--bg2);border-bottom:2px solid var(--rule);font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1px;color:var(--text3);font-weight:600}
+.note-row{display:grid;grid-template-columns:26px 170px 1fr 84px;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);align-items:start}
+.note-row:last-child{border-bottom:none}
+.note-row:hover{background:rgba(28,33,41,.015)}
+.note-ta{width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-family:'IBM Plex Sans',sans-serif;font-size:11px;color:var(--text);background:var(--surface2);resize:vertical;min-height:54px;line-height:1.55;transition:border-color .15s}
+.note-ta:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.cc{font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text4);text-align:right;margin-top:2px}
+.cc.over{color:var(--neg)}
+.conf-hi{background:var(--pos-pale);color:var(--pos);border:1px solid var(--pos-bd)}
+.conf-md{background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-bd)}
+.conf-rv{background:var(--neg-pale);color:var(--neg);border:1px solid var(--neg-bd)}
+.snip-toggle{font-size:9px;color:var(--accent);cursor:pointer;font-family:'IBM Plex Mono',monospace;margin-top:3px;display:block}
+.snip-box{display:none;margin-top:5px;padding:7px 9px;background:#1C2129;border-radius:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#C4A8FF;line-height:1.65;word-break:break-word}
+.snip-box.open{display:block}
+
+/* ─── PERFORMANCE TABLE DRILL-DOWN ───── */
+.perf-tr{cursor:pointer}
+.perf-tr:hover td{background:rgba(28,33,41,.02)}
+.fix-row td{padding:0;border-bottom:1px solid var(--border)}
+.fix-panel{display:none;background:#1C2129;padding:20px 20px 20px 50px}
+.fix-panel.open{display:block}
+.fix-lbl{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,.3);margin-bottom:6px}
+.fix-code{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.8;white-space:pre-wrap;word-break:break-word;margin-bottom:10px}
+.fix-code.bad{color:#FF9A9A;border-left:3px solid rgba(184,46,46,.5)}
+.fix-code.good{color:#6BCB8B;border-left:3px solid rgba(33,115,72,.5)}
+.ap-tag{display:inline-block;font-size:8px;font-family:'IBM Plex Mono',monospace;font-weight:600;padding:1px 5px;border-radius:3px;margin:0 1px}
+.ap-SL{background:rgba(184,46,46,.15);color:var(--neg)}
+.ap-FI{background:rgba(191,128,30,.15);color:var(--gold)}
+.ap-TX{background:rgba(112,71,163,.15);color:#7047A3}
+.ap-RK{background:rgba(23,90,166,.15);color:var(--accent)}
+.ap-PA{background:rgba(191,128,30,.15);color:var(--gold)}
+
+/* ─── DOWNLOAD MODAL ─────────────────── */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:500;align-items:center;justify-content:center}
+.modal-ov.open{display:flex}
+.modal{background:#1C2129;border-radius:var(--r-xl);padding:32px;width:520px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;border:1px solid rgba(255,255,255,.08);box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.modal-hd h2{font-size:16px;font-weight:700;color:#fff}
+.modal-close{background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.5);width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:rgba(255,255,255,.14)}
+.modal-sub{font-size:11px;color:rgba(255,255,255,.3);font-family:'IBM Plex Mono',monospace;margin-bottom:20px}
+.dl-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:var(--r-lg);padding:18px 20px;margin-bottom:10px;cursor:pointer;transition:border-color .15s}
+.dl-card:hover{border-color:rgba(23,90,166,.5)}
+.dl-card:last-child{margin-bottom:0}
+.dl-card-top{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.dl-icon{width:38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.dl-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:2px}
+.dl-desc{font-size:11px;color:rgba(255,255,255,.4);line-height:1.55}
+.dl-tags{display:flex;gap:6px;flex-wrap:wrap}
+.dl-tag{font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.35)}
+
 </style>
 </head>
 <body>
@@ -586,7 +738,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
   <div class="hub-shell">
     <div class="step-label">Analysis complete</div>
     <h1 class="hub-h1">Choose your report</h1>
-    <p class="hub-sub">Both reports are ready. The Intelligence Report surfaces violations and fixes. Model Documentation is a complete user guide with workflow diagrams.</p>
+    <p class="hub-sub">Three reports are ready. Intelligence Report surfaces violations and fixes. Model Documentation covers module structure and data flows. User Guide explains the planning process for business users.</p>
     <div class="hub-kpis" id="hub-kpis">
       <div class="hub-kpi"><div class="hub-kpi-val" id="hk-mii" style="color:var(--neg);">38</div><div class="hub-kpi-lbl">MII Score</div><div class="hub-kpi-sub" id="hk-band">Critical band</div></div>
       <div class="hub-kpi"><div class="hub-kpi-val" id="hk-mods">5</div><div class="hub-kpi-lbl">Modules</div><div class="hub-kpi-sub" id="hk-li">102 line items</div></div>
@@ -621,17 +773,42 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
         <div class="hub-card-cta">Open Model Documentation →</div>
       </div>
     </div>
+    <div class="hub-cards-row2">
+      <div class="hub-card guide" onclick="openUserGuide()" style="display:flex;align-items:flex-start;gap:20px;padding:22px 26px;">
+        <div class="hub-card-icon" style="width:46px;height:46px;min-width:46px;">📘</div>
+        <div style="flex:1">
+          <div class="hub-card-title">User Guide</div>
+          <div class="hub-card-desc" style="margin-bottom:12px;">AI-generated operational reference explaining what this model does, who does what, and how the planning cycle works — written for business users, not builders.</div>
+          <div class="hub-card-features" id="hub-guide-features">
+            <div class="hub-card-feat">S&amp;OP workflow stages inferred from model structure</div>
+            <div class="hub-card-feat">User roles and responsibilities</div>
+            <div class="hub-card-feat">Data integration overview</div>
+          </div>
+          <div class="hub-card-cta" id="hub-guide-cta" style="margin-top:14px;">Generate User Guide →</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- ════════ S7: INTELLIGENCE REPORT ════════ -->
 <div id="s-intel" class="screen">
+  <div class="rpt-nav">
+    <div class="rpt-nav-inner">
+      <button class="rnt" onclick="go('s-hub')">&#8592; Hub</button>
+      <div class="rnt-d"></div>
+      <button class="rnt on" onclick="go('s-intel')">Intelligence Report</button>
+      <button class="rnt" onclick="go('s-guide')">User Guide</button>
+      <div style="flex:1"></div>
+      <button class="rnt-ghost" onclick="openDl()">&#8595; Download</button>
+    </div>
+  </div>
   <div class="report-mast intel">
     <div class="report-mast-inner">
       <div>
         <div class="report-eyeon">Meridian · Intelligence Report</div>
         <div class="report-title" id="rpt-title">Model Analysis<br><span style="font-weight:300;font-size:20px;">Anaplan Way Compliance &amp; Violation Analysis</span></div>
-        <div class="report-meta" id="rpt-meta">Generated by Meridian · Rule engine v1.0</div>
+        <div class="report-meta" id="rpt-meta">Generated by Meridian · Rule engine v2.0 · 17 rules</div>
       </div>
       <div class="rpt-ring">
         <svg width="106" height="106" viewBox="0 0 106 106"><circle cx="53" cy="53" r="42" stroke="rgba(255,255,255,0.14)" stroke-width="6"/><circle id="rpt-arc" cx="53" cy="53" r="42" stroke="#B82E2E" stroke-width="6" stroke-linecap="round" stroke-dasharray="100 264" transform="rotate(-90 53 53)"/></svg>
@@ -643,9 +820,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     <!-- Populated by JS -->
   </div>
   <div class="act-bar"><div class="act-bar-inner">
-    <button class="btn-act btn-act-ghost" onclick="go('s-hub')">← Report hub</button>
-    <button class="btn-act btn-act-ghost" onclick="exportPDF()">📄 Export PDF</button>
-    <button class="btn-act btn-act-pri">📝 Export Word</button>
+    <button class="btn-act btn-act-ghost" onclick="go('s-hub')">&#8592; Hub</button>
+    <button class="btn-act btn-act-ghost" onclick="exportNotesCsv()">&#128221; Notes CSV</button>
+    <button class="btn-act btn-act-ghost" onclick="exportPDF()">&#128196; Export PDF</button>
+    <button class="btn-act btn-act-pri" onclick="openDl()">&#8595; Download all</button>
   </div></div>
 </div>
 
@@ -673,6 +851,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     <button class="btn-act btn-act-ghost" onclick="exportPDF()">📄 Export PDF</button>
     <button class="btn-act btn-act-pri">📝 Export Word</button>
   </div></div>
+</div>
+
+
+<!-- ════════ S10: USER GUIDE ════════ -->
+<div id="s-guide" class="screen">
+  <div class="rpt-nav">
+    <div class="rpt-nav-inner">
+      <button class="rnt" onclick="go('s-hub')">&#8592; Hub</button>
+      <div class="rnt-d"></div>
+      <button class="rnt" onclick="go('s-intel')">Intelligence Report</button>
+      <button class="rnt on" onclick="go('s-guide')">User Guide</button>
+      <div style="flex:1"></div>
+      <button class="rnt-ghost" onclick="exportGuidePDF()">&#8595; Export PDF</button>
+    </div>
+  </div>
+  <div id="guide-content"><!-- populated by buildUserGuide() --></div>
 </div>
 
 <!-- ════════ S9: SETTINGS ════════ -->
@@ -717,6 +911,46 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
   </div>
 </div>
 
+
+<!-- DOWNLOAD MODAL -->
+<div class="modal-ov" id="dl-modal" onclick="closeDlOv(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-hd">
+      <h2>Download</h2>
+      <button class="modal-close" onclick="closeDl()">&#10005;</button>
+    </div>
+    <div class="modal-sub" id="dl-modal-sub">Intelligence Report &middot; full export suite</div>
+    <div class="dl-card" onclick="exportPDF();closeDl();">
+      <div class="dl-card-top"><div class="dl-icon" style="background:rgba(23,90,166,.2);">&#128196;</div>
+        <div><div class="dl-title">Intelligence Report PDF</div>
+        <div class="dl-desc">Full compliance report — violations, roadmap, module map, formula analysis.</div></div>
+      </div>
+      <div class="dl-tags"><span class="dl-tag">PDF</span><span class="dl-tag">All sections</span></div>
+    </div>
+    <div class="dl-card" onclick="exportNotesCsv();closeDl();">
+      <div class="dl-card-top"><div class="dl-icon" style="background:rgba(33,115,72,.2);">&#128229;</div>
+        <div><div class="dl-title">AI Notes CSV</div>
+        <div class="dl-desc">Checked notes ready for Anaplan import via Model Settings &rarr; Blueprint.</div></div>
+      </div>
+      <div class="dl-tags"><span class="dl-tag">CSV</span><span class="dl-tag">Anaplan import</span></div>
+    </div>
+    <div class="dl-card" onclick="exportPerfCsv();closeDl();">
+      <div class="dl-card-top"><div class="dl-icon" style="background:rgba(184,46,46,.2);">&#9889;</div>
+        <div><div class="dl-title">Performance Risk Register</div>
+        <div class="dl-desc">High-effort line items ranked by calc effort with anti-pattern flags.</div></div>
+      </div>
+      <div class="dl-tags"><span class="dl-tag">CSV</span><span class="dl-tag">Sprint input</span></div>
+    </div>
+    <div class="dl-card" onclick="exportGuidePDF();closeDl();">
+      <div class="dl-card-top"><div class="dl-icon" style="background:rgba(191,128,30,.2);">&#128216;</div>
+        <div><div class="dl-title">User Guide PDF</div>
+        <div class="dl-desc">AI-generated operational reference for business users.</div></div>
+      </div>
+      <div class="dl-tags"><span class="dl-tag">PDF</span><span class="dl-tag">Business users</span></div>
+    </div>
+  </div>
+</div>
+
 <!-- SCREEN NAV -->
 <div class="snav">
   <button onclick="go('s-intro')" id="n-s-intro">Home</button>
@@ -734,6 +968,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
   <button onclick="go('s-intel')" id="n-s-intel">Intelligence</button>
   <div class="snav-d"></div>
   <button onclick="go('s-docs')" id="n-s-docs">Documentation</button>
+  <div class="snav-d"></div>
+  <button onclick="go('s-guide')" id="n-s-guide">User Guide</button>
   <div class="snav-d"></div>
   <button onclick="go('s-settings')" id="n-s-settings">Settings</button>
 </div>
@@ -1047,9 +1283,198 @@ function runRulesEngine(modules){
     }
   }
 
-  // ── SCORING ──
+  // ── R08: SUM+LOOKUP anti-pattern ──
+  const sumLookupHits = [];
+  for(const m of modules){
+    for(const li of m.lineItems){
+      if(li.hasFormula && li.formula.includes('[SUM:') && li.formula.includes('[LOOKUP:')){
+        sumLookupHits.push({module:m.moduleName,lineItem:li.name,effort:li.calcEffort});
+        violations.critical.push({
+          rule:'R08', module:m.moduleName, lineItem:li.name,
+          title:`SUM+LOOKUP combination — calculation engine anti-pattern`,
+          body:`[${m.moduleName}] "${li.name}" combines SUM aggregation and LOOKUP in a single formula. This forces the engine to evaluate the SUM independently for every LOOKUP target cell, creating multiplicative calculation load proportional to the LOOKUP dimension size.`,
+          resolve:`Decompose: create an intermediate SUM line item first, then reference it in the LOOKUP. Zero business logic change — rename the intermediate clearly. Est. 20–45 min per instance.`,
+          source:'Planual §2.02-08 · Anaplan OEG Performance Best Practices'
+        });
+      }
+    }
+  }
+
+  // ── R09: FINDITEM without ISNOTBLANK ──
+  const finditemHits = [];
+  for(const m of modules){
+    for(const li of m.lineItems){
+      if(li.hasFormula && /\bFINDITEM\s*\(/i.test(li.formula) && !/\bISNOTBLANK\s*\(/i.test(li.formula)){
+        finditemHits.push({module:m.moduleName,lineItem:li.name});
+        violations.warning.push({
+          rule:'R09', module:m.moduleName, lineItem:li.name,
+          title:`FINDITEM without null guard — traverses full list on blank cells`,
+          body:`[${m.moduleName}] "${li.name}" calls FINDITEM without wrapping in ISNOTBLANK. Without a null check, FINDITEM traverses the entire list for every blank source cell, which in high-dimension modules fires on thousands of empty cells per recalculation.`,
+          resolve:`Wrap: IF ISNOTBLANK(source) THEN FINDITEM(list, source) ELSE BLANK. 10 min per instance.`,
+          source:'Anaplan OEG Best Practice · Formula Performance'
+        });
+      }
+    }
+  }
+
+  // ── R10: TEXT/TEXTLIST in non-REP module ──
+  const textCalcHits = [];
+  for(const m of modules){
+    const isRepOut = /^(REP|OUT)/i.test(m.moduleName) || m.inferredDisco==='REP';
+    if(!isRepOut){
+      for(const li of m.lineItems){
+        if(li.hasFormula && /(\bTEXTLIST\s*\(|\bTEXT\s*\(|"\s*&\s*")/i.test(li.formula)){
+          textCalcHits.push({module:m.moduleName,lineItem:li.name});
+          violations.warning.push({
+            rule:'R10', module:m.moduleName, lineItem:li.name,
+            title:`TEXT formatting in a calculation module — belongs in REP/OUT layer`,
+            body:`[${m.moduleName}] "${li.name}" uses TEXT(), TEXTLIST(), or string concatenation in what appears to be a calculation module. Text generation in high-dimension CAL modules creates large sparse datasets.`,
+            resolve:`Move text formatting to a REP or OUT module. Replace in the source module with a Boolean or code line item if logic is needed.`,
+            source:'Planual §5.x · Module type conventions'
+          });
+        }
+      }
+    }
+  }
+
+  // ── R11: RANK in large module ──
+  const rankHits = [];
+  for(const m of modules){
+    for(const li of m.lineItems){
+      if(li.hasFormula && /\bRANK\s*\(/i.test(li.formula) && m.cellCount > 200000){
+        rankHits.push({module:m.moduleName,lineItem:li.name,cells:m.cellCount});
+        violations.critical.push({
+          rule:'R11', module:m.moduleName, lineItem:li.name,
+          title:`RANK in large module (${m.cellCount.toLocaleString()} cells) — single-threaded operation`,
+          body:`[${m.moduleName}] "${li.name}" uses RANK in a module with ${m.cellCount.toLocaleString()} cells. RANK is single-threaded in the Anaplan engine — documented at up to 5× slower model open time versus a comparable lookup pattern in high-dimension modules.`,
+          resolve:`Isolate the RANK in a lower-dimension module (fewer list combinations), calculate once, then reference from the parent module.`,
+          source:'Planual §2.02 · Anaplan performance documentation'
+        });
+      }
+    }
+  }
+
+  // ── R12: PARENT chain depth > 2 ──
+  const parentChainHits = [];
+  for(const m of modules){
+    for(const li of m.lineItems){
+      if(li.hasFormula){
+        const parentCount = (li.formula.match(/\bPARENT\s*\(/gi)||[]).length;
+        if(parentCount > 2){
+          parentChainHits.push({module:m.moduleName,lineItem:li.name,depth:parentCount});
+          violations.warning.push({
+            rule:'R12', module:m.moduleName, lineItem:li.name,
+            title:`PARENT chain depth ${parentCount} — centralise in SYS module`,
+            body:`[${m.moduleName}] "${li.name}" chains PARENT() ${parentCount} times. If this pattern is duplicated across multiple modules (common), it creates redundant computation and a maintenance risk when the hierarchy changes.`,
+            resolve:`Calculate the hierarchy levels once in a SYS module (Region L1, L2, L3 as separate line items). Reference SYS.Region L3 from downstream modules.`,
+            source:'Planual §2.02-03'
+          });
+        }
+      }
+    }
+  }
+
+  // ── R13: Over-dimensioning (> 4 dimensions in Applies To) ──
+  const overDimHits = [];
+  for(const m of modules){
+    if(m.appliesTo){
+      const dimCount = m.appliesTo.split(',').filter(d=>d.trim()).length;
+      if(dimCount > 4){
+        overDimHits.push({module:m.moduleName,dims:dimCount});
+        violations.warning.push({
+          rule:'R13', module:m.moduleName,
+          title:`Over-dimensioned module — ${dimCount} dimensions in Applies To`,
+          body:`"${m.moduleName}" is dimensioned by ${dimCount} lists: ${m.appliesTo}. High dimensionality multiplies cell count exponentially. Each additional dimension beyond 3–4 substantially increases model size, calculation time, and memory consumption.`,
+          resolve:`Review whether all ${dimCount} dimensions are genuinely required. Sparse data (few combinations used) should be handled via a flat list or DAT module rather than a full cross-dimensional module.`,
+          source:'Planual §2.4 · Anapedia module sizing'
+        });
+      }
+    }
+  }
+
+  // ── R14: Mixed input/calc module ──
+  const mixedModHits = [];
+  for(const m of modules){
+    if(m.lineItems.length >= 8){
+      const ratio = m.formulaCount / Math.max(m.lineItems.length, 1);
+      if(ratio > 0.15 && ratio < 0.85){
+        mixedModHits.push({module:m.moduleName,ratio:Math.round(ratio*100),formulas:m.formulaCount,total:m.lineItems.length});
+        violations.warning.push({
+          rule:'R14', module:m.moduleName,
+          title:`Mixed input and calculation module — ${Math.round(ratio*100)}% formula-driven`,
+          body:`"${m.moduleName}" contains ${m.formulaCount} formula line items and ${m.noFormulaCount} manual input line items (${Math.round(ratio*100)}% formula ratio). The Anaplan Way single-purpose principle requires modules to contain either inputs or calculations, not both.`,
+          resolve:`Split into an INP_ module (manual inputs only) and a CAL_ module (calculated outputs). This makes selective access cleaner and ALM testing more reliable.`,
+          source:'Planual §2.1 · The Anaplan Way single-purpose principle'
+        });
+      }
+    }
+  }
+
+  // ── R15: Duplicate formula expressions across modules ──
+  const formulaMap = new Map();
+  for(const m of modules){
+    for(const li of m.lineItems){
+      if(li.hasFormula && li.formulaLen > 30){
+        const norm = li.formula.replace(/\s+/g,' ').trim();
+        if(!formulaMap.has(norm)) formulaMap.set(norm,[]);
+        formulaMap.get(norm).push({module:m.moduleName,li:li.name});
+      }
+    }
+  }
+  let dupFormulaCount = 0;
+  for(const [,instances] of formulaMap){
+    if(instances.length > 1){
+      dupFormulaCount += instances.length - 1;
+      const mods = [...new Set(instances.map(i=>i.module))];
+      if(mods.length > 1){
+        violations.warning.push({
+          rule:'R15', module:mods.join(', '),
+          title:`Duplicate formula across ${mods.length} modules — centralise`,
+          body:`The formula "${instances[0].li ? instances[0].li+': ' : ''}${instances[0].module.substring(0,40)}" appears in ${instances.length} places across modules: ${mods.join(', ')}. Duplicate formulas create maintenance risk — a fix to the logic must be applied in ${instances.length} places.`,
+          resolve:`Calculate once in a SYS or DAT module and reference from downstream modules. This is the hub-and-spoke pattern for shared calculations.`,
+          source:'Planual §2.02-03 · The Anaplan Way DRY principle'
+        });
+      }
+    }
+  }
+
+  // ── R16: Version dimension with no version logic ──
+  for(const m of modules){
+    const hasVersionDim = (m.appliesTo||'').toLowerCase().includes('version') || (m.timeScale||'').toLowerCase().includes('version');
+    if(hasVersionDim && m.formulaCount > 0){
+      const hasVersionLogic = m.lineItems.some(li => /\bSELECT\b|\bVERSION\b/i.test(li.formula));
+      if(!hasVersionLogic){
+        violations.warning.push({
+          rule:'R16', module:m.moduleName,
+          title:`Version dimension present but no version-selective logic found`,
+          body:`"${m.moduleName}" is dimensioned by Versions but none of its formulas contain SELECT or version-conditional logic. If the module simply replicates the same value across all versions, the Versions dimension is adding unnecessary cell count without purpose.`,
+          resolve:`Review whether this module needs the Versions dimension. If it should hold version-independent data, remove Versions from Applies To. If version isolation is needed, ensure version-selective formulas are present.`,
+          source:'Planual §2.4 · Version dimension management'
+        });
+      }
+    }
+  }
+
+  // ── R17: Orphaned module ──
+  for(const m of modules){
+    const hasOutbound = m.allCrossRefs.length > 0;
+    const hasInbound = m.lineItems.some(li=>li.referencedBy && li.referencedBy.length > 0);
+    if(!hasOutbound && !hasInbound && m.lineItems.length > 0 && !m.moduleName.toLowerCase().includes('setting')){
+      violations.warning.push({
+        rule:'R17', module:m.moduleName,
+        title:`Orphaned module — no inbound or outbound references detected`,
+        body:`"${m.moduleName}" has no detected cross-module formula references in either direction. It neither reads from other modules nor feeds downstream modules. This may indicate dead code, an incomplete build, or a module that should be connected to the planning chain.`,
+        resolve:`Confirm whether this module is intentionally standalone (e.g., an import staging module). If it should be connected, wire the appropriate references. If it is dead code, delete it to reduce model complexity.`,
+        source:'The Anaplan Way · Module dependency integrity'
+      });
+    }
+  }
+
+  // ── SCORING (v2) ──
   const discoCount = modules.filter(m=>m.hasDisco).length;
-  const archScore = Math.round((discoCount/modules.length)*100);
+  const mixedPenalty = Math.min(50, mixedModHits.length * 8);
+  const overDimPenalty = Math.min(20, overDimHits.length * 5);
+  const archScore = Math.max(0, Math.round((discoCount/modules.length)*100 - mixedPenalty - overDimPenalty));
 
   const tcViolPct = titleCaseViolations.length/Math.max(totalLI,1);
   const namingScore = Math.max(0, Math.round(100 - tcViolPct*80));
@@ -1057,13 +1482,21 @@ function runRulesEngine(modules){
   const totalF = modules.reduce((s,m)=>s+m.formulaCount,0);
   const complexF = modules.reduce((s,m)=>s+m.lineItems.filter(li=>li.formulaLen>cfg.complexity).length,0);
   const deepIF = modules.reduce((s,m)=>s+m.lineItems.filter(li=>li.ifDepth>cfg.ifDepth).length,0);
-  const formulaScore = Math.max(0, Math.round(100 - (complexF/Math.max(totalF,1))*200 - (deepIF/Math.max(totalF,1))*150));
+  const slPenalty = Math.min(40, sumLookupHits.length * 4);
+  const rankPenalty = Math.min(20, rankHits.length * 7);
+  const formulaScore = Math.max(0, Math.round(100 - (complexF/Math.max(totalF,1))*200 - (deepIF/Math.max(totalF,1))*150 - slPenalty - rankPenalty));
 
   const totalBool = modules.reduce((s,m)=>s+m.lineItems.filter(li=>li.dataType==='BOOLEAN').length,0);
   const boolViol = modules.reduce((s,m)=>s+m.lineItems.filter(li=>li.dataType==='BOOLEAN'&&!['ANY','ALL',''].includes(li.summaryMethod)).length,0);
-  const hygieneScore = Math.max(0, Math.round(100-(boolViol/Math.max(totalBool,1))*150));
+  const textPenalty = Math.min(20, textCalcHits.length * 5);
+  const hygieneScore = Math.max(0, Math.round(100-(boolViol/Math.max(totalBool,1))*150 - textPenalty));
 
-  const govScore = 72; // BOM Master clean, some naming coherence
+  const hasNotes = modules.some(m=>m.lineItems.some(li=>li.notes&&li.notes.length>0));
+  const notedLIs = modules.reduce((s,m)=>s+m.lineItems.filter(li=>li.notes&&li.notes.length>0).length,0);
+  const notesCoverage = notedLIs/Math.max(totalLI,1);
+  const dupPenalty = Math.min(25, Math.floor(dupFormulaCount/5));
+  const govScore = Math.max(0, Math.round(65 + notesCoverage*30 - dupPenalty));
+
   const mii = Math.round(archScore*0.25 + namingScore*0.20 + formulaScore*0.25 + hygieneScore*0.20 + govScore*0.10);
 
   let band = 'Optimised';
@@ -1074,7 +1507,10 @@ function runRulesEngine(modules){
   return {
     violations, archScore, namingScore, formulaScore, hygieneScore, govScore,
     mii, band, discoCount, totalLI, totalF, boolViol, totalBool, complexF, deepIF,
-    titleCaseViolations: titleCaseViolations.length
+    titleCaseViolations: titleCaseViolations.length,
+    sumLookupHits, finditemHits, textCalcHits, rankHits, parentChainHits,
+    overDimHits, mixedModHits, dupFormulaCount,
+    notesCoverage: Math.round(notesCoverage*100)
   };
 }
 
@@ -1269,6 +1705,10 @@ async function startDocGeneration(){
   buildReports();
   go('s-hub');
   updateHub();
+  // Pre-generate user guide in background (non-blocking)
+  if(parsedModules.length > 0) {
+    generateUserGuide().catch(e=>console.warn('Background guide gen:', e));
+  }
 }
 
 function buildGeneratingScreen(){
@@ -1407,6 +1847,15 @@ function updateHub(){
   document.getElementById('hk-li').textContent = ar.totalLI+' line items';
   document.getElementById('hk-crit').textContent = ar.violations.critical.length;
   document.getElementById('hk-warn').textContent = ar.violations.warning.length+' warnings';
+  // Guide card
+  const feats = document.getElementById('hub-guide-features');
+  if(feats){
+    const pfxSet = [...new Set(parsedModules.map(m=>m.moduleName.match(/^([A-Z]+)/)?.[1]||'?'))].slice(0,5);
+    feats.innerHTML = `
+      <div class="hub-card-feat">${parsedModules.length} modules across ${pfxSet.length}+ functional areas</div>
+      <div class="hub-card-feat">AI-inferred workflow stages from module structure</div>
+      <div class="hub-card-feat">User roles, data integration overview</div>`;
+  }
 }
 
 function buildReports(){
@@ -1568,7 +2017,7 @@ function buildIntelReport(){
   const ar=analysisResult;
   if(!ar) return;
   document.getElementById('rpt-title').innerHTML=`${parsedModules.length} Module Analysis<br><span style="font-weight:300;font-size:20px;">Anaplan Way Compliance &amp; Violation Analysis</span>`;
-  document.getElementById('rpt-meta').textContent=`Generated by Meridian · ${parsedModules.length} modules · ${ar.totalLI} line items · Rule engine v1.0`;
+  document.getElementById('rpt-meta').textContent=`Generated by Meridian · Rule engine v2.0 · ${parsedModules.length} modules · ${ar.totalLI} line items · ${ar.violations.critical.length} critical`;
   document.getElementById('rpt-ring-num').textContent=ar.mii;
   const arc=document.getElementById('rpt-arc');
   arc.setAttribute('stroke-dasharray',`${Math.round((ar.mii/100)*264)} 264`);
@@ -1695,6 +2144,31 @@ function buildIntelReport(){
         <div class="rm-phase"><div class="rm-num" style="background:var(--gold);">2</div><div><div class="rm-week">Week 1, Day 3–4 — after DISCO rename</div><div class="rm-title">Naming corrections &amp; typo fix</div><div class="rm-detail">Fix typo "Panned order release month" → "Planned order release month" and update its formula reference. Apply Title Case convention across all modules. Must follow DISCO rename so all updates land in one ALM revision tag per module.</div></div></div>
         <div class="rm-phase"><div class="rm-num" style="background:var(--gold);">3</div><div><div class="rm-week">Weeks 2–3 — after naming is stable</div><div class="rm-title">Formula decomposition — Planning Workflow Visualization</div><div class="rm-detail">"Status" (1,736 chars, IF depth ~10) and "No. of days" (421 chars, IF depth ~12) must be decomposed into staged Boolean and number intermediates, targeting max 3 IF levels. Estimated: 3–4 days including DEV UAT.</div></div></div>
         <div class="rm-phase"><div class="rm-num" style="background:var(--pos);">4</div><div><div class="rm-week">Ongoing — every ALM promotion</div><div class="rm-title">Meridian scan as definition of done</div><div class="rm-detail">Add Meridian blueprint scan as mandatory gate before every DEV → UAT → PROD promotion. Target MII above 75 before any client-facing deployment.</div></div></div>
+      </div>
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Performance risk register — top formula-bearing line items</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:14px;font-weight:300;">Sorted by formula character length as a proxy for calculation complexity. R08–R12 anti-pattern flags applied. Click any flagged row for decomposition guidance.</div>
+      \${buildPerfRiskHtml(ar, parsedModules)}
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">Change risk map — module blast radius</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:14px;font-weight:300;">Blast radius = outbound cross-module references × modules that reference this module inbound. High in both = architectural hub requiring regression testing before any change.</div>
+      \${buildChangeRiskHtml(parsedModules)}
+    </div>
+
+    <div class="r-section">
+      <div class="sec-label">AI-generated line item notes — Anaplan import ready</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:14px;font-weight:300;">Generated by Gemini 2.0 Flash from formula text and module context. Review before import. Export CSV → Anaplan → Model Settings → Blueprint → Import Line Items.</div>
+      <div id="notes-panel-wrap">
+        <div style="padding:32px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--sh);">
+          <div style="font-size:24px;margin-bottom:12px;">&#9997;</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;">Notes not yet generated</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:18px;">Generate AI Notes for the top formula-bearing line items in this model. Raises Governance score.</div>
+          <button class="btn btn-pri" onclick="startNotesGeneration()">Generate AI Notes</button>
+        </div>
       </div>
     </div>
 
@@ -1973,6 +2447,543 @@ function exportWord(){
   a.href=url; a.download=id==='s-intel'?'Meridian-Intelligence-Report.doc':'Meridian-Model-Documentation.doc';
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
+
+
+// ═══════════════════════════════════════════════════════════════
+// PERFORMANCE RISK REGISTER
+// ═══════════════════════════════════════════════════════════════
+function buildPerfRiskHtml(ar, modules) {
+  const rows = modules.flatMap(m =>
+    m.lineItems
+      .filter(li => li.hasFormula && li.formulaLen > 100)
+      .map(li => ({...li, mod: m.moduleName, modRef: m}))
+  ).sort((a,b) => b.formulaLen - a.formulaLen).slice(0, 20);
+
+  if (!rows.length) return '<div style="padding:20px;text-align:center;color:var(--text3);">No formula-bearing line items found.</div>';
+
+  const apTag = (li) => {
+    const tags = [];
+    if(li.formula.includes('[SUM:') && li.formula.includes('[LOOKUP:')) tags.push('<span class="ap-tag ap-SL">SL</span>');
+    if(/\bFINDITEM\s*\(/i.test(li.formula) && !/\bISNOTBLANK\s*\(/i.test(li.formula)) tags.push('<span class="ap-tag ap-FI">FI</span>');
+    if(/(TEXTLIST\s*\(|TEXT\s*\()/i.test(li.formula)) tags.push('<span class="ap-tag ap-TX">TX</span>');
+    if(/\bRANK\s*\(/i.test(li.formula)) tags.push('<span class="ap-tag ap-RK">RK</span>');
+    if((li.formula.match(/\bPARENT\s*\(/gi)||[]).length > 2) tags.push('<span class="ap-tag ap-PA">PA</span>');
+    return tags.join('') || '<span style="color:var(--text4);font-size:10px;">—</span>';
+  };
+
+  const maxLen = rows[0].formulaLen;
+  return `<div class="tbl-wrap">
+    <table class="tbl"><thead><tr>
+      <th>#</th><th>Line Item</th><th>Module</th><th>Length</th>
+      <th style="width:80px">Bar</th><th>Flags</th><th>IF</th>
+    </tr></thead><tbody>` +
+    rows.map((r,i) => {
+      const bc = r.formulaLen > 500 ? 'var(--neg)' : r.formulaLen > 300 ? 'var(--gold)' : 'var(--accent)';
+      const pct = Math.round(r.formulaLen/maxLen*100);
+      const fixHtml = (r.formula.includes('[SUM:') && r.formula.includes('[LOOKUP:')) ?
+        `<tr class="fix-row"><td colspan="7"><div class="fix-panel" id="fp${i}">
+          <div class="fix-lbl">Module to open</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(191,128,30,.9);margin-bottom:12px;">${r.mod}</div>
+          <div class="fix-lbl">Anti-pattern — SUM+LOOKUP in single formula</div>
+          <div class="fix-code bad">Current: ${r.formula.substring(0,200)}${r.formula.length>200?'...':''}</div>
+          <div class="fix-lbl">Refactoring approach</div>
+          <div class="fix-code good">Step 1: Create intermediate SUM line item in same module
+Step 2: Replace SUM part in original formula with reference to intermediate
+Result: LOOKUP now references a scalar value, not a re-evaluated SUM
+Effort: 20–45 min · Zero business logic change</div>
+        </div></td></tr>` : '';
+      const hasFlag = apTag(r).includes('ap-tag');
+      return `<tr class="${hasFlag?'perf-tr':''}" ${hasFlag?`onclick="toggleFix(${i})"`:''} style="${!hasFlag?'opacity:.7;cursor:default':''}">
+        <td style="font-family:'IBM Plex Mono',monospace;color:var(--text4);font-size:10px;">${String(i+1).padStart(2,'0')}</td>
+        <td style="font-weight:600;color:var(--text);">${r.name}${hasFlag?' <span style="font-size:10px;color:var(--accent);">&#9658;</span>':''}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);">${r.mod.substring(0,30)}${r.mod.length>30?'...':''}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:${bc};">${r.formulaLen}</td>
+        <td><div class="prog"><div class="prog-f" style="width:${pct}%;background:${bc};opacity:.7;"></div></div></td>
+        <td>${apTag(r)}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;${r.ifDepth>5?'color:var(--neg);font-weight:700;':r.ifDepth>3?'color:var(--gold);':'color:var(--text3);'}">${r.ifDepth||'—'}</td>
+      </tr>${fixHtml}`;
+    }).join('') +
+    '</tbody></table></div>';
+}
+
+function toggleFix(i) {
+  const fp = document.getElementById('fp'+i);
+  if(!fp) return;
+  const open = fp.classList.contains('open');
+  document.querySelectorAll('.fix-panel.open').forEach(p=>p.classList.remove('open'));
+  if(!open) fp.classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHANGE RISK MAP
+// ═══════════════════════════════════════════════════════════════
+function buildChangeRiskHtml(modules) {
+  // Build inbound reference map
+  const inboundMap = new Map();
+  for(const m of modules) {
+    for(const ref of m.allCrossRefs) {
+      if(!inboundMap.has(ref)) inboundMap.set(ref, new Set());
+      inboundMap.get(ref).add(m.moduleName);
+    }
+  }
+
+  const risks = modules.map(m => ({
+    name: m.moduleName,
+    out: m.allCrossRefs.length,
+    inp: inboundMap.get(m.moduleName)?.size || 0,
+    blast: m.allCrossRefs.length * (inboundMap.get(m.moduleName)?.size || 0)
+  })).filter(r => r.blast > 0).sort((a,b) => b.blast - a.blast).slice(0, 10);
+
+  if(!risks.length) return '<div style="padding:20px;text-align:center;color:var(--text3);">No cross-module references detected.</div>';
+  const maxBlast = risks[0].blast;
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr>
+    <th>#</th><th>Module</th><th>Out refs</th><th>In refs</th><th>Blast radius</th><th>Risk level</th><th>Recommendation</th>
+  </tr></thead><tbody>` +
+  risks.map((r,i) => {
+    const p = r.blast/maxBlast;
+    const bc = p>.7?'var(--neg)':p>.4?'var(--gold)':'var(--text3)';
+    const rb = p>.7?'b-bad':p>.4?'b-risk':'b-gray';
+    const rl = p>.7?'Hub':'Elevated';
+    const rec = p>.7?'Full regression before any change':p>.4?'Spot-check downstream modules':'Normal change process';
+    return `<tr>
+      <td style="font-family:'IBM Plex Mono',monospace;color:var(--text4);font-size:10px;">${String(i+1).padStart(2,'0')}</td>
+      <td style="font-weight:600;font-size:12px;">${r.name}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--accent);">${r.out}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--neg);">${r.inp}</td>
+      <td><div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:30px;height:30px;border-radius:50%;border:2px solid ${bc};background:${bc}18;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:${bc};flex-shrink:0;">${r.blast}</div>
+        <span class="badge ${rb}">${rl}</span>
+      </div></td>
+      <td style="font-size:11px;color:var(--text3);">${rec}</td>
+    </tr>`;
+  }).join('') + '</tbody></table></div>';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AI NOTES GENERATION
+// ═══════════════════════════════════════════════════════════════
+let generatedNotes = [];
+
+async function startNotesGeneration() {
+  const wrap = document.getElementById('notes-panel-wrap');
+  if(!wrap || !parsedModules.length) return;
+
+  wrap.innerHTML = `<div style="padding:24px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:var(--sh);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div class="spinner"></div>
+      <div style="font-size:13px;font-weight:600;">Generating AI Notes via Gemini 2.0 Flash&hellip;</div>
+    </div>
+    <div id="notes-gen-progress" style="font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;">Preparing batches&hellip;</div>
+    <div class="prog" style="margin-top:10px;height:5px;"><div id="notes-gen-bar" class="prog-f" style="width:0%;background:var(--accent);"></div></div>
+  </div>`;
+
+  // Get top formula-bearing LIs without existing notes
+  const candidates = parsedModules.flatMap(m =>
+    m.lineItems.filter(li => li.hasFormula && li.formulaLen > 50)
+      .map(li => ({...li, modName: m.moduleName, modApplies: m.appliesTo}))
+  ).sort((a,b) => b.formulaLen - a.formulaLen).slice(0, 60);
+
+  const BATCH = 10;
+  generatedNotes = [];
+  const total = Math.ceil(candidates.length/BATCH);
+
+  for(let b=0; b<total; b++) {
+    const batch = candidates.slice(b*BATCH, (b+1)*BATCH);
+    document.getElementById('notes-gen-progress').textContent =
+      `Batch ${b+1} of ${total} · ${Math.min((b+1)*BATCH, candidates.length)} of ${candidates.length} line items`;
+    document.getElementById('notes-gen-bar').style.width = Math.round((b/total)*100)+'%';
+
+    const prompt = buildNotesPrompt(batch);
+    try {
+      const resp = await fetch('/api/generate', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({prompt, maxTokens: 1500})
+      });
+      const data = await resp.json();
+      const text = (data?.text||'').replace(/```json|```/g,'').trim();
+      try {
+        const parsed = JSON.parse(text);
+        if(Array.isArray(parsed)) generatedNotes.push(...parsed);
+      } catch(e) { console.warn('Notes parse error batch',b,e); }
+    } catch(e) { console.warn('Notes API error batch',b,e); }
+  }
+
+  document.getElementById('notes-gen-bar').style.width = '100%';
+  renderNotesPanel(generatedNotes);
+}
+
+function buildNotesPrompt(batch) {
+  const items = batch.map((li,i) =>
+    `${i+1}. Module: ${li.modName} | Line item: ${li.name} | Formula: ${li.formula.substring(0,300)}`
+  ).join('\n');
+  return `You are an Anaplan model builder writing line item Notes for a blueprint documentation import.
+For each line item below, write a single Note of maximum 190 characters that explains in plain English what it calculates, where its primary input comes from (if inferable), and what it feeds downstream (if inferable).
+
+Return ONLY a valid JSON array with no markdown fences, no preamble. Format exactly:
+[{"li":"Line Item Name","mod":"Module Name","note":"Your note text","conf":"HIGH"}]
+
+Confidence: HIGH if formula is clear and short, MEDIUM if moderately complex, REVIEW if formula is very long or opaque.
+
+Line items:
+${items}`;
+}
+
+function renderNotesPanel(notes) {
+  const wrap = document.getElementById('notes-panel-wrap');
+  if(!notes.length) {
+    wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);">No notes generated. Check API configuration.</div>';
+    return;
+  }
+  const high = notes.filter(n=>n.conf==='HIGH').length;
+  const pct = Math.round(high/notes.length*100);
+  wrap.innerHTML = `<div class="tbl-wrap">
+    <div class="notes-toolbar">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:13px;font-weight:700;">AI-Generated Notes</span>
+        <span class="badge b-ok">${notes.length} generated</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="background:var(--surface3);border-radius:100px;height:5px;width:70px;overflow:hidden;">
+            <div style="height:100%;background:var(--pos);border-radius:100px;width:${pct}%;"></div>
+          </div>
+          <span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);">${pct}% high confidence</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="notesSelConf('HIGH')">High conf.</button>
+        <button class="btn btn-ghost btn-sm" onclick="notesCheckAll(true)">All</button>
+        <button class="btn btn-ghost btn-sm" onclick="notesCheckAll(false)">None</button>
+        <button class="btn btn-pri btn-sm" onclick="exportNotesCsv()">&#8595; Export CSV</button>
+      </div>
+    </div>
+    <div class="notes-col-hd">
+      <div></div><div>Module &middot; Line Item</div><div>Generated Note (editable)</div><div>Confidence</div>
+    </div>
+    ${notes.map((n,i) => {
+      const cc = n.conf==='HIGH'?'conf-hi':n.conf==='MEDIUM'?'conf-md':'conf-rv';
+      return `<div class="note-row">
+        <div style="padding-top:3px;"><input type="checkbox" id="nc${i}" ${n.conf!=='REVIEW'?'checked':''} style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;"></div>
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--accent);">${n.mod||''}</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text);margin-top:2px;">${n.li}</div>
+        </div>
+        <div>
+          <textarea class="note-ta${n.conf==='REVIEW'?' review':''}" id="nt${i}" maxlength="200" oninput="updateCc(${i})">${n.note}</textarea>
+          <div class="cc" id="cc${i}">${n.note.length}/200</div>
+        </div>
+        <div style="padding-top:3px;"><span class="badge ${cc}">${n.conf}</span></div>
+      </div>`;
+    }).join('')}
+    <div style="padding:11px 16px;background:var(--bg2);border-top:1px solid var(--rule);font-size:11px;color:var(--text3);">
+      <strong style="color:var(--text2);">Import path:</strong> Export CSV → Anaplan → Model Settings → Modules → select module → Blueprint → Import Line Items → map Module Name + Line Item + Notes.
+    </div>
+  </div>`;
+}
+
+function notesCheckAll(v){generatedNotes.forEach((_,i)=>{const cb=document.getElementById('nc'+i);if(cb)cb.checked=v;});}
+function notesSelConf(l){generatedNotes.forEach((n,i)=>{const cb=document.getElementById('nc'+i);if(cb)cb.checked=(n.conf===l);});}
+function updateCc(i){const ta=document.getElementById('nt'+i);const cc=document.getElementById('cc'+i);if(ta&&cc){cc.textContent=ta.value.length+'/200';cc.className='cc'+(ta.value.length>180?' over':'');}}
+
+function exportNotesCsv(){
+  if(!generatedNotes.length){alert('Generate notes first.');return;}
+  const rows=[['Module Name','Line Item Name','Notes','Confidence']];
+  generatedNotes.forEach((n,i)=>{const cb=document.getElementById('nc'+i);if(cb&&cb.checked){const ta=document.getElementById('nt'+i);rows.push([n.mod||'',n.li,ta?ta.value:n.note,n.conf||'']);}});
+  if(rows.length===1){alert('No notes selected.');return;}
+  dlCsv('meridian-notes-import.csv',rows);
+}
+
+function exportPerfCsv(){
+  if(!parsedModules.length){alert('Run analysis first.');return;}
+  const rows=[['#','Line Item','Module','Formula Length','IF Depth','Flags']];
+  parsedModules.flatMap(m=>m.lineItems.filter(li=>li.hasFormula&&li.formulaLen>100).map(li=>({...li,mod:m.moduleName})))
+    .sort((a,b)=>b.formulaLen-a.formulaLen).slice(0,20).forEach((r,i)=>{
+      const flags=[];
+      if(r.formula.includes('[SUM:')&&r.formula.includes('[LOOKUP:'))flags.push('SL');
+      if(/\bFINDITEM\s*\(/i.test(r.formula)&&!/\bISNOTBLANK\s*\(/i.test(r.formula))flags.push('FI');
+      rows.push([i+1,r.name,r.mod,r.formulaLen,r.ifDepth||0,flags.join('+')||'']);
+    });
+  dlCsv('meridian-performance-register.csv',rows);
+}
+
+function dlCsv(fn,rows){
+  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})),download:fn});
+  a.click();URL.revokeObjectURL(a.href);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// USER GUIDE
+// ═══════════════════════════════════════════════════════════════
+let guideGenerated = false;
+
+function openUserGuide() {
+  go('s-guide');
+  if(!guideGenerated) generateUserGuide();
+}
+
+async function generateUserGuide() {
+  const el = document.getElementById('guide-content');
+  el.innerHTML = `<div class="guide-loading" style="max-width:520px;margin:80px auto;text-align:center;">
+    <div style="font-size:32px;margin-bottom:16px;">&#129300;</div>
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;">Generating User Guide</h3>
+    <p style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:24px;font-weight:300;">
+      Gemini 2.0 Flash is analysing ${parsedModules.length} modules and ${analysisResult?.totalLI||0} line items to write an operational guide for business users. This takes 15–30 seconds.
+    </p>
+    <div class="spinner" style="margin:0 auto;width:20px;height:20px;"></div>
+  </div>`;
+
+  const prompt = buildGuidePrompt();
+  let guideData = null;
+
+  try {
+    const resp = await fetch('/api/generate', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({prompt, maxTokens: 3500})
+    });
+    const data = await resp.json();
+    const text = (data?.text||'').replace(/```json|```/g,'').trim();
+    try { guideData = JSON.parse(text); } catch(e) { console.warn('Guide parse error',e,text.substring(0,200)); }
+  } catch(e) { console.warn('Guide API error',e); }
+
+  renderUserGuide(guideData);
+  guideGenerated = true;
+
+  // Update hub card
+  const cta = document.getElementById('hub-guide-cta');
+  if(cta) cta.textContent = 'Open User Guide →';
+}
+
+function buildGuidePrompt() {
+  const groups = {};
+  parsedModules.forEach(m => {
+    const pfx = m.moduleName.match(/^([A-Z]+)/)?.[1] || 'OTHER';
+    if(!groups[pfx]) groups[pfx] = {count:0,modules:[],sampleLIs:[]};
+    groups[pfx].count++;
+    groups[pfx].modules.push(m.moduleName);
+    groups[pfx].sampleLIs.push(...m.lineItems.slice(0,3).map(li=>li.name));
+  });
+
+  const groupSummary = Object.entries(groups).map(([pfx,g]) =>
+    `${pfx} (${g.count} modules): ${g.modules.slice(0,3).join(', ')} | Sample LIs: ${g.sampleLIs.slice(0,5).join(', ')}`
+  ).join('\n');
+
+  const keyFormulas = parsedModules.flatMap(m=>m.lineItems.filter(li=>li.hasFormula&&li.formulaLen>80))
+    .sort((a,b)=>b.formulaLen-a.formulaLen).slice(0,15)
+    .map(li=>`${li.name}: ${li.formula.substring(0,150)}`).join('\n');
+
+  return `You are writing a business user guide for an Anaplan planning model. Analyse the module structure below and write a guide.
+
+IMPORTANT RULES:
+- Infer everything ONLY from the module names, prefixes, and line items provided
+- Do NOT invent dashboard names or button labels (they are not in the blueprint data)
+- Write for business users, not technical builders
+- Use plain language, no Anaplan jargon
+- Base workflow stages on what the module groups reveal about the planning process
+
+Model structure (${parsedModules.length} modules, ${analysisResult?.totalLI||0} line items):
+${groupSummary}
+
+Key formulas showing data flow:
+${keyFormulas}
+
+Return ONLY valid JSON (no markdown, no fences, no preamble):
+{
+  "model_name": "Short descriptive name for this model based on module content",
+  "model_purpose": "2-3 sentences describing what this model does and what business problem it solves",
+  "workflow_stages": [
+    {"num": "01", "title": "Stage name", "owner": "Role name", "body": "What happens in this stage, what users do, what inputs and outputs are involved. 3-5 sentences."},
+    ...
+  ],
+  "roles": [
+    {"role": "Role name", "responsibilities": "What this role does in the model. 1-2 sentences."},
+    ...
+  ],
+  "data_sources": "Paragraph about where data comes from and how it flows through the model.",
+  "key_concepts": [
+    {"term": "Term", "definition": "Plain English definition relevant to this model."},
+    ...
+  ]
+}`;
+}
+
+function renderUserGuide(data) {
+  const el = document.getElementById('guide-content');
+  const modelName = data?.model_name || `${parsedModules.length}-Module Planning Model`;
+  const stages = data?.workflow_stages || [];
+  const roles = data?.roles || [];
+  const ar = analysisResult;
+
+  el.innerHTML = `
+    <div class="guide-mast">
+      <div class="guide-mast-inner">
+        <div>
+          <div class="guide-eyeon">Meridian &middot; AI-Generated User Guide</div>
+          <div class="guide-title">${modelName}<br><span style="font-weight:300;font-size:20px;">Operational Reference &amp; Planning Guide</span></div>
+          <div class="guide-meta">Generated by Gemini 2.0 Flash &nbsp;&middot;&nbsp; ${parsedModules.length} modules &nbsp;&middot;&nbsp; ${ar?.totalLI||0} line items &nbsp;&middot;&nbsp; Draft v1.0</div>
+        </div>
+        <div class="guide-kpis">
+          <div class="guide-kpi"><div class="guide-kpi-val">${stages.length}</div><div class="guide-kpi-lbl">Stages</div></div>
+          <div class="guide-kpi"><div class="guide-kpi-val">${roles.length}</div><div class="guide-kpi-lbl">Roles</div></div>
+          <div class="guide-kpi"><div class="guide-kpi-val">${parsedModules.length}</div><div class="guide-kpi-lbl">Modules</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="guide-body">
+      <div class="guide-ai-badge"><div class="guide-ai-dot"></div>
+        Generated from blueprint CSV &nbsp;&middot;&nbsp; Dashboard names and button labels require confirmation against the live model
+      </div>
+
+      <div class="g-section">
+        <div class="g-sec-hd" onclick="toggleSec('g1')">
+          <div class="g-sec-left"><div class="g-sec-num">01</div><div class="g-sec-title">Introduction</div></div>
+          <div class="g-sec-chev open" id="g1-chev">&#8964;</div>
+        </div>
+        <div class="g-sec-body open" id="g1-body">
+          <div class="guide-sec-label">What this model does</div>
+          <div class="g-p">${data?.model_purpose || 'This Anaplan model supports planning and decision-making across the organisation.'}</div>
+          <div class="guide-sec-label">Data flow</div>
+          <div class="g-p">${data?.data_sources || 'Data flows from source systems into this model via the Data Hub, with manual inputs from planners within Anaplan.'}</div>
+        </div>
+      </div>
+
+      <div class="g-section">
+        <div class="g-sec-hd" onclick="toggleSec('g2')">
+          <div class="g-sec-left"><div class="g-sec-num">02</div><div class="g-sec-title">User Roles</div></div>
+          <div class="g-sec-chev" id="g2-chev">&#8964;</div>
+        </div>
+        <div class="g-sec-body" id="g2-body">
+          <div class="role-wrap">
+            <table class="role-tbl"><thead><tr><th>Role</th><th>Primary responsibilities</th></tr></thead>
+            <tbody>${roles.map(r=>`<tr><td>${r.role}</td><td>${r.responsibilities}</td></tr>`).join('') ||
+              '<tr><td colspan="2" style="color:var(--text3);text-align:center;padding:20px;">Roles not detected — confirm with your Anaplan Administrator</td></tr>'}
+            </tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="g-section">
+        <div class="g-sec-hd" onclick="toggleSec('g3')">
+          <div class="g-sec-left"><div class="g-sec-num">03</div><div class="g-sec-title">Planning Process</div>
+            <div class="g-sec-pills"><span class="g-sec-pill">${stages.length} stages</span></div>
+          </div>
+          <div class="g-sec-chev open" id="g3-chev">&#8964;</div>
+        </div>
+        <div class="g-sec-body open" id="g3-body">
+          <div class="pf-wrap" style="margin-top:16px;">
+            ${stages.map(s=>`<div class="pf-node">${s.title}<em>Stage ${s.num}</em></div><div class="pf-arr">&#8594;</div>`).join('').replace(/<div class="pf-arr">&#8594;<\/div>$/,'')}
+          </div>
+          ${stages.map(s=>`
+            <div class="guide-stage">
+              <div class="gs-hd">
+                <div class="gs-num">${s.num}</div>
+                <div class="gs-right">
+                  <div class="gs-title">${s.title}</div>
+                  <div class="gs-owner">${s.owner}</div>
+                </div>
+              </div>
+              <div class="gs-body"><div class="g-p">${s.body}</div></div>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      ${data?.key_concepts?.length ? `
+      <div class="g-section">
+        <div class="g-sec-hd" onclick="toggleSec('g4')">
+          <div class="g-sec-left"><div class="g-sec-num">04</div><div class="g-sec-title">Key Concepts</div></div>
+          <div class="g-sec-chev" id="g4-chev">&#8964;</div>
+        </div>
+        <div class="g-sec-body" id="g4-body">
+          <div class="role-wrap" style="margin-top:16px;">
+            <table class="role-tbl"><thead><tr><th>Term</th><th>Definition</th></tr></thead>
+            <tbody>${data.key_concepts.map(k=>`<tr><td>${k.term}</td><td>${k.definition}</td></tr>`).join('')}
+            </tbody></table>
+          </div>
+        </div>
+      </div>` : ''}
+
+    </div>
+    <div class="guide-act-bar" style="position:sticky;bottom:22px;display:flex;justify-content:center;pointer-events:none;z-index:100;margin-top:22px;">
+      <div class="act-bar-inner">
+        <button class="btn-act btn-act-ghost" onclick="toggleSec('g1');toggleSec('g2');toggleSec('g3');toggleSec('g4')">Expand all</button>
+        <button class="btn-act btn-act-pri" onclick="exportGuidePDF()">&#8595; Export PDF</button>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GUIDE SECTION TOGGLE
+// ═══════════════════════════════════════════════════════════════
+function toggleSec(id) {
+  const body = document.getElementById(id+'-body');
+  const chev = document.getElementById(id+'-chev');
+  if(body) body.classList.toggle('open');
+  if(chev) chev.classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DOWNLOAD MODAL
+// ═══════════════════════════════════════════════════════════════
+function openDl(){document.getElementById('dl-modal').classList.add('open');}
+function closeDl(){document.getElementById('dl-modal').classList.remove('open');}
+function closeDlOv(e){if(e.target===document.getElementById('dl-modal'))closeDl();}
+
+// ═══════════════════════════════════════════════════════════════
+// GUIDE PDF EXPORT
+// ═══════════════════════════════════════════════════════════════
+function exportGuidePDF() {
+  if(!guideGenerated){alert('Generate the User Guide first from the Hub screen.');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,M=18,TW=W-M*2;let y=M;
+
+  const addPage=()=>{doc.addPage();y=M;};
+  const checkY=(n=12)=>{if(y+n>278)addPage();};
+  const text=(t,size,style,color,indent=0,lh=5.5)=>{
+    doc.setFontSize(size);doc.setFont('helvetica',style);doc.setTextColor(...color);
+    const lines=doc.splitTextToSize(String(t),TW-indent);
+    checkY(lines.length*lh+2);doc.text(lines,M+indent,y);y+=lines.length*lh+2;
+  };
+  const rule=()=>{doc.setDrawColor(220,217,210);doc.line(M,y,W-M,y);y+=5;};
+
+  // Cover
+  doc.setFillColor(23,90,166);doc.rect(0,0,W,297,'F');
+  doc.setFillColor(255,255,255,0.1);doc.rect(0,0,3,297,'F');
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(150,180,220);
+  doc.text('MERIDIAN · USER GUIDE · AI GENERATED',M,28);
+  doc.setFontSize(22);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+  const guideEl=document.querySelector('.guide-title');
+  const guideTitle=guideEl?guideEl.innerText.split('\n')[0]:'Planning Model';
+  doc.text(guideTitle,M,50);
+  doc.setFontSize(12);doc.setFont('helvetica','normal');doc.setTextColor(180,210,255);
+  doc.text('Operational Reference & Planning Guide',M,62);
+  doc.setFontSize(8);doc.setTextColor(150,180,220);
+  doc.text('Generated by Meridian · Gemini 2.0 Flash · EyeOn Anaplan Accelerator Pack',M,280);
+  doc.text('Dashboard names and button labels require confirmation against the live model.',M,285);
+
+  // Content sections
+  addPage();
+  const sections=document.querySelectorAll('#guide-content .g-sec-body');
+  sections.forEach((sec,i)=>{
+    const hdEl=sec.previousElementSibling;
+    const hd=hdEl?hdEl.querySelector('.g-sec-title')?.innerText||'Section':'Section';
+    doc.setFillColor(235,242,255);doc.rect(0,y-5,W,14,'F');
+    text(`0${i+1} — ${hd}`,13,'bold',[28,33,41]);rule();
+    sec.querySelectorAll('.g-p,.gs-body .g-p,.guide-sec-label,.gs-title,.gs-owner,.role-tbl td').forEach(el=>{
+      const cls=el.className||'';
+      const t=el.innerText.trim();if(!t)return;
+      if(cls.includes('guide-sec-label'))text(t.toUpperCase(),7.5,'bold',[130,140,160]);
+      else if(cls.includes('gs-title'))text(t,11,'bold',[28,33,41]);
+      else if(cls.includes('gs-owner')){y+=1;text('Owned by: '+t.replace('Owned by','').trim(),8,'italic',[120,130,150]);y+=2;}
+      else text(t,9.5,'normal',[89,94,107]);
+    });
+    y+=8;
+  });
+
+  doc.save('meridian-user-guide.pdf');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// updateHub — add guide status
+// ═══════════════════════════════════════════════════════════════
 
 </script>
 </body>
