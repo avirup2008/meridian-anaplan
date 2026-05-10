@@ -504,6 +504,34 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .dl-tags{display:flex;gap:6px;flex-wrap:wrap}
 .dl-tag{font-size:9px;font-family:'IBM Plex Mono',monospace;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.35)}
 
+/* ─── CONNECT SCREEN ─────────────────────────────────────── */
+.screen-shell{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:60px 24px;background:var(--bg)}
+.connect-wrap{width:100%;max-width:440px}
+.connect-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-xl);box-shadow:var(--sh-lg);overflow:hidden}
+.connect-tabs{display:flex;border-bottom:1px solid var(--border)}
+.connect-tab{flex:1;padding:14px 0;font-size:12px;font-weight:600;font-family:'IBM Plex Sans',system-ui,sans-serif;text-align:center;cursor:pointer;border:none;background:var(--bg2);color:var(--text3);transition:all .15s}
+.connect-tab.active{background:var(--surface);color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent)}
+.connect-tab:hover:not(.active){color:var(--text2);background:var(--surface2)}
+.connect-body{padding:32px 32px 28px}
+.connect-field{margin-bottom:18px}
+.connect-field label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px}
+.connect-field input{width:100%;padding:10px 14px;border:1px solid var(--border2);border-radius:var(--r);font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s}
+.connect-field input:focus{border-color:var(--accent)}
+.connect-error{font-size:12px;color:var(--neg);margin-bottom:14px;min-height:18px;font-family:'IBM Plex Sans',system-ui,sans-serif}
+.confirmation-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-xl);box-shadow:var(--sh-lg);padding:36px 36px 28px;margin-top:0}
+.confirm-icon{width:44px;height:44px;background:var(--pos-pale);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:20px;font-size:20px}
+.confirm-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px}
+.confirm-sub{font-size:13px;color:var(--text2);margin-bottom:24px}
+.confirm-stat{font-size:22px;font-weight:700;color:var(--accent);font-family:'IBM Plex Mono',monospace}
+.confirm-stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'IBM Plex Mono',monospace;margin-bottom:20px}
+
+/* ─── RE-AUTH MODAL ─────────────────────────────────────── */
+.reauth-overlay{position:fixed;inset:0;background:rgba(28,33,41,.55);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.reauth-overlay.visible{opacity:1;pointer-events:all}
+.reauth-modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-xl);box-shadow:var(--sh-lg);padding:36px;width:100%;max-width:400px}
+.reauth-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px}
+.reauth-msg{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6}
+
 </style>
 </head>
 <body>
@@ -916,6 +944,77 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     <!-- SECTION: CONNECT -->
     <!-- v2 Phase 2 — Anaplan credential entry + confirmation card -->
     <!-- ============================================================ -->
+
+<div id="s-connect" class="screen">
+  <div class="screen-shell">
+    <div class="connect-wrap">
+
+      <!-- Tabbed connect card (shown before auth) -->
+      <div id="connect-card" class="connect-card">
+        <div class="connect-tabs">
+          <button class="connect-tab active" id="tab-connect" onclick="switchConnectTab('connect')">Connect to Anaplan</button>
+          <button class="connect-tab" id="tab-csv" onclick="switchConnectTab('csv')">Upload CSV</button>
+        </div>
+
+        <!-- Tab: Connect -->
+        <div id="tab-body-connect" class="connect-body">
+          <div class="sec-label" style="margin-top:0">Anaplan credentials</div>
+          <div class="connect-field">
+            <label for="inp-user">Username</label>
+            <input type="email" id="inp-user" placeholder="you@company.com" autocomplete="username" />
+          </div>
+          <div class="connect-field">
+            <label for="inp-pass">Password</label>
+            <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password" />
+          </div>
+          <div class="connect-error" id="connect-error"></div>
+          <button class="btn btn-pri" id="btn-connect" onclick="connectToAnaplan()" style="width:100%">
+            <span id="btn-connect-label">Connect to Anaplan</span>
+          </button>
+          <p style="font-size:11px;color:var(--text3);margin-top:14px;text-align:center;line-height:1.5">Credentials stored in your browser session only — cleared when you close this tab.</p>
+        </div>
+
+        <!-- Tab: Upload CSV -->
+        <div id="tab-body-csv" class="connect-body" style="display:none">
+          <div class="sec-label" style="margin-top:0">CSV fallback</div>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6">Upload a CSV blueprint file for single-module analysis without a live Anaplan connection.</p>
+          <button class="btn btn-ghost" onclick="go('s-upload')" style="width:100%">Choose CSV file →</button>
+        </div>
+      </div>
+
+      <!-- Confirmation card (shown after successful auth, hidden initially) -->
+      <div id="confirm-card" class="confirmation-card" style="display:none">
+        <div class="confirm-icon">✓</div>
+        <div class="confirm-title">Connected to Anaplan</div>
+        <div class="confirm-sub" id="confirm-sub">Workspace access confirmed</div>
+        <!-- Primary stat: total model count (from data.totalModels returned by api/connect.js) -->
+        <div class="confirm-stat" id="confirm-stat-models">—</div>
+        <div class="confirm-stat-label">models</div>
+        <!-- Secondary stat: workspace count -->
+        <div class="confirm-stat" id="confirm-stat-workspaces" style="font-size:16px;margin-top:8px">—</div>
+        <div class="confirm-stat-label" style="margin-bottom:20px">workspaces</div>
+        <button class="btn btn-pri" onclick="loadModels()" style="width:100%;margin-top:4px">Browse Models →</button>
+        <button class="btn btn-ghost btn-sm" onclick="disconnectAnaplan()" style="width:100%;margin-top:10px">Disconnect</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Re-auth modal (global overlay — outside screen shell) -->
+<div id="reauth-overlay" class="reauth-overlay">
+  <div class="reauth-modal">
+    <div class="reauth-title">Session expired</div>
+    <div class="reauth-msg">Your Anaplan session has expired after ~35 minutes. Please reconnect to continue.</div>
+    <div class="connect-field">
+      <label for="reauth-pass">Password</label>
+      <input type="password" id="reauth-pass" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <div class="connect-error" id="reauth-error"></div>
+    <button class="btn btn-pri" onclick="reAuthenticate()" style="width:100%">Reconnect</button>
+    <button class="btn btn-ghost btn-sm" onclick="hideReAuth()" style="width:100%;margin-top:10px">Cancel</button>
+  </div>
+</div>
 
     <!-- ============================================================ -->
     <!-- SECTION: MODEL-PICKER -->
