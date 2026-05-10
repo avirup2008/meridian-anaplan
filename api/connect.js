@@ -66,7 +66,7 @@ export default async function handler(req, res) {
           headers: { 'Authorization': `AnaplanAuthToken ${token}` }
         })
         .then(r => r.ok ? r.json() : { models: [] })
-        .then(data => (data.models || []).length)
+        .then(data => (data.models || []).filter(m => m.activeState === 'UNLOCKED').length)
         .catch(() => 0) // partial failure: use 0 for this workspace, don't fail entire call
       )
     );

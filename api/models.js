@@ -54,8 +54,9 @@ export default async function handler(req, res) {
 
     const modData = await modRes.json();
 
-    // Include UNLOCKED and LOCKED models — Anaplan uses these values, not 'ACTIVE'
+    // Only show UNLOCKED models — filter out ARCHIVED, LOCKED, etc.
     const models = (modData.models || [])
+      .filter(m => m.activeState === 'UNLOCKED')
       .map(m => ({
         id: m.id,
         name: m.name,
