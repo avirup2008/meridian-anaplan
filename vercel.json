@@ -13,6 +13,8 @@
     }
   ],
   "functions": {
-    "api/generate.js": { "maxDuration": 30 }
+    "api/generate.js": { "maxDuration": 30 },
+    "api/connect.js": { "maxDuration": 10 },
+    "api/models.js": { "maxDuration": 10 }
   }
 }
