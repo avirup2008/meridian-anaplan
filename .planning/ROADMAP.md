@@ -28,7 +28,9 @@
   2. package.json declares `@anthropic-ai/sdk`, `@vercel/blob`, and `pdfmake` at pinned versions and `npm install` completes without errors
   3. vercel.json has a `functions{}` block with `maxDuration` set per endpoint (60s blueprint/analyze, 30s share, 10s connect/models) and deploys successfully
   4. `api/generate.js` calls Claude Haiku via `@anthropic-ai/sdk` and the existing CSV analysis flow returns a valid response (Gemini references removed)
-**Plans**: TBD
+**Plans**: 2 plans
+  - [ ] 01-01-PLAN.md — Create package.json + add functions{} block to vercel.json (Wave 1)
+  - [ ] 01-02-PLAN.md — Migrate api/generate.js to Claude Haiku + add index.html v2 section comments (Wave 2)
 
 ### Phase 2: Connection
 **Goal**: Users can authenticate with Anaplan, browse their workspaces and models, and proceed to blueprint fetch — with graceful handling of session expiry and CSV fallback
