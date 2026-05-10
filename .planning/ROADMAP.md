@@ -42,8 +42,10 @@
   3. A user who has been connected for ~35 minutes sees a re-auth prompt (not a cryptic API error) when their session token expires
   4. A user without Anaplan access can upload a CSV blueprint file and receive single-module Claude Haiku analysis via the existing fallback path
   5. Zero Anaplan API calls exist in client-side JS (`grep 'anaplan.com' index.html` returns nothing)
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 3 plans
+  - [ ] 02-01-PLAN.md — api/connect.js + api/models.js + vercel.json update (Wave 1)
+  - [ ] 02-02-PLAN.md — Connect screen HTML + CSS + JS in index.html (Wave 2)
+  - [ ] 02-03-PLAN.md — Model Picker screen HTML + CSS + JS in index.html (Wave 3)
 
 ### Phase 3: Blueprint
 **Goal**: The system fetches and stores the complete master blueprint for a selected model, streaming live progress to the user, with resilience against Anaplan rate limits
@@ -89,8 +91,8 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Infrastructure | 2/2 | ✅ Complete | 2026-05-10 |
-| 2. Connection | 0/? | Not started | - |
+| 1. Infrastructure | 2/2 | Complete | 2026-05-10 |
+| 2. Connection | 0/3 | Planned | - |
 | 3. Blueprint | 0/? | Not started | - |
 | 4. Analysis | 0/? | Not started | - |
 | 5. Export, Share & UI | 0/? | Not started | - |
