@@ -532,6 +532,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .reauth-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px}
 .reauth-msg{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6}
 
+/* ─── MODEL PICKER ───────────────────────────────────────── */
+.picker-shell{min-height:100vh;background:var(--bg);padding:80px 24px 60px}
+.picker-inner{max-width:860px;margin:0 auto}
+.picker-header{display:flex;align-items:baseline;gap:16px;margin-bottom:32px}
+.picker-title{font-size:22px;font-weight:700;color:var(--text)}
+.picker-count{font-size:12px;color:var(--text3);font-family:'IBM Plex Mono',monospace}
+.picker-loading{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);padding:40px 0}
+.picker-error{background:var(--neg-pale);border:1px solid var(--neg-bd);border-radius:var(--r);padding:14px 18px;font-size:13px;color:var(--neg);margin-bottom:24px}
+.recents-section{margin-bottom:36px}
+.recents-label{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:14px;padding-bottom:9px;border-bottom:1px solid rgba(28,33,41,.07)}
+.workspace-section{margin-bottom:28px}
+.workspace-header{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.workspace-header:hover{color:var(--text)}
+.workspace-toggle{font-size:10px;color:var(--text3);transition:transform .15s}
+.workspace-toggle.open{transform:rotate(90deg)}
+.model-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.model-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;cursor:pointer;transition:all .15s;position:relative}
+.model-card:hover{border-color:var(--accent-bd);box-shadow:var(--sh)}
+.model-card.selected{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-pale)}
+.model-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.3}
+.model-ws{font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;margin-bottom:12px}
+.model-meta{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:8px}
+.model-recent-badge{position:absolute;top:12px;right:12px;font-size:9px;font-weight:600;font-family:'IBM Plex Mono',monospace;background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-bd);border-radius:10px;padding:2px 7px;text-transform:uppercase;letter-spacing:1px}
+.picker-cta{margin-top:32px;display:flex;align-items:center;gap:12px}
+
 </style>
 </head>
 <body>
@@ -1020,6 +1045,36 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     <!-- SECTION: MODEL-PICKER -->
     <!-- v2 Phase 2 — Workspace/model browse and selection -->
     <!-- ============================================================ -->
+<div id="s-picker" class="screen">
+  <div class="picker-shell">
+    <div class="picker-inner">
+
+      <div class="picker-header">
+        <div class="picker-title">Choose a model</div>
+        <div class="picker-count" id="picker-count"></div>
+      </div>
+
+      <!-- Loading state -->
+      <div id="picker-loading" class="picker-loading" style="display:none">
+        <div class="spinner"></div>
+        <span>Loading models…</span>
+      </div>
+
+      <!-- Error state -->
+      <div id="picker-error" class="picker-error" style="display:none"></div>
+
+      <!-- Model list (rendered by renderPicker()) -->
+      <div id="picker-list"></div>
+
+      <!-- CTA row — shown after selection -->
+      <div id="picker-cta" class="picker-cta" style="display:none">
+        <button class="btn btn-pri" id="btn-fetch" onclick="confirmModelSelection()">Fetch blueprint →</button>
+        <button class="btn btn-ghost btn-sm" onclick="go('s-connect')">← Back</button>
+      </div>
+
+    </div>
+  </div>
+</div>
 
     <!-- ============================================================ -->
     <!-- SECTION: FETCH -->
