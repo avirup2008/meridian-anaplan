@@ -1,9 +1,9 @@
 ---
 phase: 1
 slug: infrastructure
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: approved
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-05-10
 ---
 
@@ -18,9 +18,9 @@ created: 2026-05-10
 | Property | Value |
 |----------|-------|
 | **Framework** | None — Phase 1 is scaffolding only; verification is via shell commands and smoke test |
-| **Config file** | none — Wave 0 installs npm |
-| **Quick run command** | `npm install && node -e "require('./api/generate.js')"` |
-| **Full suite command** | `npm install && grep -c "SECTION:" index.html && node -e "const a=require('@anthropic-ai/sdk'); console.log('SDK OK')"` |
+| **Config file** | none |
+| **Quick run command** | `npm install && node --input-type=module -e "import('./api/generate.js').then(m=>console.log(typeof m.default))"` |
+| **Full suite command** | `npm install && grep -c "SECTION:" index.html && node --input-type=module -e "import Anthropic from '@anthropic-ai/sdk'; console.log('SDK OK')"` |
 | **Estimated runtime** | ~10 seconds |
 
 ---
@@ -38,10 +38,10 @@ created: 2026-05-10
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 1-01-01 | 01 | 1 | INFRA-02 | — | package.json declares exact pinned versions | shell | `node -e "const p=require('./package.json'); console.log(p.dependencies)"` | ❌ W0 | ⬜ pending |
-| 1-01-02 | 01 | 1 | INFRA-03 | — | vercel.json functions{} block present with correct maxDuration values | shell | `node -e "const v=require('./vercel.json'); console.log(JSON.stringify(v.functions))"` | ✅ | ⬜ pending |
-| 1-01-03 | 01 | 2 | INFRA-04 | — | api/generate.js imports Anthropic, no Gemini references | shell | `grep -c "Anthropic" api/generate.js && grep -c "gemini" api/generate.js \|\| true` | ✅ | ⬜ pending |
-| 1-01-04 | 01 | 2 | INFRA-01 | — | index.html has section boundary comments | shell | `grep -c "=== SECTION:" index.html` | ✅ | ⬜ pending |
+| 1-01-01 | 01 | 1 | INFRA-02 | — | package.json declares exact pinned versions | shell | `node --input-type=module -e "import { readFileSync } from 'fs'; const p=JSON.parse(readFileSync('./package.json','utf8')); console.log(JSON.stringify(p.dependencies))"` | ✅ created in task | ⬜ pending |
+| 1-01-02 | 01 | 1 | INFRA-03 | — | vercel.json functions{} block present with correct maxDuration values | shell | `node --input-type=module -e "import { readFileSync } from 'fs'; const v=JSON.parse(readFileSync('./vercel.json','utf8')); console.log(JSON.stringify(v.functions))"` | ✅ | ⬜ pending |
+| 1-02-01 | 02 | 2 | INFRA-04 | — | api/generate.js imports Anthropic, no Gemini references | shell | `grep -c "Anthropic" api/generate.js && (grep -ci "gemini" api/generate.js \|\| true)` | ✅ | ⬜ pending |
+| 1-02-02 | 02 | 2 | INFRA-01 | — | index.html has section boundary comments | shell | `grep -c "SECTION:" index.html` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -49,9 +49,7 @@ created: 2026-05-10
 
 ## Wave 0 Requirements
 
-- [ ] `package.json` — must be created before npm install can run; all dependency tasks depend on it
-
-*All other files (vercel.json, api/generate.js, index.html) already exist.*
+**No Wave 0 tasks needed.** package.json is the artifact being created in Task 1-01-01 (it IS the deliverable, not a test scaffold). All other files (vercel.json, api/generate.js, index.html) already exist on disk. Phase 1 is pure scaffolding with no test framework requirement — every task has a direct shell-level automated verify command.
 
 ---
 
@@ -67,11 +65,11 @@ created: 2026-05-10
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 15s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references (no Wave 0 needed — package.json is a deliverable, not test scaffold)
+- [x] No watch-mode flags
+- [x] Feedback latency < 15s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved

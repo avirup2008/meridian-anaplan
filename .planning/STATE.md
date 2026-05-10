@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-05-10T17:51:14.232Z"
-last_activity: 2026-05-10 -- Phase 1 planning complete
+last_updated: "2026-05-10T18:30:00.000Z"
+last_activity: 2026-05-10 -- Phase 1 complete
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 0
-  percent: 0
+  completed_plans: 2
+  percent: 20
 ---
 
 # Meridian — State
@@ -20,22 +20,31 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-05-10)
 
 **Core value:** Anaplan model builders get instant, AI-powered analysis of their entire model without leaving the browser.
-**Current focus:** Phase 1 — Infrastructure
+**Current focus:** Phase 2 — Connection
 
 ## Current Position
 
-Phase: 1 — Infrastructure
+Phase: 2 — Connection
 Plan: — (not yet planned)
-Status: Ready to execute
-Last activity: 2026-05-10 -- Phase 1 planning complete
+Status: Ready to plan
+Last activity: 2026-05-10 -- Phase 1 complete (all 4 requirements satisfied)
 
-Progress: `[ ][ ][ ][ ][ ]` 0/5 phases complete
+Progress: `[✅][ ][ ][ ][ ]` 1/5 phases complete
 
 ## Performance Metrics
 
-Plans executed: 0
-Requirements covered: 0/24
-Phases complete: 0/5
+Plans executed: 2
+Requirements covered: 4/24 (INFRA-01, INFRA-02, INFRA-03, INFRA-04)
+Phases complete: 1/5
+
+## Phase 1 Completion Evidence
+
+| Requirement | Success Criterion | Status |
+|-------------|-----------------|--------|
+| INFRA-01 | index.html has 8 SECTION boundary comments (CONNECT, MODEL-PICKER, FETCH, DASHBOARD) | ✅ |
+| INFRA-02 | package.json declares @anthropic-ai/sdk@0.95.1, @vercel/blob@2.3.3, pdfmake@0.3.7 at pinned versions; npm install succeeds | ✅ |
+| INFRA-03 | vercel.json has functions{} block with 6 endpoints at correct maxDuration values | ✅ |
+| INFRA-04 | api/generate.js uses Claude Haiku via @anthropic-ai/sdk; zero Gemini references | ✅ |
 
 ## Accumulated Context
 
@@ -51,12 +60,14 @@ Phases complete: 0/5
 - Blob cleanup cron ships in same phase as blob creation (Phase 5) — non-negotiable
 - SSE via `fetch()` + `ReadableStream` (not native EventSource) — POST endpoints require this
 - `res.flushHeaders()` before first `await` in every SSE handler — prevents silent buffering
+- api/generate.js maxDuration set to 30s (not 10s) — Claude Haiku calls take 10-25s
 
 ### Key Files
 
-- `index.html` — 2990-line monolith; needs section comments before any new code (Phase 1)
-- `api/generate.js` — Gemini proxy being migrated to Claude Haiku (Phase 1)
-- `vercel.json` — needs `functions{}` block with per-endpoint `maxDuration` (Phase 1)
+- `index.html` — 3030-line file with 8 v2 section boundary comments inserted (Phase 1 complete)
+- `api/generate.js` — Claude Haiku proxy (migrated from Gemini in Phase 1)
+- `vercel.json` — has `functions{}` block with per-endpoint maxDuration (Phase 1 complete)
+- `package.json` — created with @anthropic-ai/sdk, @vercel/blob, pdfmake (Phase 1 complete)
 
 ### Research Flags
 
@@ -76,4 +87,4 @@ None.
 
 ## Session Continuity
 
-Next action: Run `/gsd-plan-phase 1` to plan Infrastructure phase.
+Next action: Run `/gsd-plan-phase 2` to plan the Connection phase.

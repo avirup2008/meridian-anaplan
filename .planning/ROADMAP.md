@@ -9,7 +9,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Infrastructure** — Lay the structural and dependency foundation before any feature code lands
+- [x] **Phase 1: Infrastructure** — Lay the structural and dependency foundation before any feature code lands
 - [ ] **Phase 2: Connection** — Anaplan auth, workspace and model discovery, session token security
 - [ ] **Phase 3: Blueprint** — Master blueprint fetch via SSE, Vercel Blob storage, rate-limit resilience
 - [ ] **Phase 4: Analysis** — Claude Sonnet + Haiku intelligence layer with extraction pre-pass
@@ -29,8 +29,8 @@
   3. vercel.json has a `functions{}` block with `maxDuration` set per endpoint (60s blueprint/analyze, 30s share, 10s connect/models) and deploys successfully
   4. `api/generate.js` calls Claude Haiku via `@anthropic-ai/sdk` and the existing CSV analysis flow returns a valid response (Gemini references removed)
 **Plans**: 2 plans
-  - [ ] 01-01-PLAN.md — Create package.json + add functions{} block to vercel.json (Wave 1)
-  - [ ] 01-02-PLAN.md — Migrate api/generate.js to Claude Haiku + add index.html v2 section comments (Wave 2)
+  - [x] 01-01-PLAN.md — Create package.json + add functions{} block to vercel.json (Wave 1)
+  - [x] 01-02-PLAN.md — Migrate api/generate.js to Claude Haiku + add index.html v2 section comments (Wave 2)
 
 ### Phase 2: Connection
 **Goal**: Users can authenticate with Anaplan, browse their workspaces and models, and proceed to blueprint fetch — with graceful handling of session expiry and CSV fallback
@@ -89,7 +89,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Infrastructure | 0/? | Not started | - |
+| 1. Infrastructure | 2/2 | ✅ Complete | 2026-05-10 |
 | 2. Connection | 0/? | Not started | - |
 | 3. Blueprint | 0/? | Not started | - |
 | 4. Analysis | 0/? | Not started | - |
