@@ -3109,6 +3109,172 @@ function exportGuidePDF() {
     // v2 Phase 2 — Anaplan auth, workspace/model display
     // ============================================================
 
+// ─── Session helpers ──────────────────────────────────────────────────────────
+
+function getSession() {
+  try { return JSON.parse(sessionStorage.getItem('meridian_session') || 'null'); }
+  catch { return null; }
+}
+
+function setSession(data) {
+  sessionStorage.setItem('meridian_session', JSON.stringify(data));
+}
+
+function clearSession() {
+  sessionStorage.removeItem('meridian_session');
+}
+
+// isSessionExpired() — compares Date.now() (ms) against tokenExpiresAt (ms).
+// Both values are epoch milliseconds — do NOT divide by 1000.
+// 60-second buffer: show re-auth 1 min before actual expiry.
+function isSessionExpired() {
+  const s = getSession();
+  if (!s || !s.tokenExpiresAt) return true;
+  return Date.now() >= (s.tokenExpiresAt - 60_000);
+}
+
+// ─── Tab switching ───────────────────────────────────────────────────────────
+
+function switchConnectTab(tab) {
+  const isConnect = tab === 'connect';
+  document.getElementById('tab-connect').classList.toggle('active', isConnect);
+  document.getElementById('tab-csv').classList.toggle('active', !isConnect);
+  document.getElementById('tab-body-connect').style.display = isConnect ? '' : 'none';
+  document.getElementById('tab-body-csv').style.display = isConnect ? 'none' : '';
+}
+
+// ─── Connect flow ─────────────────────────────────────────────────────────────
+
+async function connectToAnaplan() {
+  const username = document.getElementById('inp-user').value.trim();
+  const password = document.getElementById('inp-pass').value;
+  const errEl = document.getElementById('connect-error');
+  const btnLabel = document.getElementById('btn-connect-label');
+  const btn = document.getElementById('btn-connect');
+
+  errEl.textContent = '';
+
+  if (!username || !password) {
+    errEl.textContent = 'Please enter your Anaplan username and password.';
+    return;
+  }
+
+  btn.disabled = true;
+  btnLabel.textContent = 'Connecting…';
+
+  try {
+    const res = await fetch('/api/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Connection failed. Please check your credentials.';
+      return;
+    }
+
+    // Store session — credentials in sessionStorage (clears on tab close), never localStorage
+    setSession({
+      username,
+      password,
+      tokenExpiresAt: data.tokenExpiresAt,
+      workspaces: data.workspaces, // array of { id, name }
+      totalModels: data.totalModels,
+    });
+
+    // Show confirmation card with total model count (data.totalModels) and workspace count
+    const totalModels = data.totalModels ?? 0;
+    const workspaceCount = (data.workspaces || []).length;
+    document.getElementById('confirm-stat-models').textContent = totalModels;
+    document.getElementById('confirm-stat-workspaces').textContent = workspaceCount;
+    document.getElementById('confirm-sub').textContent = `Connected as ${username}`;
+    document.getElementById('connect-card').style.display = 'none';
+    document.getElementById('confirm-card').style.display = '';
+
+  } catch (err) {
+    errEl.textContent = 'Network error — could not reach Anaplan. Try again or use CSV fallback.';
+  } finally {
+    btn.disabled = false;
+    btnLabel.textContent = 'Connect to Anaplan';
+  }
+}
+
+// ─── Disconnect ───────────────────────────────────────────────────────────────
+
+function disconnectAnaplan() {
+  clearSession();
+  document.getElementById('inp-user').value = '';
+  document.getElementById('inp-pass').value = '';
+  document.getElementById('connect-error').textContent = '';
+  document.getElementById('connect-card').style.display = '';
+  document.getElementById('confirm-card').style.display = 'none';
+}
+
+// ─── Token expiry / re-auth ───────────────────────────────────────────────────
+
+function showReAuth() {
+  document.getElementById('reauth-overlay').classList.add('visible');
+  document.getElementById('reauth-pass').value = '';
+  document.getElementById('reauth-error').textContent = '';
+}
+
+function hideReAuth() {
+  document.getElementById('reauth-overlay').classList.remove('visible');
+}
+
+// checkTokenExpiry() — call before any API call that requires auth.
+// Returns true if still valid; shows re-auth modal and returns false if expired.
+function checkTokenExpiry() {
+  if (isSessionExpired()) {
+    showReAuth();
+    return false;
+  }
+  return true;
+}
+
+async function reAuthenticate() {
+  const s = getSession();
+  if (!s) { hideReAuth(); go('s-connect'); return; }
+
+  const password = document.getElementById('reauth-pass').value;
+  const errEl = document.getElementById('reauth-error');
+  errEl.textContent = '';
+
+  if (!password) {
+    errEl.textContent = 'Please enter your password.';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/connect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: s.username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Reconnection failed.';
+      return;
+    }
+    // Refresh session with new token expiry and updated password
+    setSession({ ...s, password, tokenExpiresAt: data.tokenExpiresAt });
+    hideReAuth();
+  } catch {
+    errEl.textContent = 'Network error. Please try again.';
+  }
+}
+
+// ─── loadModels() — stub called from confirmation card "Browse Models" button ──
+// Full implementation is in SECTION: MODEL-PICKER (Plan 03).
+// This stub navigates to the picker screen; Plan 03 overwrites it with real logic.
+function loadModels() {
+  if (!checkTokenExpiry()) return;
+  go('s-picker');
+}
+
     // ============================================================
     // SECTION: MODEL-PICKER
     // v2 Phase 2 — Workspace/model browse and selection logic
