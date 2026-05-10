@@ -3322,18 +3322,256 @@ async function reAuthenticate() {
   }
 }
 
-// ─── loadModels() — stub called from confirmation card "Browse Models" button ──
-// Full implementation is in SECTION: MODEL-PICKER (Plan 03).
-// This stub navigates to the picker screen; Plan 03 overwrites it with real logic.
-function loadModels() {
-  if (!checkTokenExpiry()) return;
-  go('s-picker');
-}
-
     // ============================================================
     // SECTION: MODEL-PICKER
     // v2 Phase 2 — Workspace/model browse and selection logic
     // ============================================================
+
+// ─── Recently-used models (localStorage, safe display data only) ──────────────
+// Key: 'meridian_recent_models' — array of { id, name, workspaceId, workspaceName, selectedAt }
+// No credentials, no tokens in localStorage — only display metadata.
+const RECENT_KEY = 'meridian_recent_models';
+const MAX_RECENT = 5;
+
+function getRecentModels() {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function addToRecents({ id, name, workspaceId, workspaceName }) {
+  // Deduplicate by id, then prepend, then cap at MAX_RECENT
+  let recent = getRecentModels().filter(r => r.id !== id);
+  recent.unshift({ id, name, workspaceId, workspaceName, selectedAt: Date.now() });
+  if (recent.length > MAX_RECENT) recent = recent.slice(0, MAX_RECENT);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+}
+
+// ─── Model picker state ───────────────────────────────────────────────────────
+let _selectedModelId = null;
+let _selectedModelName = null;
+let _selectedWorkspaceId = null;
+let _selectedWorkspaceName = null;
+
+// ─── loadModels() — replaces the Plan 02 navigation stub ─────────────────────
+// Calls GET /api/models with credentials from session, renders picker.
+// checkTokenExpiry() is called first — shows re-auth modal if expired.
+async function loadModels() {
+  if (!checkTokenExpiry()) return;
+
+  const s = getSession();
+  if (!s || !s.workspaces || s.workspaces.length === 0) {
+    go('s-connect');
+    return;
+  }
+
+  go('s-picker');
+
+  // Reset picker state
+  _selectedModelId = null;
+  document.getElementById('picker-cta').style.display = 'none';
+  document.getElementById('picker-error').style.display = 'none';
+  document.getElementById('picker-list').innerHTML = '';
+  document.getElementById('picker-count').textContent = '';
+
+  // Show loading indicator
+  document.getElementById('picker-loading').style.display = 'flex';
+
+  // Fetch models for each workspace in parallel
+  const workspaces = s.workspaces;
+  const results = await Promise.allSettled(
+    workspaces.map(ws =>
+      fetch(`/api/models?workspaceId=${encodeURIComponent(ws.id.toLowerCase())}`, {
+        method: 'GET',
+        headers: {
+          'x-anaplan-user': s.username,
+          'x-anaplan-pass': s.password,
+        },
+      })
+      .then(r => r.json())
+      .then(data => ({ workspaceId: ws.id, workspaceName: ws.name, models: data.models || [] }))
+    )
+  );
+
+  document.getElementById('picker-loading').style.display = 'none';
+
+  // Collect all models across workspaces
+  let allModels = [];
+  let errCount = 0;
+
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      allModels = allModels.concat(result.value.models.map(m => ({
+        ...m,
+        workspaceId: result.value.workspaceId,
+        workspaceName: result.value.workspaceName,
+      })));
+    } else {
+      errCount++;
+    }
+  }
+
+  if (errCount > 0 && allModels.length === 0) {
+    document.getElementById('picker-error').textContent =
+      'Could not load models. Please check your connection or reconnect.';
+    document.getElementById('picker-error').style.display = '';
+    return;
+  }
+
+  const totalCount = allModels.length;
+  document.getElementById('picker-count').textContent =
+    `${totalCount} model${totalCount !== 1 ? 's' : ''} across ${workspaces.length} workspace${workspaces.length !== 1 ? 's' : ''}`;
+
+  renderPicker(allModels);
+}
+
+// ─── renderPicker() — builds the full model picker DOM ───────────────────────
+function renderPicker(models) {
+  const container = document.getElementById('picker-list');
+  container.innerHTML = '';
+
+  const recents = getRecentModels();
+
+  // --- Recently Used section (only if localStorage has entries that match current models) ---
+  const modelIds = new Set(models.map(m => m.id));
+  const validRecents = recents.filter(r => modelIds.has(r.id));
+
+  if (validRecents.length > 0) {
+    const recentSection = document.createElement('div');
+    recentSection.className = 'recents-section';
+    recentSection.innerHTML = '<div class="recents-label">Recently used</div>';
+    const grid = document.createElement('div');
+    grid.className = 'model-grid';
+    for (const r of validRecents) {
+      grid.appendChild(buildModelCard(r, true));
+    }
+    recentSection.appendChild(grid);
+    container.appendChild(recentSection);
+  }
+
+  // --- Workspaces grouped ---
+  // Group models by workspaceName
+  const byWorkspace = {};
+  for (const m of models) {
+    const wsName = m.workspaceName || m.currentWorkspaceName || 'Unknown workspace';
+    if (!byWorkspace[wsName]) byWorkspace[wsName] = [];
+    byWorkspace[wsName].push(m);
+  }
+
+  for (const [wsName, wsModels] of Object.entries(byWorkspace)) {
+    const section = document.createElement('div');
+    section.className = 'workspace-section';
+
+    const header = document.createElement('div');
+    header.className = 'workspace-header';
+    const toggle = document.createElement('span');
+    toggle.className = 'workspace-toggle open';
+    toggle.textContent = '▶';
+    header.appendChild(toggle);
+    header.appendChild(document.createTextNode(` ${wsName} (${wsModels.length})`));
+
+    const grid = document.createElement('div');
+    grid.className = 'model-grid';
+    for (const m of wsModels) {
+      grid.appendChild(buildModelCard(m, false));
+    }
+
+    // Collapsible toggle
+    header.addEventListener('click', () => {
+      const isOpen = toggle.classList.contains('open');
+      toggle.classList.toggle('open', !isOpen);
+      grid.style.display = isOpen ? 'none' : '';
+    });
+
+    section.appendChild(header);
+    section.appendChild(grid);
+    container.appendChild(section);
+  }
+}
+
+// ─── buildModelCard() — creates a single model card DOM element ───────────────
+function buildModelCard(model, isRecent) {
+  const card = document.createElement('div');
+  card.className = 'model-card';
+  card.dataset.modelId = model.id;
+
+  const lastMod = model.lastModified
+    ? new Date(model.lastModified).toLocaleDateString()
+    : '—';
+
+  card.innerHTML = `
+    ${isRecent ? '<span class="model-recent-badge">Recent</span>' : ''}
+    <div class="model-name">${escHtml(model.name)}</div>
+    <div class="model-ws">${escHtml(model.workspaceName || model.currentWorkspaceName || '')}</div>
+    <div class="model-meta">
+      <span class="mono">${escHtml(model.activeState || '')}</span>
+      <span>Last modified: ${escHtml(lastMod)}</span>
+    </div>
+  `;
+
+  card.addEventListener('click', () => selectModel(
+    model.id,
+    model.name,
+    (model.workspaceId || '').toLowerCase(),
+    model.workspaceName || model.currentWorkspaceName || ''
+  ));
+
+  return card;
+}
+
+// ─── escHtml() — minimal XSS prevention for user-controlled content ───────────
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ─── selectModel() — called on model card click ───────────────────────────────
+function selectModel(modelId, modelName, workspaceId, workspaceName) {
+  // Deselect any previously selected card
+  document.querySelectorAll('.model-card.selected').forEach(c => c.classList.remove('selected'));
+
+  // Mark newly selected card
+  const card = document.querySelector(`.model-card[data-model-id="${modelId}"]`);
+  if (card) card.classList.add('selected');
+
+  // Track state
+  _selectedModelId = modelId;
+  _selectedModelName = modelName;
+  _selectedWorkspaceId = workspaceId.toLowerCase();
+  _selectedWorkspaceName = workspaceName;
+
+  // Show CTA
+  document.getElementById('picker-cta').style.display = 'flex';
+}
+
+// ─── confirmModelSelection() — called by "Fetch blueprint" CTA ───────────────
+function confirmModelSelection() {
+  if (!_selectedModelId) return;
+  if (!checkTokenExpiry()) return;
+
+  // Persist selection into session
+  const s = getSession() || {};
+  setSession({
+    ...s,
+    modelId: _selectedModelId,
+    modelName: _selectedModelName,
+    workspaceId: _selectedWorkspaceId,
+    workspaceName: _selectedWorkspaceName,
+  });
+
+  // Add to recently-used (localStorage — display data only, no credentials)
+  addToRecents({
+    id: _selectedModelId,
+    name: _selectedModelName,
+    workspaceId: _selectedWorkspaceId,
+    workspaceName: _selectedWorkspaceName,
+  });
+
+  // Navigate to blueprint fetch screen (Phase 3 creates s-fetch)
+  go('s-fetch');
+}
 
     // ============================================================
     // SECTION: FETCH
