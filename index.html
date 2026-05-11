@@ -3847,6 +3847,278 @@ function confirmModelSelection() {
     }
 
     // ============================================================
+    // SECTION: ANALYSIS
+    // Phase 4 — consumes /api/analyze SSE stream; renders score card, suggestions, narrative + drill-in.
+    // ============================================================
+
+    let _anlState = null;   // accumulated analysis state across SSE events
+    let _anlRunning = false;
+
+    function _anl$(id) { return document.getElementById(id); }
+
+    function _anlReset() {
+      _anlState = {
+        suggestionsByDomain: { 'Structural': [], 'Formula': [], 'Best Practice': [], 'Naming': [] },
+        suggestionCount: 0,
+        modules: [],     // narrative modules
+        score: null,
+        partial: null,
+      };
+      _anl$('anl-error').hidden = true;
+      _anl$('anl-warning').hidden = true;
+      _anl$('anl-score-card').hidden = true;
+      _anl$('anl-suggestions').hidden = true;
+      _anl$('anl-narrative').hidden = true;
+      _anl$('anl-progress-wrap').style.display = '';
+      _anl$('anl-progress-bar').style.width = '0%';
+      _anl$('anl-progress-pct').textContent = '0%';
+      _anl$('anl-stage-label').textContent = 'Starting…';
+      _anl$('anl-progress-detail').textContent = ' ';
+      _anl$('anl-suggestion-domains').innerHTML = '';
+      _anl$('anl-story-text').textContent = '';
+      _anl$('anl-module-nodes').innerHTML = '';
+      _anl$('anl-narrative-story-view').hidden = false;
+      _anl$('anl-narrative-drill-view').hidden = true;
+    }
+
+    function _anlShowError(message) {
+      _anl$('anl-error').hidden = false;
+      _anl$('anl-error-msg').textContent = message || 'Unknown error';
+      _anl$('anl-progress-wrap').style.display = 'none';
+      _anl$('anl-hdr-status').innerHTML = 'Analysis failed';
+    }
+
+    function _anlOnProgress(stage, pct) {
+      const labels = {
+        fetching: 'Fetching blueprint',
+        extracting: 'Extracting modules',
+        suggestions: 'Analysing modules (Haiku)',
+        scoring: 'Computing health score (Sonnet)',
+        narrative: 'Generating data-flow narrative',
+      };
+      _anl$('anl-stage-label').textContent = labels[stage] || stage;
+      _anl$('anl-progress-bar').style.width = pct + '%';
+      _anl$('anl-progress-pct').textContent = pct + '%';
+    }
+
+    function _anlOnExtractionDone(moduleCount, totalLineItems) {
+      _anl$('anl-progress-detail').textContent = moduleCount + ' modules, ' + totalLineItems + ' line items extracted';
+    }
+
+    function _anlOnHaikuProgress(done, total, name, skipped) {
+      _anl$('anl-progress-detail').textContent = 'Analysed ' + done + ' / ' + total + (skipped ? ' (skipped: ' + name + ')' : ' — ' + name);
+      // Visual sub-progress within the "suggestions" stage (25-65%)
+      const pct = 25 + Math.round((done / Math.max(total, 1)) * 40);
+      _anl$('anl-progress-bar').style.width = pct + '%';
+      _anl$('anl-progress-pct').textContent = pct + '%';
+    }
+
+    function _anlOnSuggestions(evt) {
+      if (!Array.isArray(evt.items)) return;
+      for (const it of evt.items) {
+        if (!_anlState.suggestionsByDomain[it.domain]) continue;
+        _anlState.suggestionsByDomain[it.domain].push({ ...it, moduleId: evt.moduleId, moduleName: evt.moduleName });
+        _anlState.suggestionCount++;
+      }
+    }
+
+    function _anlOnPartial(reason, analysed, skipped) {
+      _anlState.partial = { reason, analysed, skipped };
+      _anl$('anl-warning').hidden = false;
+      _anl$('anl-warning-msg').textContent = reason + ' (' + analysed + ' analysed, ' + skipped + ' skipped)';
+    }
+
+    function _anlOnScore(s) {
+      _anlState.score = s;
+      _anl$('anl-score-num').innerHTML = s.healthScore + '<span>/100</span>';
+      const chip = _anl$('anl-verdict-chip');
+      _anl$('anl-verdict-text').textContent = s.verdict;
+      const dot = chip.querySelector('.anl-dot');
+      const colors = { 'Good': '#217348', 'Needs Work': '#BF801E', 'Critical': '#B82E2E' };
+      const pales  = { 'Good': '#E1F0E5', 'Needs Work': '#FBF1DA', 'Critical': '#FCEBEA' };
+      chip.style.background = pales[s.verdict] || '#EBE3CC';
+      chip.style.color = colors[s.verdict] || '#555';
+      if (dot) dot.style.background = colors[s.verdict] || '#888';
+      _anl$('anl-summary').textContent = s.summary || '';
+      const dimsRoot = _anl$('anl-dims');
+      const keys = ['architecture','naming','formulas','dataHygiene','governance'];
+      for (const k of keys) {
+        const row = dimsRoot.querySelector('.anl-dim[data-key="' + k + '"]');
+        if (!row) continue;
+        const v = (s.dimensions && typeof s.dimensions[k] === 'number') ? s.dimensions[k] : 50;
+        row.querySelector('.prog-f').style.width = v + '%';
+        row.querySelector('.anl-dim-val').textContent = v;
+      }
+      _anl$('anl-score-card').hidden = false;
+    }
+
+    function _anlRenderSuggestions() {
+      const root = _anl$('anl-suggestion-domains');
+      root.innerHTML = '';
+      const triageClass = { 'Fix Now': 't-fix', 'Consider': 't-con', 'Monitor': 't-mon' };
+      // Sort domain groups by Fix Now count desc
+      const domains = Object.keys(_anlState.suggestionsByDomain).sort((a, b) => {
+        const ca = _anlState.suggestionsByDomain[a].filter(s => s.triage === 'Fix Now').length;
+        const cb = _anlState.suggestionsByDomain[b].filter(s => s.triage === 'Fix Now').length;
+        return cb - ca;
+      });
+      for (const dom of domains) {
+        const items = _anlState.suggestionsByDomain[dom];
+        if (!items.length) continue;
+        // Sort: Fix Now > Consider > Monitor
+        const order = { 'Fix Now': 0, 'Consider': 1, 'Monitor': 2 };
+        items.sort((a, b) => (order[a.triage] || 9) - (order[b.triage] || 9));
+        const card = document.createElement('div');
+        card.className = 'anl-suggestion-domain';
+        let html = '<h4>' + dom + ' <span class="anl-count">' + items.length + '</span></h4>';
+        for (const s of items) {
+          const tcls = triageClass[s.triage] || 't-mon';
+          html += '<div class="anl-suggestion-card">';
+          html += '<div class="anl-suggestion-head">';
+          html += '<span class="anl-triage ' + tcls + '">' + s.triage + '</span>';
+          html += '<span class="anl-suggestion-title">' + _anlEsc(s.text || '') + '</span>';
+          html += '<span class="anl-suggestion-mod">' + _anlEsc(s.moduleName || '') + '</span>';
+          html += '</div>';
+          if (s.reasoning) html += '<div class="anl-suggestion-reason">' + _anlEsc(s.reasoning) + '</div>';
+          if (s.action) html += '<div class="anl-suggestion-action">→ ' + _anlEsc(s.action) + '</div>';
+          html += '</div>';
+        }
+        card.innerHTML = html;
+        root.appendChild(card);
+      }
+      _anl$('anl-sugg-count').textContent = _anlState.suggestionCount;
+      _anl$('anl-suggestions').hidden = false;
+    }
+
+    function _anlEsc(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+    }
+
+    function _anlOnNarrative(n) {
+      _anlState.modules = Array.isArray(n.modules) ? n.modules : [];
+      _anl$('anl-story-text').textContent = n.story || '';
+      const nodes = _anl$('anl-module-nodes');
+      nodes.innerHTML = '';
+      for (const m of _anlState.modules) {
+        const chip = document.createElement('span');
+        chip.className = 'anl-module-node';
+        chip.textContent = m.name || m.id;
+        chip.onclick = () => _anlDrillIn(m.id);
+        nodes.appendChild(chip);
+      }
+      _anl$('anl-narrative').hidden = false;
+    }
+
+    function _anlDrillIn(moduleId) {
+      const mod = _anlState.modules.find(m => m.id === moduleId);
+      if (!mod) return;
+      _anl$('anl-narrative-story-view').hidden = true;
+      _anl$('anl-narrative-drill-view').hidden = false;
+      _anl$('anl-breadcrumb-mod').textContent = mod.name || mod.id;
+      _anl$('anl-drill-name').textContent = mod.name || mod.id;
+      _anl$('anl-drill-purpose').textContent = mod.purpose || 'No purpose description available.';
+      const fillList = (rootId, arr) => {
+        const root = _anl$(rootId);
+        root.innerHTML = '';
+        if (!arr || !arr.length) { root.innerHTML = '<li style="color:#999;font-style:italic;">none</li>'; return; }
+        for (const v of arr) {
+          const li = document.createElement('li');
+          li.textContent = v;
+          root.appendChild(li);
+        }
+      };
+      fillList('anl-drill-rx', mod.receivesFrom);
+      fillList('anl-drill-tx', mod.sendsTo);
+      fillList('anl-drill-risks', mod.risks);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const back = _anl$('anl-breadcrumb-back');
+      if (back) {
+        back.onclick = function (e) {
+          e.preventDefault();
+          _anl$('anl-narrative-drill-view').hidden = true;
+          _anl$('anl-narrative-story-view').hidden = false;
+        };
+      }
+    });
+
+    function _anlOnComplete(c) {
+      _anlRenderSuggestions();
+      _anl$('anl-progress-wrap').style.display = 'none';
+      _anl$('anl-hdr-status').innerHTML = 'Analysis complete';
+      _anl$('anl-sub').textContent = c.totalSuggestions + ' suggestions across ' + Object.values(_anlState.suggestionsByDomain).reduce((s, a) => s + a.length, 0) + ' domains';
+    }
+
+    async function runAnalysis() {
+      if (_anlRunning) return;
+      _anlRunning = true;
+      _anlReset();
+
+      const blobUrl = sessionStorage.getItem('meridian.blueprintBlobUrl');
+      if (!blobUrl) {
+        _anlShowError('No blueprint URL found. Please fetch a blueprint first.');
+        _anlRunning = false;
+        return;
+      }
+
+      try {
+        const resp = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ blobUrl }),
+        });
+        if (!resp.ok || !resp.body) {
+          const errText = await resp.text().catch(() => '');
+          throw new Error('HTTP ' + resp.status + (errText ? ': ' + errText.slice(0, 200) : ''));
+        }
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.startsWith('data:')) continue;
+            const payload = line.slice(5).trim();
+            if (!payload) continue;
+            let evt;
+            try { evt = JSON.parse(payload); } catch { continue; }
+            switch (evt.type) {
+              case 'progress': _anlOnProgress(evt.stage, evt.pct); break;
+              case 'extraction-done': _anlOnExtractionDone(evt.moduleCount, evt.totalLineItems); break;
+              case 'haiku-progress': _anlOnHaikuProgress(evt.modulesDone, evt.modulesTotal, evt.moduleName, evt.skipped); break;
+              case 'suggestions': _anlOnSuggestions(evt); break;
+              case 'partial-analysis': _anlOnPartial(evt.reason, evt.modulesAnalysed, evt.modulesSkipped); break;
+              case 'score': _anlOnScore(evt); break;
+              case 'narrative': _anlOnNarrative(evt); break;
+              case 'complete': _anlOnComplete(evt); break;
+              case 'error': _anlShowError(evt.message); break;
+            }
+          }
+        }
+      } catch (err) {
+        _anlShowError(err && err.message ? err.message : String(err));
+      } finally {
+        _anlRunning = false;
+      }
+    }
+
+    // Hook go('s-analysis') to trigger runAnalysis on entry
+    (function () {
+      const _origGo = window.go;
+      if (typeof _origGo !== 'function') return;
+      window.go = function (screenId) {
+        const r = _origGo.apply(this, arguments);
+        if (screenId === 's-analysis') { setTimeout(runAnalysis, 0); }
+        return r;
+      };
+    })();
+
+    // ============================================================
     // SECTION: DASHBOARD
     // v2 Phase 4 — Verdict, Suggestions, Notes, Export
     // ============================================================
