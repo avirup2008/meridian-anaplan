@@ -11,7 +11,7 @@
 
 - [x] **Phase 1: Infrastructure** — Lay the structural and dependency foundation before any feature code lands
 - [ ] **Phase 2: Connection** — Anaplan auth, workspace and model discovery, session token security
-- [ ] **Phase 3: Blueprint** — Master blueprint fetch via SSE, Vercel Blob storage, rate-limit resilience
+- [x] **Phase 3: Blueprint** — Master blueprint fetch via SSE, Vercel Blob storage, rate-limit resilience (completed 2026-05-11)
 - [ ] **Phase 4: Analysis** — Claude Sonnet + Haiku intelligence layer with extraction pre-pass
 - [ ] **Phase 5: Export, Share & UI** — Full UI overhaul, PDF export, Blob sharing, shared report view
 
@@ -43,9 +43,9 @@
   4. A user without Anaplan access can upload a CSV blueprint file and receive single-module Claude Haiku analysis via the existing fallback path
   5. Zero Anaplan API calls exist in client-side JS (`grep 'anaplan.com' index.html` returns nothing)
 **Plans**: 3 plans
-  - [ ] 02-01-PLAN.md — api/connect.js + api/models.js + vercel.json update (Wave 1)
-  - [ ] 02-02-PLAN.md — Connect screen HTML + CSS + JS in index.html (Wave 2)
-  - [ ] 02-03-PLAN.md — Model Picker screen HTML + CSS + JS in index.html (Wave 3)
+  - [x] 02-01-PLAN.md — api/connect.js + api/models.js + vercel.json update (Wave 1)
+  - [x] 02-02-PLAN.md — Connect screen HTML + CSS + JS in index.html (Wave 2)
+  - [x] 02-03-PLAN.md — Model Picker screen HTML + CSS + JS in index.html (Wave 3)
 
 ### Phase 3: Blueprint
 **Goal**: The system fetches and stores the complete master blueprint for a selected model, streaming live progress to the user, with resilience against Anaplan rate limits
@@ -93,7 +93,7 @@
 |-------|----------------|--------|-----------|
 | 1. Infrastructure | 2/2 | Complete | 2026-05-10 |
 | 2. Connection | 0/3 | Planned | - |
-| 3. Blueprint | 0/? | Not started | - |
+| 3. Blueprint | 3/3 | Complete    | 2026-05-11 |
 | 4. Analysis | 0/? | Not started | - |
 | 5. Export, Share & UI | 0/? | Not started | - |
 
