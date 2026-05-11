@@ -555,7 +555,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .model-ws{font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;margin-bottom:12px}
 .model-meta{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:8px}
 .model-recent-badge{position:absolute;top:12px;right:12px;font-size:9px;font-weight:600;font-family:'IBM Plex Mono',monospace;background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-bd);border-radius:10px;padding:2px 7px;text-transform:uppercase;letter-spacing:1px}
-.picker-cta{margin-top:32px;display:flex;align-items:center;gap:12px}
+.picker-cta{position:fixed;bottom:0;left:0;right:0;z-index:100;display:flex;align-items:center;gap:12px;padding:16px 32px;background:var(--bg);border-top:1px solid var(--border,#e5e7eb);box-shadow:0 -4px 16px rgba(0,0,0,.07)}
 
 /* ── s-fetch ── */
 #s-fetch { padding: 32px; max-width: 720px; margin: 0 auto; }
@@ -3653,11 +3653,12 @@ function confirmModelSelection() {
       doneEl.textContent = '0'; totalEl.textContent = '0'; liEl.textContent = '0';
       currentEl.textContent = 'Connecting…';
 
-      const workspaceId = sessionStorage.getItem('meridian.workspaceId');
-      const modelId = sessionStorage.getItem('meridian.modelId');
-      const modelName = sessionStorage.getItem('meridian.modelName') || '';
-      const username = sessionStorage.getItem('meridian.user');
-      const password = sessionStorage.getItem('meridian.pass');
+      const _s = getSession();
+      const workspaceId = _s && _s.workspaceId;
+      const modelId = _s && _s.modelId;
+      const modelName = (_s && _s.modelName) || '';
+      const username = _s && _s.username;
+      const password = _s && _s.password;
       nameEl.textContent = modelName;
 
       if (!workspaceId || !modelId || !username || !password) {
