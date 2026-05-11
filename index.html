@@ -571,8 +571,57 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .fetch-schema-preview { margin-top: 32px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 6px; background: #fafafa; }
 .fetch-schema-preview dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 12px 0; font-size: 13px; }
 .fetch-schema-preview dt { font-weight: 600; color: var(--text2, #555); }
-/* ── s-analysis (Phase 4 will fully replace the v1 screen content) ── */
-#s-analysis .anl-stub-msg { padding: 48px 32px; text-align: center; color: var(--text2, #555); }
+/* ── s-analysis (Phase 4) ── */
+#s-analysis .anl-shell { max-width:1080px; margin:0 auto; padding:32px 32px 64px; }
+#s-analysis .anl-title { font-size:26px; font-weight:700; letter-spacing:-.025em; margin:4px 0 6px; color:#1a1a1a; }
+#s-analysis .anl-sub { font-size:13px; color:var(--text2,#555); margin-bottom:24px; }
+#s-analysis .anl-progress-wrap { background:#fff; border:1px solid #E5DFD0; border-radius:8px; padding:16px 18px; margin-bottom:20px; }
+#s-analysis .anl-progress-label { display:flex; justify-content:space-between; font-size:12px; font-family:'IBM Plex Mono',monospace; color:var(--text2,#555); margin-bottom:8px; }
+#s-analysis .anl-progress-detail { font-size:11px; color:var(--text4,#888); margin-top:6px; min-height:14px; }
+#s-analysis .anl-error { background:#FCEBEA; border:1px solid #E8B4B0; border-radius:8px; padding:14px 18px; margin-bottom:18px; color:#7A1F1F; display:flex; gap:12px; align-items:center; }
+#s-analysis .anl-error .btn { margin-left:auto; background:#B82E2E; color:#fff; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; }
+#s-analysis .anl-warning { background:#FBF1DA; border:1px solid #E0CB94; border-radius:8px; padding:12px 18px; margin-bottom:18px; color:#7A5A1F; font-size:13px; }
+#s-analysis .anl-score-card { background:#fff; border:1px solid #E5DFD0; border-radius:10px; padding:22px 26px; display:flex; gap:28px; align-items:flex-start; margin-bottom:24px; }
+#s-analysis .anl-score-main { flex:1; }
+#s-analysis .anl-score-main .mii-num { font-size:64px; font-weight:700; letter-spacing:-.04em; margin:8px 0 6px; }
+#s-analysis .anl-score-main .mii-num span { font-size:20px; color:var(--text4,#888); font-weight:400; }
+#s-analysis .mii-band-chip { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:14px; font-size:11px; font-weight:600; }
+#s-analysis .mii-band-chip .anl-dot { width:6px; height:6px; border-radius:50%; display:inline-block; }
+#s-analysis .anl-summary { font-size:13.5px; line-height:1.55; color:#333; margin-top:14px; max-width:560px; }
+#s-analysis .anl-dims { display:flex; flex-direction:column; gap:8px; min-width:280px; }
+#s-analysis .anl-dim { display:grid; grid-template-columns:110px 1fr 36px; gap:10px; align-items:center; font-size:12px; }
+#s-analysis .anl-dim label { color:var(--text2,#555); }
+#s-analysis .anl-dim .prog { height:6px; background:#EEE8D9; border-radius:3px; overflow:hidden; }
+#s-analysis .anl-dim .prog-f { height:100%; background:var(--accent,#175AA6); border-radius:3px; transition:width .3s ease; }
+#s-analysis .anl-dim-val { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text2,#555); text-align:right; }
+#s-analysis .anl-section-h { font-size:16px; font-weight:600; margin:8px 0 14px; color:#1a1a1a; }
+#s-analysis .anl-count { display:inline-block; background:#EBE3CC; color:#5C4E2A; font-size:11px; padding:2px 8px; border-radius:10px; margin-left:6px; vertical-align:middle; font-weight:500; }
+#s-analysis .anl-suggestions { margin-bottom:28px; }
+#s-analysis .anl-suggestion-domain { background:#fff; border:1px solid #E5DFD0; border-radius:8px; padding:14px 18px; margin-bottom:10px; }
+#s-analysis .anl-suggestion-domain h4 { font-size:13px; font-weight:600; margin:0 0 10px; color:#1a1a1a; }
+#s-analysis .anl-suggestion-card { border-top:1px solid #F2EEDF; padding:10px 0; }
+#s-analysis .anl-suggestion-card:first-of-type { border-top:none; padding-top:0; }
+#s-analysis .anl-suggestion-head { display:flex; gap:8px; align-items:center; margin-bottom:4px; }
+#s-analysis .anl-triage { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; letter-spacing:.04em; text-transform:uppercase; }
+#s-analysis .anl-triage.t-fix { background:#FCEBEA; color:#B82E2E; }
+#s-analysis .anl-triage.t-con { background:#FBF1DA; color:#BF801E; }
+#s-analysis .anl-triage.t-mon { background:#E6EEF7; color:#175AA6; }
+#s-analysis .anl-suggestion-title { font-size:13px; font-weight:600; color:#1a1a1a; }
+#s-analysis .anl-suggestion-mod { font-size:11px; color:var(--text4,#888); margin-left:auto; }
+#s-analysis .anl-suggestion-reason { font-size:12.5px; color:#444; margin:4px 0 4px; line-height:1.5; }
+#s-analysis .anl-suggestion-action { font-size:12px; color:#175AA6; background:#F0F5FB; padding:6px 10px; border-radius:4px; }
+#s-analysis .anl-narrative { background:#fff; border:1px solid #E5DFD0; border-radius:10px; padding:22px 26px; }
+#s-analysis .anl-story { font-size:13.5px; line-height:1.65; color:#333; white-space:pre-wrap; margin-bottom:18px; }
+#s-analysis .anl-module-nodes { display:flex; flex-wrap:wrap; gap:8px; }
+#s-analysis .anl-module-node { padding:6px 12px; background:#F7F2E2; border:1px solid #E5DFD0; border-radius:14px; font-size:12px; cursor:pointer; transition:background .15s; }
+#s-analysis .anl-module-node:hover { background:#EBE3CC; }
+#s-analysis .anl-breadcrumb { font-size:12px; font-family:'IBM Plex Mono',monospace; color:var(--text2,#555); margin-bottom:14px; }
+#s-analysis .anl-breadcrumb a { color:var(--accent,#175AA6); text-decoration:none; }
+#s-analysis .anl-drill-purpose { font-size:13px; color:#333; line-height:1.55; margin-bottom:16px; }
+#s-analysis .anl-drill-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+#s-analysis .anl-drill-grid h4 { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text4,#888); margin:0 0 8px; }
+#s-analysis .anl-drill-grid ul { list-style:none; padding:0; margin:0; font-size:12.5px; }
+#s-analysis .anl-drill-grid li { padding:4px 0; color:#333; border-bottom:1px solid #F2EEDF; }
 
 </style>
 </head>
@@ -735,42 +784,78 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 </div>
 
 <!-- ════════ S4: ANALYSIS ════════ -->
+<!-- SECTION: ANALYSIS -->
 <div id="s-analysis" class="screen">
   <div class="hdr"><div class="hdr-inner">
     <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
     <div class="hdr-sp"></div>
-    <div class="hdr-status"><span class="spinner"></span>Running 47 compliance rules...</div>
+    <div class="hdr-status" id="anl-hdr-status"><span class="spinner"></span>Preparing analysis…</div>
   </div></div>
-  <div class="anl-shell">
-    <div class="step-label">Step 2 of 3 — Anaplan Way Analysis</div>
-    <h2 style="font-size:24px;font-weight:700;letter-spacing:-.025em;margin-bottom:8px;">Scoring your model</h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:24px;" id="anl-sub">Loading...</p>
 
-    <div class="mii-card">
-      <div style="position:relative;z-index:1;">
-        <div class="step-label" style="margin-bottom:10px;">Model Intelligence Index</div>
-        <div class="mii-num" id="anl-mii-num" style="color:#B82E2E;">38<span>/100</span></div>
-        <div id="anl-band-chip" class="mii-band-chip" style="background:var(--neg-pale);color:var(--neg);border:1px solid var(--neg-bd);">
-          <span style="width:5px;height:5px;border-radius:50%;background:var(--neg);display:inline-block;"></span>Critical
-        </div>
-        <div style="max-width:370px;">
-          <div class="prog" style="height:6px;margin-bottom:6px;"><div class="prog-f" id="anl-mii-bar" style="background:var(--neg);width:38%;"></div></div>
-          <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--text4);font-family:'IBM Plex Mono',monospace;"><span>Critical &lt;40</span><span>At Risk 40–65</span><span>Compliant 65–85</span><span>Optimised 85+</span></div>
-        </div>
+  <div class="anl-shell">
+    <div class="step-label">Step 3 of 3 — Anaplan Way Analysis</div>
+    <h2 class="anl-title">Model Intelligence Report</h2>
+    <p class="anl-sub" id="anl-sub">Analysing your model…</p>
+
+    <!-- Progress -->
+    <div class="anl-progress-wrap" id="anl-progress-wrap">
+      <div class="anl-progress-label"><span id="anl-stage-label">Fetching blueprint</span><span id="anl-progress-pct">0%</span></div>
+      <div class="prog"><div class="prog-f" id="anl-progress-bar" style="width:0%"></div></div>
+      <div class="anl-progress-detail" id="anl-progress-detail">&nbsp;</div>
+    </div>
+
+    <!-- Error -->
+    <div class="anl-error" id="anl-error" hidden>
+      <strong>Analysis failed.</strong> <span id="anl-error-msg"></span>
+      <button class="btn" onclick="go('s-fetch')">Re-fetch blueprint</button>
+    </div>
+
+    <!-- Partial-load warning -->
+    <div class="anl-warning" id="anl-warning" hidden>
+      <strong>Partial analysis.</strong> <span id="anl-warning-msg"></span>
+    </div>
+
+    <!-- Score card -->
+    <div class="anl-score-card" id="anl-score-card" hidden>
+      <div class="anl-score-main">
+        <div class="step-label">Model Health Score</div>
+        <div class="mii-num" id="anl-score-num">--<span>/100</span></div>
+        <div id="anl-verdict-chip" class="mii-band-chip"><span class="anl-dot"></span><span id="anl-verdict-text">—</span></div>
+        <p class="anl-summary" id="anl-summary"></p>
       </div>
-      <div style="position:relative;z-index:1;flex-shrink:0;">
-        <svg width="106" height="106" viewBox="0 0 106 106" fill="none">
-          <circle cx="53" cy="53" r="42" stroke="#EBE8E0" stroke-width="6"/>
-          <circle id="anl-arc" cx="53" cy="53" r="42" stroke="#B82E2E" stroke-width="6"
-            stroke-linecap="round" stroke-dasharray="100 264" transform="rotate(-90 53 53)"/>
-          <text id="anl-num-txt" x="53" y="48" text-anchor="middle" font-size="20" font-weight="700" fill="#1C2129" font-family="IBM Plex Mono,monospace">38</text>
-          <text x="53" y="63" text-anchor="middle" font-size="9" fill="#9EA1AB" font-family="IBM Plex Mono,monospace" letter-spacing="1">MII</text>
-        </svg>
+      <div class="anl-dims" id="anl-dims">
+        <div class="anl-dim" data-key="architecture"><label>Architecture</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+        <div class="anl-dim" data-key="naming"><label>Naming</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+        <div class="anl-dim" data-key="formulas"><label>Formulas</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+        <div class="anl-dim" data-key="dataHygiene"><label>Data Hygiene</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+        <div class="anl-dim" data-key="governance"><label>Governance</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
       </div>
     </div>
 
-    <div id="anl-dims"></div>
-    <div style="text-align:center;margin-top:26px;"><button class="btn btn-pri" onclick="startDocGeneration()">Generate Documentation →</button></div>
+    <!-- Suggestions panel -->
+    <div class="anl-suggestions" id="anl-suggestions" hidden>
+      <h3 class="anl-section-h">Improvement Suggestions <span class="anl-count" id="anl-sugg-count">0</span></h3>
+      <div class="anl-suggestion-domains" id="anl-suggestion-domains"></div>
+    </div>
+
+    <!-- Narrative + drill-in -->
+    <div class="anl-narrative" id="anl-narrative" hidden>
+      <div id="anl-narrative-story-view">
+        <h3 class="anl-section-h">Cross-Module Data Flow</h3>
+        <div class="anl-story" id="anl-story-text"></div>
+        <div class="anl-module-nodes" id="anl-module-nodes"></div>
+      </div>
+      <div id="anl-narrative-drill-view" hidden>
+        <div class="anl-breadcrumb"><a href="#" id="anl-breadcrumb-back">← Back to story</a> / <span id="anl-breadcrumb-mod"></span></div>
+        <h3 class="anl-section-h" id="anl-drill-name"></h3>
+        <p class="anl-drill-purpose" id="anl-drill-purpose"></p>
+        <div class="anl-drill-grid">
+          <div><h4>Receives from</h4><ul id="anl-drill-rx"></ul></div>
+          <div><h4>Sends to</h4><ul id="anl-drill-tx"></ul></div>
+          <div><h4>Risks</h4><ul id="anl-drill-risks"></ul></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
