@@ -3621,14 +3621,144 @@ function confirmModelSelection() {
     workspaceName: _selectedWorkspaceName,
   });
 
-  // Navigate to blueprint fetch screen (Phase 3 creates s-fetch)
+  // Navigate to blueprint fetch screen and start SSE fetch (Phase 3)
   go('s-fetch');
+  fetchBlueprint();
 }
 
     // ============================================================
     // SECTION: FETCH
     // v2 Phase 3 — Blueprint fetch, SSE progress, state
     // ============================================================
+
+    async function fetchBlueprint() {
+      const fetchErr = document.getElementById('fetch-error');
+      const fetchWarn = document.getElementById('fetch-warning');
+      const fetchWarnList = document.getElementById('fetch-warning-list');
+      const schemaPanel = document.getElementById('fetch-schema-preview');
+      const schemaDl = document.getElementById('fetch-schema-dl');
+      const fillEl = document.getElementById('fetch-progress-fill');
+      const doneEl = document.getElementById('fetch-modules-done');
+      const totalEl = document.getElementById('fetch-modules-total');
+      const liEl = document.getElementById('fetch-lineitems-total');
+      const currentEl = document.getElementById('fetch-current');
+      const nameEl = document.getElementById('fetch-model-name');
+      const continueBtn = document.getElementById('fetch-continue-btn');
+
+      // Reset UI
+      fetchErr.style.display = 'none'; fetchErr.textContent = '';
+      fetchWarn.style.display = 'none'; fetchWarnList.innerHTML = '';
+      schemaPanel.style.display = 'none'; schemaDl.innerHTML = '';
+      fillEl.style.width = '0%';
+      doneEl.textContent = '0'; totalEl.textContent = '0'; liEl.textContent = '0';
+      currentEl.textContent = 'Connecting…';
+
+      const workspaceId = sessionStorage.getItem('meridian.workspaceId');
+      const modelId = sessionStorage.getItem('meridian.modelId');
+      const modelName = sessionStorage.getItem('meridian.modelName') || '';
+      const username = sessionStorage.getItem('meridian.user');
+      const password = sessionStorage.getItem('meridian.pass');
+      nameEl.textContent = modelName;
+
+      if (!workspaceId || !modelId || !username || !password) {
+        fetchErr.style.display = 'block';
+        fetchErr.textContent = 'Missing session — please reconnect.';
+        return;
+      }
+
+      let totalLineItems = 0;
+
+      let res;
+      try {
+        res = await fetch('/api/blueprint', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-anaplan-user': username,
+            'x-anaplan-pass': password,
+          },
+          body: JSON.stringify({ workspaceId, modelId }),
+        });
+      } catch (e) {
+        fetchErr.style.display = 'block'; fetchErr.textContent = 'Network error: ' + e.message;
+        return;
+      }
+
+      if (!res.ok || !res.body) {
+        fetchErr.style.display = 'block';
+        fetchErr.textContent = 'Blueprint fetch failed (HTTP ' + res.status + ')';
+        return;
+      }
+
+      // fetch() + ReadableStream — POST endpoint, EventSource is GET-only
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const chunks = buffer.split('\n\n');
+        buffer = chunks.pop() || '';
+
+        for (const chunk of chunks) {
+          if (!chunk.startsWith('data: ')) continue;
+          let evt;
+          try { evt = JSON.parse(chunk.slice(6)); } catch { continue; }
+
+          if (evt.type === 'progress') {
+            doneEl.textContent = String(evt.modulesDone);
+            totalEl.textContent = String(evt.modulesTotal);
+            totalLineItems += (evt.lineItemCount || 0);
+            liEl.textContent = String(totalLineItems);
+            currentEl.textContent = evt.moduleName ? ('Fetched: ' + evt.moduleName) : 'Listing modules…';
+            const pct = evt.modulesTotal ? (evt.modulesDone / evt.modulesTotal) * 100 : 0;
+            fillEl.style.width = pct + '%';
+          } else if (evt.type === 'partial-warning') {
+            fetchWarn.style.display = 'block';
+            const li = document.createElement('li');
+            li.textContent = evt.moduleName + ' — ' + evt.reason;
+            fetchWarnList.appendChild(li);
+          } else if (evt.type === 'schema-preview') {
+            renderSchemaPreview(evt.schema, schemaDl);
+            schemaPanel.style.display = 'block';
+          } else if (evt.type === 'complete') {
+            sessionStorage.setItem('meridian.blueprintBlobUrl', evt.blobUrl || '');
+            sessionStorage.setItem('meridian.blueprintMeta', JSON.stringify({
+              moduleCount: evt.moduleCount,
+              totalLineItems: evt.totalLineItems,
+              partialLoad: evt.partialLoad,
+              fetchedAt: new Date().toISOString(),
+            }));
+            currentEl.textContent = 'Complete.';
+            fillEl.style.width = '100%';
+            // Continue button advances to s-analysis (Phase 4 will replace that screen).
+            // NOTE: must be 's-analysis', NOT 's-dashboard' — dashboard does not exist until Phase 5.
+            continueBtn.onclick = function () { go('s-analysis'); };
+          } else if (evt.type === 'error') {
+            fetchErr.style.display = 'block'; fetchErr.textContent = evt.message || 'Unknown error';
+          }
+        }
+      }
+    }
+
+    function renderSchemaPreview(schema, dl) {
+      dl.innerHTML = '';
+      const rows = [
+        ['Modules', String(schema.moduleCount)],
+        ['Line items', String(schema.totalLineItems)],
+        ['Partial load', schema.partialLoad ? 'yes' : 'no'],
+        ['Sample module', schema.sampleModuleName || '—'],
+        ['Sample fields', (schema.sampleLineItemKeys || []).join(', ') || '—'],
+        ['Sample formula', schema.sampleFormula || '—'],
+      ];
+      for (const [k, v] of rows) {
+        const dt = document.createElement('dt'); dt.textContent = k;
+        const dd = document.createElement('dd'); dd.textContent = v;
+        dl.appendChild(dt); dl.appendChild(dd);
+      }
+    }
 
     // ============================================================
     // SECTION: DASHBOARD
