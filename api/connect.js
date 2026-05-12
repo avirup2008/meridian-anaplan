@@ -51,6 +51,9 @@ export default async function handler(req, res) {
       headers: { 'Authorization': `AnaplanAuthToken ${token}` }
     });
 
+    if (!wsRes.ok) {
+      return res.status(502).json({ error: `Failed to fetch workspaces: HTTP ${wsRes.status}` });
+    }
     const wsData = await wsRes.json();
 
     // Normalize workspace IDs to lowercase on receipt

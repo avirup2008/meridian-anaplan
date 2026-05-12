@@ -3852,6 +3852,7 @@ function confirmModelSelection() {
       _anl$('anl-suggestions').hidden = true;
       _anl$('anl-narrative').hidden = true;
       _anl$('anl-hdr-status').innerHTML = '<span class="spinner"></span>Preparing analysis…'; // reset header (not just banner)
+      _anl$('anl-sub').textContent = 'Analysing your model…'; // reset subtitle so previous run's count isn't shown during next run
       _anl$('anl-progress-wrap').style.display = '';
       _anl$('anl-progress-bar').style.width = '0%';
       _anl$('anl-progress-pct').textContent = '0%';

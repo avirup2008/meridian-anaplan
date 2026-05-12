@@ -52,6 +52,9 @@ export default async function handler(req, res) {
       { headers: { 'Authorization': `AnaplanAuthToken ${tokenInfo.tokenValue}` } }
     );
 
+    if (!modRes.ok) {
+      return res.status(502).json({ error: `Failed to fetch models: HTTP ${modRes.status}` });
+    }
     const modData = await modRes.json();
 
     // Only show UNLOCKED models — filter out ARCHIVED, LOCKED, etc.
