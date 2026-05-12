@@ -115,9 +115,9 @@ Rules:
 Each issue: { "moduleId", "moduleName", "domain", "triage", "title", "reasoning", "action" }
 domain: "Structural" | "Formula" | "Best Practice" | "Naming"
 triage: "Fix Now" | "Consider" | "Monitor"
-title: < 60 chars — describe the specific problem
-reasoning: 1 sentence explaining why this matters in Anaplan
-action: one concrete step the builder should take (≤ 20 words)
+title: ≤ 50 chars
+reasoning: ≤ 12 words — why it matters
+action: ≤ 12 words — what to do
 
 Respond with raw JSON only — no markdown fences, no commentary.`;
 }
@@ -127,7 +127,7 @@ async function runHaikuBulk(client, extractions, sendEvent) {
 
   const messages = [{ role: 'user', content: buildHaikuBulkPrompt(extractions) }];
   await guardTokens(client, HAIKU_MODEL, messages);
-  const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 8192, messages });
+  const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 2048, messages });
 
   const parsed = parseJsonStrict(resp.content?.[0]?.text);
   if (!parsed || !Array.isArray(parsed)) {

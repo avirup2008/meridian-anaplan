@@ -4053,6 +4053,7 @@ function confirmModelSelection() {
     }
 
     async function runAnalysis() {
+      _anl$('anl-error').hidden = true; // always clear stale banner before guard check
       if (_anlRunning) return;
       _anlRunning = true;
       _anlReset();
