@@ -3853,6 +3853,8 @@ function confirmModelSelection() {
 
     let _anlState = null;   // accumulated analysis state across SSE events
     let _anlRunning = false;
+    let _anlAbortCtrl = null;  // AbortController for the current fetch
+    let _anlGen = 0;           // monotonic run ID — stale readers check this before acting
 
     function _anl$(id) { return document.getElementById(id); }
 
@@ -4054,24 +4056,31 @@ function confirmModelSelection() {
     }
 
     async function runAnalysis() {
-      _anl$('anl-error').hidden = true; // always clear stale banner before guard check
-      if (_anlRunning) return;
-      _anlRunning = true;
-      _anlReset();
+      // Cancel any previous in-flight fetch so its reader cannot fire stale error events
+      if (_anlAbortCtrl) { _anlAbortCtrl.abort(); _anlAbortCtrl = null; }
+      _anlRunning = false; // reset so _anlReset + guard logic always starts fresh
+
+      _anlReset(); // hides banner, resets all state
 
       const blobUrl = sessionStorage.getItem('meridian.blueprintBlobUrl');
       if (!blobUrl) {
-        _anlShowError('No blueprint URL found. Please fetch a blueprint first.');
-        _anlRunning = false;
+        _anlShowError('No blueprint found. Go back and fetch a blueprint first.');
         return;
       }
+
+      // Stamp this run so stale readers from aborted fetches cannot affect the UI
+      const myGen = ++_anlGen;
+      _anlRunning = true;
+      _anlAbortCtrl = new AbortController();
 
       try {
         const resp = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ blobUrl }),
+          signal: _anlAbortCtrl.signal,
         });
+        if (myGen !== _anlGen) return; // a newer run started while we were fetching
         if (!resp.ok || !resp.body) {
           const errText = await resp.text().catch(() => '');
           throw new Error('HTTP ' + resp.status + (errText ? ': ' + errText.slice(0, 200) : ''));
@@ -4082,6 +4091,7 @@ function confirmModelSelection() {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+          if (myGen !== _anlGen) { reader.cancel(); return; } // superseded
           buf += decoder.decode(value, { stream: true });
           const lines = buf.split('\n');
           buf = lines.pop() || '';
@@ -4110,9 +4120,11 @@ function confirmModelSelection() {
           }
         }
       } catch (err) {
+        if (err.name === 'AbortError' || myGen !== _anlGen) return; // cancelled — not an error
+        console.error('[meridian] runAnalysis error:', err);
         _anlShowError(err && err.message ? err.message : String(err));
       } finally {
-        _anlRunning = false;
+        if (myGen === _anlGen) { _anlRunning = false; _anlAbortCtrl = null; }
       }
     }
 
