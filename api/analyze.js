@@ -3,10 +3,10 @@ import Anthropic from '@anthropic-ai/sdk';
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SONNET_MODEL = 'claude-sonnet-4-6';
 const TOKEN_LIMIT = 180_000;
-const BATCH_SIZE = 20;              // 214 modules → ~11 batches (was 5 → 43 batches)
-const MIN_LINE_ITEMS_FOR_HAIKU = 3;
-const HAIKU_BUDGET_MS = 35_000;    // stop Haiku batches if elapsed exceeds this
-const TOTAL_BUDGET_MS = 52_000;    // overall guard before Sonnet (8s buffer before Vercel 60s kill)
+const TOTAL_BUDGET_MS = 52_000;    // guard before Vercel 60s hard kill
+const MAX_HAIKU_ISSUES = 40;       // max issues Haiku returns across entire model
+const FORMULA_MAX_CHARS = 120;     // truncate long formulas in bulk prompt
+const FORMULA_MAX_PER_MODULE = 5;  // max formula lines shown per module
 
 // ANLZ-03: Extraction pre-pass — strips banned fields, reduces appliesTo to dimensions[]
 export function extractionPrePass(blueprint) {
@@ -47,88 +47,81 @@ export function parseJsonStrict(text) {
   try { return JSON.parse(cleaned); } catch { return null; }
 }
 
-function buildHaikuPrompt(mod) {
-  return `Analyze this Anaplan module and return improvement suggestions as JSON.
+// ANLZ-02: Single bulk Haiku call — all modules in one compact prompt
+function buildHaikuBulkPrompt(extractions) {
+  const moduleLines = extractions.map(m => {
+    const calc = m.lineItems.filter(li => li.formula);
+    const inp  = m.lineItems.filter(li => !li.formula);
+    const header = `[${m.moduleId}] ${m.moduleName} (${m.lineItemCount} items: ${calc.length} calc, ${inp.length} input)`;
+    const formulas = calc.slice(0, FORMULA_MAX_PER_MODULE).map(li => {
+      const f = li.formula.length > FORMULA_MAX_CHARS
+        ? li.formula.slice(0, FORMULA_MAX_CHARS) + '…'
+        : li.formula;
+      return `  ${li.name} = ${f}`;
+    });
+    return formulas.length ? header + '\n' + formulas.join('\n') : header;
+  }).join('\n');
 
-Module: ${mod.moduleName} (${mod.lineItemCount} line items)
+  return `You are an expert Anaplan model reviewer.
 
-Line Items:
-${mod.lineItems.map(li =>
-  `- ${li.name}${li.formula ? ` = ${li.formula}` : ' [input]'}` +
-  `${li.format ? ` [${li.format}]` : ''}` +
-  `${li.dimensions.length ? ` (dims: ${li.dimensions.join(', ')})` : ''}` +
-  `${li.notes ? ` // ${li.notes}` : ''}`
-).join('\n')}
+Analyze this Anaplan model and identify the most impactful issues across all modules.
 
-Return a JSON array of suggestions. Each suggestion: { "domain", "triage", "title", "reasoning", "action" }
+${moduleLines}
+
+Return a JSON array of up to ${MAX_HAIKU_ISSUES} issues prioritised by impact.
+Each issue: { "moduleId", "moduleName", "domain", "triage", "title", "reasoning", "action" }
 domain: "Structural" | "Formula" | "Best Practice" | "Naming"
 triage: "Fix Now" | "Consider" | "Monitor"
-title: short (< 60 chars)
+title: < 60 chars
 reasoning: 1-2 sentences explaining why this matters
 action: concrete step the builder should take
 
-If no issues found, return an empty array [].
+Focus only on notable issues — skip modules that look clean.
 Respond with raw JSON only — no markdown fences, no commentary.`;
 }
 
-async function runHaikuForModule(client, mod) {
-  const messages = [{ role: 'user', content: buildHaikuPrompt(mod) }];
+async function runHaikuBulk(client, extractions, sendEvent) {
+  sendEvent({ type: 'haiku-progress', modulesDone: 0, modulesTotal: extractions.length, moduleName: 'Scanning all modules…', skipped: false });
+
+  const messages = [{ role: 'user', content: buildHaikuBulkPrompt(extractions) }];
   await guardTokens(client, HAIKU_MODEL, messages);
-  const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 1024, messages });
+  const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 2048, messages });
+
   const parsed = parseJsonStrict(resp.content?.[0]?.text);
   if (!parsed || !Array.isArray(parsed)) {
-    return { moduleId: mod.moduleId, moduleName: mod.moduleName, items: [] };
+    sendEvent({ type: 'haiku-progress', modulesDone: extractions.length, modulesTotal: extractions.length, moduleName: 'Done', skipped: false });
+    return [];
   }
+
   const VALID_TRIAGE = new Set(['Fix Now', 'Consider', 'Monitor']);
   const VALID_DOMAIN = new Set(['Structural', 'Formula', 'Best Practice', 'Naming']);
-  const filteredArray = parsed
-    .filter(item => VALID_TRIAGE.has(item.triage) && VALID_DOMAIN.has(item.domain))
+
+  const allIssues = parsed
+    .filter(item => item && VALID_TRIAGE.has(item.triage) && VALID_DOMAIN.has(item.domain))
     .map(item => ({
-      domain: item.domain,
-      triage: item.triage,
-      text: item.title || item.text,
-      reasoning: item.reasoning,
-      action: item.action,
+      moduleId:   item.moduleId   || 'unknown',
+      moduleName: item.moduleName || 'Unknown Module',
+      domain:     item.domain,
+      triage:     item.triage,
+      text:       item.title || item.text || '',
+      reasoning:  item.reasoning || '',
+      action:     item.action || '',
     }));
-  return { moduleId: mod.moduleId, moduleName: mod.moduleName, items: filteredArray };
-}
 
-async function runHaikuBatches(client, extractions, sendEvent, startMs) {
-  const eligible = extractions.filter(m => m.lineItemCount >= MIN_LINE_ITEMS_FOR_HAIKU);
-  const collected = [];
-  let modulesDone = 0;
-
-  // Emit haiku-progress for skipped (ineligible) modules
-  for (const mod of extractions) {
-    if (mod.lineItemCount < MIN_LINE_ITEMS_FOR_HAIKU) {
-      sendEvent({ type: 'haiku-progress', modulesDone: modulesDone, modulesTotal: extractions.length, moduleName: mod.moduleName, skipped: true });
+  // Group by module and emit one suggestions event per affected module
+  const byModule = new Map();
+  for (const issue of allIssues) {
+    if (!byModule.has(issue.moduleId)) {
+      byModule.set(issue.moduleId, { moduleId: issue.moduleId, moduleName: issue.moduleName, items: [] });
     }
+    byModule.get(issue.moduleId).items.push(issue);
+  }
+  for (const group of byModule.values()) {
+    sendEvent({ type: 'suggestions', moduleId: group.moduleId, moduleName: group.moduleName, items: group.items });
   }
 
-  for (let i = 0; i < eligible.length; i += BATCH_SIZE) {
-    if (Date.now() - startMs > HAIKU_BUDGET_MS) {
-      sendEvent({ type: 'partial-analysis', reason: 'Haiku time budget reached', modulesAnalysed: modulesDone, modulesSkipped: extractions.length - modulesDone });
-      break;
-    }
-
-    const batch = eligible.slice(i, i + BATCH_SIZE);
-    const settled = await Promise.allSettled(batch.map(m => runHaikuForModule(client, m)));
-
-    for (let j = 0; j < settled.length; j++) {
-      const mod = batch[j];
-      let result;
-      if (settled[j].status === 'fulfilled') {
-        result = settled[j].value;
-      } else {
-        result = { moduleId: mod.moduleId, moduleName: mod.moduleName, items: [] };
-      }
-      collected.push(result);
-      sendEvent({ type: 'suggestions', moduleId: result.moduleId, moduleName: result.moduleName, items: result.items });
-      sendEvent({ type: 'haiku-progress', modulesDone: ++modulesDone, modulesTotal: extractions.length, moduleName: result.moduleName, skipped: false });
-    }
-  }
-
-  return collected;
+  sendEvent({ type: 'haiku-progress', modulesDone: extractions.length, modulesTotal: extractions.length, moduleName: 'Done', skipped: false });
+  return allIssues;
 }
 
 function buildSonnetSynthesisPrompt(extractions, allSuggestions) {
@@ -219,7 +212,6 @@ export function detectDependencies(extractions) {
     }
   }
 
-  // Convert Sets to arrays for serialization
   const result = {};
   for (const [id, val] of Object.entries(deps)) {
     result[id] = {
@@ -231,8 +223,7 @@ export function detectDependencies(extractions) {
 }
 
 function buildSonnetNarrativePrompt(extractions, deps) {
-  // Cap to top 30 most-connected modules to keep output within max_tokens budget.
-  // For large models (e.g. 214 modules) a full response would exceed 8K tokens.
+  // Cap to top 30 most-connected modules so output fits within max_tokens budget.
   const MAX_NARR_MODULES = 30;
   const ranked = extractions
     .map(m => {
@@ -327,16 +318,13 @@ export default async function handler(req, res) {
       totalLineItems: extractions.reduce((s, m) => s + m.lineItemCount, 0),
     });
 
-    // Stage 3: Batched Haiku suggestion calls (ANLZ-02)
+    // Stage 3: Single Haiku bulk call — all modules in one prompt (ANLZ-02)
     sendEvent({ type: 'progress', stage: 'suggestions', pct: 25 });
-    const haikuResults = await runHaikuBatches(client, extractions, sendEvent, startMs);
-    const allSuggestions = haikuResults.flatMap(r =>
-      r.items.map(it => ({ ...it, moduleId: r.moduleId, moduleName: r.moduleName }))
-    );
+    const allSuggestions = await runHaikuBulk(client, extractions, sendEvent);
 
-    // Total budget guard before Sonnet calls
+    // Budget guard before Sonnet calls
     if (Date.now() - startMs > TOTAL_BUDGET_MS) {
-      sendEvent({ type: 'partial-analysis', reason: 'Total budget reached before synthesis', modulesAnalysed: haikuResults.length, modulesSkipped: 0 });
+      sendEvent({ type: 'partial-analysis', reason: 'Total budget reached before synthesis', modulesAnalysed: extractions.length, modulesSkipped: 0 });
       sendEvent({ type: 'complete', healthScore: null, totalSuggestions: allSuggestions.length, analysisId: blueprint.modelId });
       return;
     }
@@ -360,7 +348,6 @@ export default async function handler(req, res) {
     // Stage 4b: Sonnet narrative — cross-module data flow (ANLZ-04)
     sendEvent({ type: 'progress', stage: 'narrative', pct: 85 });
 
-    // Time-check before narrative
     if (Date.now() - startMs > TOTAL_BUDGET_MS) {
       sendEvent({ type: 'complete', healthScore: synth.healthScore, totalSuggestions: allSuggestions.length, analysisId: blueprint.modelId });
       return;
