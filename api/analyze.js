@@ -4,7 +4,6 @@ import { createHash } from 'crypto';
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SONNET_MODEL = 'claude-sonnet-4-6';
-const TOKEN_LIMIT = 180_000;
 const TOTAL_BUDGET_MS = 52_000;    // guard before Vercel 60s hard kill
 const MAX_HAIKU_ISSUES = 25;       // must fit inside 2048 max_tokens (~70 tokens/issue)
 const FORMULA_MAX_CHARS = 120;     // truncate long formulas in bulk prompt
@@ -40,7 +39,7 @@ async function setCachedEvents(hash, events) {
     await put(
       `${CACHE_PREFIX}${hash}.json`,
       JSON.stringify(events),
-      { access: 'public', addRandomSuffix: false }
+      { access: 'public', addRandomSuffix: false, allowOverwrite: true }
     );
   } catch (e) {
     console.error('Cache write failed (non-fatal):', e.message);
@@ -69,15 +68,6 @@ export function extractionPrePass(blueprint) {
     });
   }
   return results;
-}
-
-// ANLZ-03: countTokens pre-flight guard — throws if prompt exceeds TOKEN_LIMIT
-async function guardTokens(client, model, messages, system) {
-  const r = await client.messages.countTokens({ model, messages, ...(system ? { system } : {}) });
-  if (r.input_tokens > TOKEN_LIMIT) {
-    throw new Error(`Token budget exceeded: ${r.input_tokens} > ${TOKEN_LIMIT} for ${model}`);
-  }
-  return r.input_tokens;
 }
 
 // Strip markdown fences and JSON.parse; return null on failure
@@ -306,7 +296,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { blobUrl } = req.body;
+  const blobUrl = req.body?.blobUrl; // safe — req.body may be undefined if body parsing fails
   if (!blobUrl) return res.status(400).json({ error: 'Missing blobUrl' });
   if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
 
@@ -346,7 +336,9 @@ export default async function handler(req, res) {
       // Replay stored events — free, instant
       res.write(`data: ${JSON.stringify({ type: 'cache-hit' })}\n\n`);
       for (const evt of cached) {
-        res.write(`data: ${JSON.stringify(evt)}\n\n`);
+        // Mark the complete event so the frontend knows this is a cache replay
+        const toSend = evt.type === 'complete' ? { ...evt, fromCache: true } : evt;
+        res.write(`data: ${JSON.stringify(toSend)}\n\n`);
       }
       if (typeof res.flush === 'function') res.flush();
       return;

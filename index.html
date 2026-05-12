@@ -3852,7 +3852,6 @@ function confirmModelSelection() {
     // ============================================================
 
     let _anlState = null;   // accumulated analysis state across SSE events
-    let _anlRunning = false;
     let _anlAbortCtrl = null;  // AbortController for the current fetch
     let _anlGen = 0;           // monotonic run ID — stale readers check this before acting
 
@@ -3871,6 +3870,7 @@ function confirmModelSelection() {
       _anl$('anl-score-card').hidden = true;
       _anl$('anl-suggestions').hidden = true;
       _anl$('anl-narrative').hidden = true;
+      _anl$('anl-hdr-status').innerHTML = '<span class="spinner"></span>Preparing analysis…'; // reset header (not just banner)
       _anl$('anl-progress-wrap').style.display = '';
       _anl$('anl-progress-bar').style.width = '0%';
       _anl$('anl-progress-pct').textContent = '0%';
@@ -4052,14 +4052,13 @@ function confirmModelSelection() {
       _anlRenderSuggestions();
       _anl$('anl-progress-wrap').style.display = 'none';
       _anl$('anl-hdr-status').innerHTML = 'Analysis complete';
-      _anl$('anl-sub').textContent = c.totalSuggestions + ' suggestions across ' + Object.values(_anlState.suggestionsByDomain).reduce((s, a) => s + a.length, 0) + ' domains';
+      const _domainCount = Object.values(_anlState.suggestionsByDomain).filter(a => a.length > 0).length;
+      _anl$('anl-sub').textContent = _anlState.suggestionCount + ' suggestions across ' + _domainCount + ' domain' + (_domainCount !== 1 ? 's' : '');
     }
 
     async function runAnalysis() {
       // Cancel any previous in-flight fetch so its reader cannot fire stale error events
       if (_anlAbortCtrl) { _anlAbortCtrl.abort(); _anlAbortCtrl = null; }
-      _anlRunning = false; // reset so _anlReset + guard logic always starts fresh
-
       _anlReset(); // hides banner, resets all state
 
       const blobUrl = sessionStorage.getItem('meridian.blueprintBlobUrl');
@@ -4070,7 +4069,6 @@ function confirmModelSelection() {
 
       // Stamp this run so stale readers from aborted fetches cannot affect the UI
       const myGen = ++_anlGen;
-      _anlRunning = true;
       _anlAbortCtrl = new AbortController();
 
       try {
@@ -4124,7 +4122,7 @@ function confirmModelSelection() {
         console.error('[meridian] runAnalysis error:', err);
         _anlShowError(err && err.message ? err.message : String(err));
       } finally {
-        if (myGen === _anlGen) { _anlRunning = false; _anlAbortCtrl = null; }
+        if (myGen === _anlGen) { _anlAbortCtrl = null; }
       }
     }
 
