@@ -11,7 +11,7 @@ const FORMULA_MAX_PER_MODULE = 5;  // max formula lines shown per module
 
 // Caching
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const CACHE_PREFIX = 'analysis-cache-v4/'; // bumped to invalidate stale blank-narrative v3 cache entries
+const CACHE_PREFIX = 'analysis-cache-v5/'; // bumped to invalidate v4 entries — Haiku prompt rewritten for Anaplan domain accuracy
 
 function blueprintHash(blueprint) {
   return createHash('sha256')
@@ -91,16 +91,39 @@ function buildHaikuBulkPrompt(extractions) {
     return formulas.length ? header + '\n' + formulas.join('\n') : header;
   }).join('\n');
 
-  return `You are an expert Anaplan model reviewer.
+  return `You are a senior Anaplan certified model builder reviewing a production Anaplan model for Anaplan Way compliance.
 
-Analyze every module in this Anaplan model and return all notable issues.
+Analyze the modules below and flag genuine issues only.
 
 ${moduleLines}
 
+ANAPLAN-SPECIFIC PATTERNS THAT ARE CORRECT — DO NOT FLAG THESE:
+- IF ISANCESTOR(...) / IF Future / IF Current / IF Prior — standard time-phasing, always intentional
+- IF [time condition] THEN value ELSE 0 — correct; forecasts/plans are zero for non-applicable periods
+- IF [time condition] THEN value ELSE BLANK() — also correct
+- LOOKUP, SUM, COLLECT across lists — normal cross-module reads
+- Long formulas with nested IF — acceptable if logic is clear
+- Input modules with few or no formulas — correct separation of concerns
+- Modules with only BOOLEAN line items — valid filter/flag modules
+- Setting forecast or plan to 0 outside the planning horizon is CORRECT practice
+
+GENUINE ISSUES TO FLAG (Anaplan Way violations):
+- Naming: modules not following SYS / INP / DAT / DYN / OUT / REP prefix convention
+- Naming: line items with vague names (e.g. "Number 1", "Test", "Temp", "Copy of")
+- Structural: modules that mix input and calculated line items without clear separation
+- Structural: modules with 50+ line items that could be split by domain
+- Formula: complex nested IFs that could be simplified with a subsidiary calculation
+- Formula: hardcoded numeric constants (magic numbers) in formulas
+- Formula: division without a zero-guard (e.g. A / B with no IF B = 0 check)
+- Formula: circular or self-referencing patterns
+- Best Practice: missing summary methods on line items that need aggregation
+- Best Practice: boolean line items used as numeric values (not as true booleans)
+- Best Practice: duplicate logic spread across multiple modules instead of a shared SYS module
+
 Rules:
-- Cover EVERY module. Up to 3 issues per module. Skip a module only if it is genuinely clean.
-- Total issues capped at ${MAX_HAIKU_ISSUES}.
-- Prioritise "Fix Now" issues first, then "Consider", then "Monitor".
+- SKIP a module if it has no genuine issues — do not invent problems
+- Total issues capped at ${MAX_HAIKU_ISSUES}. Prioritise "Fix Now" first, then "Consider", then "Monitor"
+- Only flag something if you are confident it is a real Anaplan Way violation
 
 Each issue: { "moduleId", "moduleName", "domain", "triage", "title", "reasoning", "action" }
 domain: "Structural" | "Formula" | "Best Practice" | "Naming"
