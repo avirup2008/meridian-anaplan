@@ -6,13 +6,13 @@ const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SONNET_MODEL = 'claude-sonnet-4-6';
 const TOKEN_LIMIT = 180_000;
 const TOTAL_BUDGET_MS = 52_000;    // guard before Vercel 60s hard kill
-const MAX_HAIKU_ISSUES = 300;      // soft cap — all modules covered, up to 3 each
+const MAX_HAIKU_ISSUES = 25;       // must fit inside 2048 max_tokens (~70 tokens/issue)
 const FORMULA_MAX_CHARS = 120;     // truncate long formulas in bulk prompt
 const FORMULA_MAX_PER_MODULE = 5;  // max formula lines shown per module
 
 // Caching
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const CACHE_PREFIX = 'analysis-cache/';
+const CACHE_PREFIX = 'analysis-cache-v2/'; // bumped to invalidate stale 0-suggestion cache entries
 
 function blueprintHash(blueprint) {
   return createHash('sha256')

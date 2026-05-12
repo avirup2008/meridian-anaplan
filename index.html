@@ -4046,6 +4046,7 @@ function confirmModelSelection() {
     });
 
     function _anlOnComplete(c) {
+      _anl$('anl-error').hidden = true; // clear any stale error banner
       _anlRenderSuggestions();
       _anl$('anl-progress-wrap').style.display = 'none';
       _anl$('anl-hdr-status').innerHTML = 'Analysis complete';
