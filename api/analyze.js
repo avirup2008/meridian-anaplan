@@ -262,7 +262,7 @@ export function detectDependencies(extractions) {
 }
 
 function buildSonnetNarrativePrompt(extractions, deps) {
-  const MAX_NARR_MODULES = 30;
+  const MAX_NARR_MODULES = 20;
   const ranked = extractions
     .map(m => {
       const d = deps[m.moduleId] || { receivesFrom: [], sendsTo: [] };
@@ -284,14 +284,14 @@ ${ranked.map(m => {
 
 Return JSON:
 {
-  "story": "<3-5 paragraph narrative of how data flows across modules>",
+  "story": "<2-3 paragraph narrative of how data flows>",
   "modules": [
-    { "id": "<moduleId>", "name": "<moduleName>", "purpose": "<1 sentence>",
+    { "id": "<moduleId>", "name": "<moduleName>", "purpose": "<1 sentence ≤ 15 words>",
       "receivesFrom": ["<moduleName>", ...], "sendsTo": ["<moduleName>", ...],
-      "risks": ["<risk text>", ...] }
+      "risks": ["<≤ 10 words>"] }
   ]
 }
-Include one entry in modules[] for every module listed above, preserving the id.
+One entry per module above. Keep all strings concise — total response must fit in 3000 tokens.
 Respond with raw JSON only — no markdown fences.`;
 
   const system = 'You are an expert Anaplan model reviewer producing data-flow narratives. Always respond with valid JSON only.';
@@ -402,7 +402,7 @@ export default async function handler(req, res) {
     const { userContent: narrUser, system: narrSystem } = buildSonnetNarrativePrompt(extractions, deps);
     const narrMessages = [{ role: 'user', content: narrUser }];
     await guardTokens(client, SONNET_MODEL, narrMessages, narrSystem);
-    const narrResp = await client.messages.create({ model: SONNET_MODEL, max_tokens: 8192, messages: narrMessages, system: narrSystem });
+    const narrResp = await client.messages.create({ model: SONNET_MODEL, max_tokens: 3000, messages: narrMessages, system: narrSystem });
     const narrRaw = parseJsonStrict(narrResp.content?.[0]?.text) || { story: '', modules: [] };
 
     sendEvent({
