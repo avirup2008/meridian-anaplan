@@ -5,8 +5,8 @@ const SONNET_MODEL = 'claude-sonnet-4-6';
 const TOKEN_LIMIT = 180_000;
 const BATCH_SIZE = 20;              // 214 modules → ~11 batches (was 5 → 43 batches)
 const MIN_LINE_ITEMS_FOR_HAIKU = 3;
-const HAIKU_BUDGET_MS = 240_000;   // stop Haiku batches if elapsed exceeds this
-const TOTAL_BUDGET_MS = 270_000;   // overall guard before Sonnet
+const HAIKU_BUDGET_MS = 35_000;    // stop Haiku batches if elapsed exceeds this
+const TOTAL_BUDGET_MS = 52_000;    // overall guard before Sonnet (8s buffer before Vercel 60s kill)
 
 // ANLZ-03: Extraction pre-pass — strips banned fields, reduces appliesTo to dimensions[]
 export function extractionPrePass(blueprint) {
