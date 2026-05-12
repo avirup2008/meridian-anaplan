@@ -17,6 +17,6 @@
     "api/connect.js": { "maxDuration": 10 },
     "api/models.js": { "maxDuration": 10 },
     "api/blueprint.js": { "maxDuration": 60 },
-    "api/analyze.js": { "maxDuration": 60 }
+    "api/analyze.js": { "maxDuration": 300 }
   }
 }
