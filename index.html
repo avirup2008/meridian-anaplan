@@ -3791,8 +3791,8 @@ function confirmModelSelection() {
             renderSchemaPreview(evt.schema, schemaDl);
             schemaPanel.style.display = 'block';
           } else if (evt.type === 'complete') {
-            sessionStorage.setItem('meridian.blueprintBlobUrl', evt.blobUrl || '');
-            sessionStorage.setItem('meridian.blueprintMeta', JSON.stringify({
+            localStorage.setItem('meridian.blueprintBlobUrl', evt.blobUrl || '');
+            localStorage.setItem('meridian.blueprintMeta', JSON.stringify({
               moduleCount: evt.moduleCount,
               totalLineItems: evt.totalLineItems,
               partialLoad: evt.partialLoad,
@@ -3846,7 +3846,10 @@ function confirmModelSelection() {
         score: null,
         partial: null,
       };
-      _anl$('anl-error').hidden = true;
+      const _errEl = _anl$('anl-error');
+      _errEl.hidden = true;
+      _errEl.style.background = _errEl.style.borderColor = _errEl.style.color = '';
+      _errEl.dataset.info = '';
       _anl$('anl-warning').hidden = true;
       _anl$('anl-score-card').hidden = true;
       _anl$('anl-suggestions').hidden = true;
@@ -3865,11 +3868,20 @@ function confirmModelSelection() {
       _anl$('anl-narrative-drill-view').hidden = true;
     }
 
-    function _anlShowError(message) {
-      _anl$('anl-error').hidden = false;
+    function _anlShowError(message, isInfo) {
+      const el = _anl$('anl-error');
+      el.hidden = false;
+      el.dataset.info = isInfo ? '1' : '';
+      // isInfo = true  → blueprint not loaded yet (not a real failure — use neutral tone)
+      // isInfo = false → actual analysis error (red)
+      el.style.background    = isInfo ? '#EBF4FB' : '';
+      el.style.borderColor   = isInfo ? '#A8CDE8' : '';
+      el.style.color         = isInfo ? '#1A3A52' : '';
+      const strong = el.querySelector('strong');
+      if (strong) strong.textContent = isInfo ? 'Blueprint not loaded.' : 'Analysis failed.';
       _anl$('anl-error-msg').textContent = message || 'Unknown error';
       _anl$('anl-progress-wrap').style.display = 'none';
-      _anl$('anl-hdr-status').innerHTML = 'Analysis failed';
+      _anl$('anl-hdr-status').innerHTML = isInfo ? 'Ready' : 'Analysis failed';
     }
 
     function _anlOnProgress(stage, pct) {
@@ -4043,9 +4055,9 @@ function confirmModelSelection() {
       if (_anlAbortCtrl) { _anlAbortCtrl.abort(); _anlAbortCtrl = null; }
       _anlReset(); // hides banner, resets all state
 
-      const blobUrl = sessionStorage.getItem('meridian.blueprintBlobUrl');
+      const blobUrl = localStorage.getItem('meridian.blueprintBlobUrl');
       if (!blobUrl) {
-        _anlShowError('No blueprint found. Go back and fetch a blueprint first.');
+        _anlShowError('No blueprint loaded. Please re-fetch your blueprint first.', true);
         return;
       }
 
