@@ -125,8 +125,8 @@ Respond with raw JSON only — no markdown fences, no commentary.`;
 async function runHaikuBulk(client, extractions, sendEvent) {
   sendEvent({ type: 'haiku-progress', modulesDone: 0, modulesTotal: extractions.length, moduleName: 'Scanning all modules…', skipped: false });
 
+  // No guardTokens: bulk prompt is ~35K tokens, well under 180K limit
   const messages = [{ role: 'user', content: buildHaikuBulkPrompt(extractions) }];
-  await guardTokens(client, HAIKU_MODEL, messages);
   const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 2048, messages });
 
   const parsed = parseJsonStrict(resp.content?.[0]?.text);
@@ -374,11 +374,10 @@ export default async function handler(req, res) {
     }
 
     // Stage 4a: Sonnet synthesis — health score, verdict, dimensions (ANLZ-01)
+    // No guardTokens: synthesis prompt is ~5K tokens, well under 180K limit
     sendEvent({ type: 'progress', stage: 'scoring', pct: 70 });
     const { userContent: synthUser, system: synthSystem } = buildSonnetSynthesisPrompt(extractions, allSuggestions);
-    const synthMessages = [{ role: 'user', content: synthUser }];
-    await guardTokens(client, SONNET_MODEL, synthMessages, synthSystem);
-    const synthRaw = await client.messages.create({ model: SONNET_MODEL, max_tokens: 1024, messages: synthMessages, system: synthSystem });
+    const synthRaw = await client.messages.create({ model: SONNET_MODEL, max_tokens: 1024, messages: [{ role: 'user', content: synthUser }], system: synthSystem });
     const synth = normalizeSynthesis(parseJsonStrict(synthRaw.content?.[0]?.text));
 
     sendEvent({
@@ -389,7 +388,9 @@ export default async function handler(req, res) {
       dimensions: synth.dimensions,
     });
 
-    // Stage 4b: Sonnet narrative — cross-module data flow (ANLZ-04)
+    // Stage 4b: Haiku narrative — cross-module data flow (ANLZ-04)
+    // Haiku ~300 tps vs Sonnet ~50 tps: 1500 tokens takes ~5s not ~30s
+    // No guardTokens: narrative prompt is ~1.5K tokens, well under 180K limit
     sendEvent({ type: 'progress', stage: 'narrative', pct: 85 });
 
     if (Date.now() - startMs > TOTAL_BUDGET_MS) {
@@ -400,9 +401,7 @@ export default async function handler(req, res) {
 
     const deps = detectDependencies(extractions);
     const { userContent: narrUser, system: narrSystem } = buildSonnetNarrativePrompt(extractions, deps);
-    const narrMessages = [{ role: 'user', content: narrUser }];
-    await guardTokens(client, SONNET_MODEL, narrMessages, narrSystem);
-    const narrResp = await client.messages.create({ model: SONNET_MODEL, max_tokens: 3000, messages: narrMessages, system: narrSystem });
+    const narrResp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: narrUser }], system: narrSystem });
     const narrRaw = parseJsonStrict(narrResp.content?.[0]?.text) || { story: '', modules: [] };
 
     sendEvent({
