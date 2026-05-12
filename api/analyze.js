@@ -231,10 +231,24 @@ export function detectDependencies(extractions) {
 }
 
 function buildSonnetNarrativePrompt(extractions, deps) {
+  // Cap to top 30 most-connected modules to keep output within max_tokens budget.
+  // For large models (e.g. 214 modules) a full response would exceed 8K tokens.
+  const MAX_NARR_MODULES = 30;
+  const ranked = extractions
+    .map(m => {
+      const d = deps[m.moduleId] || { receivesFrom: [], sendsTo: [] };
+      return { m, connections: d.receivesFrom.length + d.sendsTo.length };
+    })
+    .sort((a, b) => b.connections - a.connections)
+    .slice(0, MAX_NARR_MODULES)
+    .map(x => x.m);
+
   const userContent = `Generate a cross-module data-flow narrative for this Anaplan model.
 
+Showing the ${ranked.length} most-connected modules (out of ${extractions.length} total).
+
 Modules and dependencies:
-${extractions.map(m => {
+${ranked.map(m => {
   const d = deps[m.moduleId] || { receivesFrom: [], sendsTo: [] };
   return `${m.moduleName} (id:${m.moduleId}) — receives-from: [${d.receivesFrom.join(', ')}] — sends-to: [${d.sendsTo.join(', ')}]`;
 }).join('\n')}
@@ -356,7 +370,7 @@ export default async function handler(req, res) {
     const { userContent: narrUser, system: narrSystem } = buildSonnetNarrativePrompt(extractions, deps);
     const narrMessages = [{ role: 'user', content: narrUser }];
     await guardTokens(client, SONNET_MODEL, narrMessages, narrSystem);
-    const narrResp = await client.messages.create({ model: SONNET_MODEL, max_tokens: 4096, messages: narrMessages, system: narrSystem });
+    const narrResp = await client.messages.create({ model: SONNET_MODEL, max_tokens: 8192, messages: narrMessages, system: narrSystem });
     const narrRaw = parseJsonStrict(narrResp.content?.[0]?.text) || { story: '', modules: [] };
 
     sendEvent({

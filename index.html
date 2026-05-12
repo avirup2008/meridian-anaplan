@@ -3995,14 +3995,16 @@ function confirmModelSelection() {
     }
 
     function _anlOnNarrative(n) {
-      _anlState.modules = Array.isArray(n.modules) ? n.modules : [];
+      _anlState.modules = Array.isArray(n.modules)
+        ? n.modules.filter(m => m && typeof m === 'object')
+        : [];
       _anl$('anl-story-text').textContent = n.story || '';
       const nodes = _anl$('anl-module-nodes');
       nodes.innerHTML = '';
       for (const m of _anlState.modules) {
         const chip = document.createElement('span');
         chip.className = 'anl-module-node';
-        chip.textContent = m.name || m.id;
+        chip.textContent = m.name || m.id || '(unnamed)';
         chip.onclick = () => _anlDrillIn(m.id);
         nodes.appendChild(chip);
       }
@@ -4087,16 +4089,20 @@ function confirmModelSelection() {
             if (!payload) continue;
             let evt;
             try { evt = JSON.parse(payload); } catch { continue; }
-            switch (evt.type) {
-              case 'progress': _anlOnProgress(evt.stage, evt.pct); break;
-              case 'extraction-done': _anlOnExtractionDone(evt.moduleCount, evt.totalLineItems); break;
-              case 'haiku-progress': _anlOnHaikuProgress(evt.modulesDone, evt.modulesTotal, evt.moduleName, evt.skipped); break;
-              case 'suggestions': _anlOnSuggestions(evt); break;
-              case 'partial-analysis': _anlOnPartial(evt.reason, evt.modulesAnalysed, evt.modulesSkipped); break;
-              case 'score': _anlOnScore(evt); break;
-              case 'narrative': _anlOnNarrative(evt); break;
-              case 'complete': _anlOnComplete(evt); break;
-              case 'error': _anlShowError(evt.message); break;
+            try {
+              switch (evt.type) {
+                case 'progress': _anlOnProgress(evt.stage, evt.pct); break;
+                case 'extraction-done': _anlOnExtractionDone(evt.moduleCount, evt.totalLineItems); break;
+                case 'haiku-progress': _anlOnHaikuProgress(evt.modulesDone, evt.modulesTotal, evt.moduleName, evt.skipped); break;
+                case 'suggestions': _anlOnSuggestions(evt); break;
+                case 'partial-analysis': _anlOnPartial(evt.reason, evt.modulesAnalysed, evt.modulesSkipped); break;
+                case 'score': _anlOnScore(evt); break;
+                case 'narrative': _anlOnNarrative(evt); break;
+                case 'complete': _anlOnComplete(evt); break;
+                case 'error': _anlShowError(evt.message); break;
+              }
+            } catch (handlerErr) {
+              console.error('[meridian] handler crash for', evt.type, handlerErr);
             }
           }
         }
