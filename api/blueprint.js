@@ -111,6 +111,10 @@ export default async function handler(req, res) {
       { headers: { 'Authorization': `AnaplanAuthToken ${token}` } }
     );
 
+    if (!modRes.ok) {
+      sendEvent({ type: 'error', message: `Failed to list modules: HTTP ${modRes.status}` });
+      return;
+    }
     const modData = await modRes.json();
     const modules = modData.modules || [];
 
