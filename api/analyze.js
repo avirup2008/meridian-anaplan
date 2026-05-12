@@ -5,13 +5,13 @@ import { createHash } from 'crypto';
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SONNET_MODEL = 'claude-sonnet-4-6';
 const TOTAL_BUDGET_MS = 52_000;    // guard before Vercel 60s hard kill
-const MAX_HAIKU_ISSUES = 25;       // must fit inside 2048 max_tokens (~70 tokens/issue)
+const MAX_HAIKU_ISSUES = 25;       // soft cap; at ~100 tokens/issue fits in 4096 max_tokens
 const FORMULA_MAX_CHARS = 120;     // truncate long formulas in bulk prompt
 const FORMULA_MAX_PER_MODULE = 5;  // max formula lines shown per module
 
 // Caching
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const CACHE_PREFIX = 'analysis-cache-v2/'; // bumped to invalidate stale 0-suggestion cache entries
+const CACHE_PREFIX = 'analysis-cache-v3/'; // bumped to invalidate stale 0-suggestion v2 cache entries
 
 function blueprintHash(blueprint) {
   return createHash('sha256')
@@ -117,7 +117,9 @@ async function runHaikuBulk(client, extractions, sendEvent) {
 
   // No guardTokens: bulk prompt is ~35K tokens, well under 180K limit
   const messages = [{ role: 'user', content: buildHaikuBulkPrompt(extractions) }];
-  const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 2048, messages });
+  // 4096 gives headroom: 25 issues × ~100 tokens each (JSON formatting) = ~2500 tokens
+  // 2048 was too tight — JSON truncation caused parseJsonStrict to return null → 0 suggestions
+  const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 4096, messages });
 
   const parsed = parseJsonStrict(resp.content?.[0]?.text);
   if (!parsed || !Array.isArray(parsed)) {

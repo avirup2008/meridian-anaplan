@@ -579,9 +579,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 #s-analysis .anl-progress-label { display:flex; justify-content:space-between; font-size:12px; font-family:'IBM Plex Mono',monospace; color:var(--text2,#555); margin-bottom:8px; }
 #s-analysis .anl-progress-detail { font-size:11px; color:var(--text4,#888); margin-top:6px; min-height:14px; }
 #s-analysis .anl-error { background:#FCEBEA; border:1px solid #E8B4B0; border-radius:8px; padding:14px 18px; margin-bottom:18px; color:#7A1F1F; display:flex; gap:12px; align-items:center; }
+#s-analysis .anl-error[hidden] { display:none; } /* override display:flex so [hidden] attr works */
 #s-analysis .anl-error .btn { margin-left:auto; background:#B82E2E; color:#fff; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; }
 #s-analysis .anl-warning { background:#FBF1DA; border:1px solid #E0CB94; border-radius:8px; padding:12px 18px; margin-bottom:18px; color:#7A5A1F; font-size:13px; }
 #s-analysis .anl-score-card { background:#fff; border:1px solid #E5DFD0; border-radius:10px; padding:22px 26px; display:flex; gap:28px; align-items:flex-start; margin-bottom:24px; }
+#s-analysis .anl-score-card[hidden] { display:none; } /* override display:flex so [hidden] attr works */
 #s-analysis .anl-score-main { flex:1; }
 #s-analysis .anl-score-main .mii-num { font-size:64px; font-weight:700; letter-spacing:-.04em; margin:8px 0 6px; }
 #s-analysis .anl-score-main .mii-num span { font-size:20px; color:var(--text4,#888); font-weight:400; }
