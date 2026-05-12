@@ -4,7 +4,7 @@ const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SONNET_MODEL = 'claude-sonnet-4-6';
 const TOKEN_LIMIT = 180_000;
 const TOTAL_BUDGET_MS = 52_000;    // guard before Vercel 60s hard kill
-const MAX_HAIKU_ISSUES = 40;       // max issues Haiku returns across entire model
+const MAX_HAIKU_ISSUES = 300;      // soft cap — all modules covered, up to 3 each
 const FORMULA_MAX_CHARS = 120;     // truncate long formulas in bulk prompt
 const FORMULA_MAX_PER_MODULE = 5;  // max formula lines shown per module
 
@@ -64,19 +64,21 @@ function buildHaikuBulkPrompt(extractions) {
 
   return `You are an expert Anaplan model reviewer.
 
-Analyze this Anaplan model and identify the most impactful issues across all modules.
+Analyze every module in this Anaplan model and return all notable issues.
 
 ${moduleLines}
 
-Return a JSON array of up to ${MAX_HAIKU_ISSUES} issues prioritised by impact.
-Each issue: { "moduleId", "moduleName", "domain", "triage", "title", "reasoning", "action" }
+Rules:
+- Cover EVERY module. Up to 3 issues per module. Skip a module only if it is genuinely clean.
+- Total issues capped at ${MAX_HAIKU_ISSUES}.
+- Prioritise "Fix Now" issues first, then "Consider", then "Monitor".
+
+Each issue: { "moduleId", "moduleName", "domain", "triage", "title", "action" }
 domain: "Structural" | "Formula" | "Best Practice" | "Naming"
 triage: "Fix Now" | "Consider" | "Monitor"
-title: < 60 chars
-reasoning: 1-2 sentences explaining why this matters
-action: concrete step the builder should take
+title: < 60 chars — describe the specific problem
+action: one concrete step the builder should take (≤ 20 words)
 
-Focus only on notable issues — skip modules that look clean.
 Respond with raw JSON only — no markdown fences, no commentary.`;
 }
 
@@ -85,7 +87,7 @@ async function runHaikuBulk(client, extractions, sendEvent) {
 
   const messages = [{ role: 'user', content: buildHaikuBulkPrompt(extractions) }];
   await guardTokens(client, HAIKU_MODEL, messages);
-  const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 2048, messages });
+  const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 8192, messages });
 
   const parsed = parseJsonStrict(resp.content?.[0]?.text);
   if (!parsed || !Array.isArray(parsed)) {
