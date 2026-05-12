@@ -11,7 +11,7 @@ const FORMULA_MAX_PER_MODULE = 5;  // max formula lines shown per module
 
 // Caching
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const CACHE_PREFIX = 'analysis-cache-v3/'; // bumped to invalidate stale 0-suggestion v2 cache entries
+const CACHE_PREFIX = 'analysis-cache-v4/'; // bumped to invalidate stale blank-narrative v3 cache entries
 
 function blueprintHash(blueprint) {
   return createHash('sha256')
@@ -395,7 +395,9 @@ export default async function handler(req, res) {
 
     const deps = detectDependencies(extractions);
     const { userContent: narrUser, system: narrSystem } = buildSonnetNarrativePrompt(extractions, deps);
-    const narrResp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: narrUser }], system: narrSystem });
+    // 3000 gives headroom: story ~300 tokens + 20 modules × ~75 tokens = ~1800 tokens
+    // 1500 was too tight — JSON truncation caused parseJsonStrict to return null → blank narrative
+    const narrResp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 3000, messages: [{ role: 'user', content: narrUser }], system: narrSystem });
     const narrRaw = parseJsonStrict(narrResp.content?.[0]?.text) || { story: '', modules: [] };
 
     sendEvent({
