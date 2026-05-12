@@ -1,4 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { put, list } from '@vercel/blob';
+import { createHash } from 'crypto';
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SONNET_MODEL = 'claude-sonnet-4-6';
@@ -7,6 +9,43 @@ const TOTAL_BUDGET_MS = 52_000;    // guard before Vercel 60s hard kill
 const MAX_HAIKU_ISSUES = 300;      // soft cap — all modules covered, up to 3 each
 const FORMULA_MAX_CHARS = 120;     // truncate long formulas in bulk prompt
 const FORMULA_MAX_PER_MODULE = 5;  // max formula lines shown per module
+
+// Caching
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const CACHE_PREFIX = 'analysis-cache/';
+
+function blueprintHash(blueprint) {
+  return createHash('sha256')
+    .update(JSON.stringify(blueprint))
+    .digest('hex')
+    .slice(0, 24);
+}
+
+async function getCachedEvents(hash) {
+  try {
+    const { blobs } = await list({ prefix: `${CACHE_PREFIX}${hash}` });
+    if (!blobs.length) return null;
+    const blob = blobs[0];
+    if (Date.now() - new Date(blob.uploadedAt).getTime() > CACHE_TTL_MS) return null;
+    const resp = await fetch(blob.url);
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch {
+    return null;
+  }
+}
+
+async function setCachedEvents(hash, events) {
+  try {
+    await put(
+      `${CACHE_PREFIX}${hash}.json`,
+      JSON.stringify(events),
+      { access: 'public', addRandomSuffix: false }
+    );
+  } catch (e) {
+    console.error('Cache write failed (non-fatal):', e.message);
+  }
+}
 
 // ANLZ-03: Extraction pre-pass — strips banned fields, reduces appliesTo to dimensions[]
 export function extractionPrePass(blueprint) {
@@ -47,7 +86,7 @@ export function parseJsonStrict(text) {
   try { return JSON.parse(cleaned); } catch { return null; }
 }
 
-// ANLZ-02: Single bulk Haiku call — all modules in one compact prompt
+// ANLZ-02: Single bulk Haiku call — all modules in one compact prompt, full reasoning
 function buildHaikuBulkPrompt(extractions) {
   const moduleLines = extractions.map(m => {
     const calc = m.lineItems.filter(li => li.formula);
@@ -73,10 +112,11 @@ Rules:
 - Total issues capped at ${MAX_HAIKU_ISSUES}.
 - Prioritise "Fix Now" issues first, then "Consider", then "Monitor".
 
-Each issue: { "moduleId", "moduleName", "domain", "triage", "title", "action" }
+Each issue: { "moduleId", "moduleName", "domain", "triage", "title", "reasoning", "action" }
 domain: "Structural" | "Formula" | "Best Practice" | "Naming"
 triage: "Fix Now" | "Consider" | "Monitor"
 title: < 60 chars — describe the specific problem
+reasoning: 1 sentence explaining why this matters in Anaplan
 action: one concrete step the builder should take (≤ 20 words)
 
 Respond with raw JSON only — no markdown fences, no commentary.`;
@@ -195,11 +235,9 @@ export function normalizeSynthesis(raw) {
 // ANLZ-04: Build cross-module dependency graph from formula text matching
 export function detectDependencies(extractions) {
   const deps = {};
-
   for (const mod of extractions) {
     if (!deps[mod.moduleId]) deps[mod.moduleId] = { receivesFrom: new Set(), sendsTo: new Set() };
   }
-
   for (const mod of extractions) {
     for (const li of mod.lineItems) {
       if (!li.formula) continue;
@@ -213,7 +251,6 @@ export function detectDependencies(extractions) {
       }
     }
   }
-
   const result = {};
   for (const [id, val] of Object.entries(deps)) {
     result[id] = {
@@ -225,7 +262,6 @@ export function detectDependencies(extractions) {
 }
 
 function buildSonnetNarrativePrompt(extractions, deps) {
-  // Cap to top 30 most-connected modules so output fits within max_tokens budget.
   const MAX_NARR_MODULES = 30;
   const ranked = extractions
     .map(m => {
@@ -263,36 +299,28 @@ Respond with raw JSON only — no markdown fences.`;
 }
 
 export default async function handler(req, res) {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { blobUrl } = req.body;
-  if (!blobUrl) {
-    return res.status(400).json({ error: 'Missing blobUrl' });
-  }
+  if (!blobUrl) return res.status(400).json({ error: 'Missing blobUrl' });
+  if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
-  }
-
-  // CRITICAL: SSE headers BEFORE first await
+  // SSE headers BEFORE first await
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
+  // Event log collects every event so we can cache and replay
+  const eventLog = [];
   function sendEvent(obj) {
+    eventLog.push(obj);
     res.write(`data: ${JSON.stringify(obj)}\n\n`);
     if (typeof res.flush === 'function') res.flush();
   }
@@ -301,7 +329,7 @@ export default async function handler(req, res) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   try {
-    // Stage 1: Fetch blueprint from Vercel Blob
+    // Stage 1: Fetch blueprint
     sendEvent({ type: 'progress', stage: 'fetching', pct: 5 });
     const bpRes = await fetch(blobUrl);
     if (!bpRes.ok) throw new Error(`Blob fetch failed: ${bpRes.status}`);
@@ -309,6 +337,19 @@ export default async function handler(req, res) {
 
     if (!blueprint.modules || !Array.isArray(blueprint.modules)) {
       throw new Error('Blueprint Blob is missing modules array');
+    }
+
+    // Stage 1b: Check cache before doing any AI work
+    const hash = blueprintHash(blueprint);
+    const cached = await getCachedEvents(hash);
+    if (cached) {
+      // Replay stored events — free, instant
+      res.write(`data: ${JSON.stringify({ type: 'cache-hit' })}\n\n`);
+      for (const evt of cached) {
+        res.write(`data: ${JSON.stringify(evt)}\n\n`);
+      }
+      if (typeof res.flush === 'function') res.flush();
+      return;
     }
 
     // Stage 2: Extraction pre-pass (ANLZ-03)
@@ -320,14 +361,15 @@ export default async function handler(req, res) {
       totalLineItems: extractions.reduce((s, m) => s + m.lineItemCount, 0),
     });
 
-    // Stage 3: Single Haiku bulk call — all modules in one prompt (ANLZ-02)
+    // Stage 3: Single Haiku bulk call — all modules, full reasoning (ANLZ-02)
     sendEvent({ type: 'progress', stage: 'suggestions', pct: 25 });
     const allSuggestions = await runHaikuBulk(client, extractions, sendEvent);
 
-    // Budget guard before Sonnet calls
+    // Budget guard before Sonnet
     if (Date.now() - startMs > TOTAL_BUDGET_MS) {
       sendEvent({ type: 'partial-analysis', reason: 'Total budget reached before synthesis', modulesAnalysed: extractions.length, modulesSkipped: 0 });
       sendEvent({ type: 'complete', healthScore: null, totalSuggestions: allSuggestions.length, analysisId: blueprint.modelId });
+      await setCachedEvents(hash, eventLog);
       return;
     }
 
@@ -352,6 +394,7 @@ export default async function handler(req, res) {
 
     if (Date.now() - startMs > TOTAL_BUDGET_MS) {
       sendEvent({ type: 'complete', healthScore: synth.healthScore, totalSuggestions: allSuggestions.length, analysisId: blueprint.modelId });
+      await setCachedEvents(hash, eventLog);
       return;
     }
 
@@ -369,6 +412,9 @@ export default async function handler(req, res) {
     });
 
     sendEvent({ type: 'complete', healthScore: synth.healthScore, totalSuggestions: allSuggestions.length, analysisId: blueprint.modelId });
+
+    // Store result in cache for future requests
+    await setCachedEvents(hash, eventLog);
 
   } catch (err) {
     console.error('Analyze error:', err.message);
