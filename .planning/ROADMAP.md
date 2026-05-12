@@ -68,7 +68,10 @@
   3. Server performs an extraction pre-pass on the blueprint before any Claude call — raw blueprint JSON never reaches a Claude prompt; token count stays below 180K (verified via `countTokens()` pre-flight)
   4. User can read a cross-module data flow story and click any module node or inline module name to drill into a per-module note (purpose, receives-from, sends-to, risks) with a breadcrumb back to the story
   5. Analysis completes within the 60s `maxDuration` configured in Phase 1 — no timeout errors on a typical model
-**Plans**: TBD
+**Plans**: 3 plans
+  - [x] 04-01-PLAN.md — api/analyze.js SSE pipeline (extraction, Haiku, Sonnet) + vercel.json maxDuration (Wave 1)
+  - [x] 04-02-PLAN.md — index.html s-analysis screen + runAnalysis() SSE consumer + drill-in (Wave 2)
+  - [ ] 04-03-PLAN.md — Live end-to-end sign-off against COPS Demo (Wave 3, manual)
 **UI hint**: yes
 
 ### Phase 5: Export, Share & UI
@@ -94,7 +97,7 @@
 | 1. Infrastructure | 2/2 | Complete | 2026-05-10 |
 | 2. Connection | 0/3 | Planned | - |
 | 3. Blueprint | 3/3 | Complete    | 2026-05-11 |
-| 4. Analysis | 0/? | Not started | - |
+| 4. Analysis | 0/3 | Planned | - |
 | 5. Export, Share & UI | 0/? | Not started | - |
 
 ---
