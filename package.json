@@ -5,7 +5,8 @@
   "type": "module",
   "main": "index.html",
   "scripts": {
-    "install-deps": "npm install"
+    "install-deps": "npm install",
+    "test": "node --test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.95.1",

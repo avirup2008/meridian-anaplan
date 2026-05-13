@@ -637,6 +637,24 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 #s-analysis .dash-tab-badge { background:#175AA6; color:#fff; font-size:10px; padding:1px 7px; border-radius:9px; min-width:18px; text-align:center; }
 #s-analysis .dash-panel { display:none; padding:22px 2px 60px; }
 #s-analysis .dash-panel.active { display:block; }
+#s-analysis .intel-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-bottom:16px; }
+#s-analysis .intel-card { background:#fff; border:1px solid #E5DFD0; border-radius:8px; padding:16px 18px; min-width:0; }
+#s-analysis .intel-card.wide { grid-column:1 / -1; }
+#s-analysis .intel-card h3 { font-size:13px; font-weight:600; color:var(--text); margin:0 0 10px; }
+#s-analysis .intel-summary { font-size:13.5px; line-height:1.58; color:var(--text); margin-bottom:14px; }
+#s-analysis .intel-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:16px; }
+#s-analysis .intel-kpi { background:var(--accent-pale); border:1px solid #E5DFD0; border-radius:7px; padding:10px 12px; }
+#s-analysis .intel-kpi-val { font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:700; color:var(--text); }
+#s-analysis .intel-kpi-lbl { font-size:10px; color:var(--text2); text-transform:uppercase; letter-spacing:.4px; margin-top:3px; }
+#s-analysis .intel-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+#s-analysis .intel-list li { font-size:12.5px; line-height:1.45; color:var(--text); border-top:1px solid #F1EBDD; padding-top:8px; }
+#s-analysis .intel-list li:first-child { border-top:0; padding-top:0; }
+#s-analysis .intel-meta { display:block; color:var(--text2); font-size:11px; margin-top:2px; }
+#s-analysis .intel-pill { display:inline-block; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.4px; color:#175AA6; background:#E6EEF7; border-radius:3px; padding:2px 6px; margin-right:6px; }
+@media (max-width: 760px) {
+  #s-analysis .intel-grid,
+  #s-analysis .intel-kpis { grid-template-columns:1fr; }
+}
 
 /* ════ Phase 5: Filter pills ════ */
 #s-analysis .filter-bar { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; padding:14px 16px; background:var(--accent-pale); border:1px solid #E5DFD0; border-radius:8px; }
@@ -890,6 +908,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 
     <div class="dash-tab-bar" id="dash-tab-bar" hidden>
       <button class="dash-tab on" data-tab="verdict" onclick="switchTab('verdict')">Verdict</button>
+      <button class="dash-tab" data-tab="intelligence" onclick="switchTab('intelligence')">Intelligence <span class="dash-tab-badge" id="dash-badge-intelligence">0</span></button>
       <button class="dash-tab" data-tab="suggestions" onclick="switchTab('suggestions')">Suggestions <span class="dash-tab-badge" id="dash-badge-suggestions">0</span></button>
       <button class="dash-tab" data-tab="notes" onclick="switchTab('notes')">Notes</button>
       <button class="dash-tab" data-tab="export" onclick="switchTab('export')">Export</button>
@@ -910,6 +929,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
           <div class="anl-dim" data-key="dataHygiene"><label>Data Hygiene</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
           <div class="anl-dim" data-key="governance"><label>Governance</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
         </div>
+      </div>
+    </div>
+
+    <div class="dash-panel" id="dash-panel-intelligence">
+      <div id="dash-intelligence-body">
+        <div class="notes-empty">Model intelligence will appear after deterministic analysis completes.</div>
       </div>
     </div>
 
@@ -1403,6 +1428,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 
     <h3 class="anl-section-h" id="shr-sugg-heading" hidden>Improvement Suggestions <span class="anl-count" id="shr-sugg-count">0</span></h3>
     <div id="shr-suggestions-list"></div>
+
+    <h3 class="anl-section-h" id="shr-intel-heading" hidden>Model Intelligence</h3>
+    <div id="shr-intel-body"></div>
 
     <h3 class="anl-section-h" id="shr-notes-heading" hidden>Model Overview</h3>
     <div id="shr-notes-body"></div>
@@ -4003,7 +4031,7 @@ function confirmModelSelection() {
     // ════ Phase 5: Dashboard tab + filter state ════
     let activeTab = 'verdict';
     let suggFilter = { triage: 'All', domain: 'All' };
-    let noteScrollPos = { verdict: 0, suggestions: 0, notes: 0, export: 0 };
+    let noteScrollPos = { verdict: 0, intelligence: 0, suggestions: 0, notes: 0, export: 0 };
     let suggData = []; // flat array of all suggestions across domains for filtering
     let narrativeStory = ''; // populated by _anlOnNarrative
 
@@ -4017,6 +4045,7 @@ function confirmModelSelection() {
         suggestionCount: 0,
         modules: [],     // narrative modules
         score: null,
+        intelligence: null,
         partial: null,
         modelName: (_sess && _sess.modelName) || '',
         workspaceName: (_sess && _sess.workspaceName) || '',
@@ -4039,7 +4068,7 @@ function confirmModelSelection() {
       narrativeStory = '';
       suggFilter = { triage: 'All', domain: 'All' };
       activeTab = 'verdict';
-      noteScrollPos = { verdict: 0, suggestions: 0, notes: 0, export: 0 };
+      noteScrollPos = { verdict: 0, intelligence: 0, suggestions: 0, notes: 0, export: 0 };
       // Reset pill UI to "All" selected
       document.querySelectorAll('#s-analysis .pill').forEach(p => {
         p.classList.toggle('on', p.getAttribute('data-val') === 'All');
@@ -4057,6 +4086,10 @@ function confirmModelSelection() {
       if (suggList) suggList.innerHTML = '';
       const badge = document.getElementById('dash-badge-suggestions');
       if (badge) badge.textContent = '0';
+      const intelBadge = document.getElementById('dash-badge-intelligence');
+      if (intelBadge) intelBadge.textContent = '0';
+      const intelBody = document.getElementById('dash-intelligence-body');
+      if (intelBody) intelBody.innerHTML = '<div class="notes-empty">Model intelligence will appear after deterministic analysis completes.</div>';
       renderNotesStory();
       // Disable Export buttons at start of each analysis; _anlOnComplete re-enables them
       const _pdfBtn = document.getElementById('pdf-download-btn');
@@ -4236,6 +4269,67 @@ function confirmModelSelection() {
       panel.innerHTML = '<div class="notes-story">' + _anlEsc(narrativeStory) + '</div>';
     }
 
+    function renderIntelList(items, renderItem, emptyText) {
+      if (!Array.isArray(items) || items.length === 0) {
+        return '<div class="notes-empty">' + _anlEsc(emptyText || 'No items detected.') + '</div>';
+      }
+      return '<ul class="intel-list">' + items.map(renderItem).join('') + '</ul>';
+    }
+
+    function renderIntelligencePanel() {
+      const panel = document.getElementById('dash-intelligence-body');
+      if (!panel) return;
+      const intel = _anlState && _anlState.intelligence;
+      if (!intel) {
+        panel.innerHTML = '<div class="notes-empty">Model intelligence will appear after deterministic analysis completes.</div>';
+        return;
+      }
+      const architecture = intel.architecture || {};
+      const layerCounts = architecture.layerCounts || {};
+      const archIssues = Array.isArray(architecture.issues) ? architecture.issues : [];
+      const blast = Array.isArray(intel.blastRadius) ? intel.blastRadius : [];
+      const plan = Array.isArray(intel.remediationPlan) ? intel.remediationPlan : [];
+      const regression = Array.isArray(intel.regressionChecklist) ? intel.regressionChecklist : [];
+      const findings = Array.isArray(intel.prioritizedFindings) ? intel.prioritizedFindings : [];
+      const graph = intel.graph || {};
+      const edgeCount = Array.isArray(graph.edges) ? graph.edges.length : 0;
+      const moduleCount = Array.isArray(graph.nodes) ? graph.nodes.length : 0;
+      const issueCount = archIssues.length;
+      const impactCount = findings.length;
+
+      const badge = document.getElementById('dash-badge-intelligence');
+      if (badge) badge.textContent = String(issueCount + impactCount);
+
+      panel.innerHTML = ''
+        + '<div class="intel-summary">' + _anlEsc(intel.evidenceSummary || 'Deterministic intelligence is available for this model.') + '</div>'
+        + '<div class="intel-kpis">'
+        + '<div class="intel-kpi"><div class="intel-kpi-val">' + moduleCount + '</div><div class="intel-kpi-lbl">Modules mapped</div></div>'
+        + '<div class="intel-kpi"><div class="intel-kpi-val">' + edgeCount + '</div><div class="intel-kpi-lbl">Dependencies</div></div>'
+        + '<div class="intel-kpi"><div class="intel-kpi-val">' + issueCount + '</div><div class="intel-kpi-lbl">Architecture issues</div></div>'
+        + '<div class="intel-kpi"><div class="intel-kpi-val">' + regression.length + '</div><div class="intel-kpi-lbl">Regression checks</div></div>'
+        + '</div>'
+        + '<div class="intel-grid">'
+        + '<div class="intel-card"><h3>Architecture Classification</h3>'
+        + renderIntelList(Object.entries(layerCounts), ([layer, count]) => '<li><span class="intel-pill">' + _anlEsc(layer) + '</span>' + count + ' module' + (count === 1 ? '' : 's') + '</li>', 'No layer classification available.')
+        + '</div>'
+        + '<div class="intel-card"><h3>Architecture Issues</h3>'
+        + renderIntelList(archIssues.slice(0, 6), issue => '<li><strong>' + _anlEsc(issue.moduleName || '') + '</strong>: ' + _anlEsc(issue.title || '') + '<span class="intel-meta">' + _anlEsc(issue.evidence || '') + '</span></li>', 'No architecture issues detected.')
+        + '</div>'
+        + '<div class="intel-card"><h3>Highest Blast Radius</h3>'
+        + renderIntelList(blast.slice(0, 6), b => '<li><strong>' + _anlEsc(b.moduleName || '') + '</strong><span class="intel-meta">' + (b.downstreamModuleCount || 0) + ' downstream modules · ' + (b.downstreamOutputCount || 0) + ' output modules</span></li>', 'No downstream dependency risk detected.')
+        + '</div>'
+        + '<div class="intel-card"><h3>Top Impact Findings</h3>'
+        + renderIntelList(findings.slice(0, 6), f => '<li><strong>' + _anlEsc(f.moduleName || '') + '</strong>: ' + _anlEsc(f.title || f.text || '') + '<span class="intel-meta">Impact ' + (f.impactScore || 0) + ' · ' + _anlEsc(f.triage || '') + '</span></li>', 'No prioritized findings detected.')
+        + '</div>'
+        + '<div class="intel-card wide"><h3>Remediation Sequence</h3>'
+        + renderIntelList(plan, step => '<li><strong>' + _anlEsc(step.stage || '') + '</strong><span class="intel-meta">' + _anlEsc(step.rationale || '') + '</span></li>', 'No remediation sequence needed.')
+        + '</div>'
+        + '<div class="intel-card wide"><h3>Regression Checklist</h3>'
+        + renderIntelList(regression.slice(0, 10), item => '<li><strong>' + _anlEsc(item.moduleName || '') + '</strong><span class="intel-meta">' + _anlEsc(item.reason || '') + '</span></li>', 'No regression checklist generated.')
+        + '</div>'
+        + '</div>';
+    }
+
     // ════ Phase 5: PDF Export ════
     function _pdfSafeName(s) {
       return String(s || 'analysis').replace(/[^A-Za-z0-9_-]+/g, '-').slice(0, 60) || 'analysis';
@@ -4281,6 +4375,30 @@ function confirmModelSelection() {
             if (s.reasoning) content.push({ text: s.reasoning, style: 'suggBody' });
             if (s.action) content.push({ text: 'Action: ' + s.action, style: 'suggAction', margin: [0, 2, 0, 8] });
           }
+        }
+      }
+
+      if (options.verdict && _anlState && _anlState.intelligence) {
+        const intel = _anlState.intelligence;
+        content.push({ text: 'Model Intelligence', style: 'section' });
+        if (intel.evidenceSummary) content.push({ text: intel.evidenceSummary, margin: [0, 0, 0, 8] });
+        if (intel.architecture && Array.isArray(intel.architecture.issues) && intel.architecture.issues.length) {
+          content.push({ text: 'Architecture Issues', style: 'domainHd' });
+          intel.architecture.issues.slice(0, 8).forEach(issue => {
+            content.push({ text: (issue.moduleName || '') + ': ' + (issue.title || ''), style: 'suggBody' });
+          });
+        }
+        if (Array.isArray(intel.blastRadius) && intel.blastRadius.length) {
+          content.push({ text: 'Highest Blast Radius', style: 'domainHd' });
+          intel.blastRadius.slice(0, 5).forEach(b => {
+            content.push({ text: (b.moduleName || '') + ' → ' + (b.downstreamModuleCount || 0) + ' downstream modules', style: 'suggBody' });
+          });
+        }
+        if (Array.isArray(intel.remediationPlan) && intel.remediationPlan.length) {
+          content.push({ text: 'Remediation Sequence', style: 'domainHd' });
+          intel.remediationPlan.forEach(step => {
+            content.push({ text: (step.stage || '') + ': ' + (step.rationale || ''), style: 'suggBody' });
+          });
         }
       }
 
@@ -4339,6 +4457,7 @@ function confirmModelSelection() {
           createdAt: new Date().toISOString(),
           score: _anlState.score,
           suggestions: suggData,
+          intelligence: _anlState.intelligence || null,
           narrative: { story: narrativeStory || '' }
         };
         const resp = await fetch('/api/share', {
@@ -4397,6 +4516,11 @@ function confirmModelSelection() {
       _anl$('anl-score-card').hidden = false;
     }
 
+    function _anlOnIntelligence(evt) {
+      _anlState.intelligence = evt && evt.intelligence ? evt.intelligence : null;
+      renderIntelligencePanel();
+    }
+
     function _anlEsc(s) {
       return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
@@ -4416,8 +4540,10 @@ function confirmModelSelection() {
       // Phase 5: ensure tab bar is visible
       const tabBar = document.getElementById('dash-tab-bar');
       if (tabBar && tabBar.hasAttribute('hidden')) tabBar.removeAttribute('hidden');
-      // Phase 5: auto-switch to suggestions tab if there are suggestions
-      if (_anlState.suggestionCount > 0 && activeTab === 'verdict') {
+      // Surface deterministic intelligence before the lower-level suggestion register.
+      if (_anlState.intelligence && activeTab === 'verdict') {
+        switchTab('intelligence');
+      } else if (_anlState.suggestionCount > 0 && activeTab === 'verdict') {
         switchTab('suggestions');
       }
       // Phase 5: Enable Export buttons now that analysis state is complete
@@ -4560,6 +4686,7 @@ function confirmModelSelection() {
                 case 'extraction-done': _anlOnExtractionDone(evt.moduleCount, evt.totalLineItems); break;
                 case 'haiku-progress': _anlOnHaikuProgress(evt.modulesDone, evt.modulesTotal, evt.moduleName, evt.skipped); break;
                 case 'suggestions': _anlOnSuggestions(evt); break;
+                case 'intelligence': _anlOnIntelligence(evt); break;
                 case 'partial-analysis': _anlOnPartial(evt.reason, evt.modulesAnalysed, evt.modulesSkipped); break;
                 case 'score': _anlOnScore(evt); break;
                 case 'narrative': _anlOnNarrative(evt); break;
@@ -4719,6 +4846,27 @@ function confirmModelSelection() {
             + '</div>';
           })
           .join('');
+      }
+
+      // Model intelligence
+      if (p.intelligence) {
+        const intel = p.intelligence;
+        const body = document.getElementById('shr-intel-body');
+        document.getElementById('shr-intel-heading').hidden = false;
+        const archIssues = intel.architecture && Array.isArray(intel.architecture.issues) ? intel.architecture.issues.slice(0, 6) : [];
+        const blast = Array.isArray(intel.blastRadius) ? intel.blastRadius.slice(0, 5) : [];
+        const plan = Array.isArray(intel.remediationPlan) ? intel.remediationPlan : [];
+        body.innerHTML = ''
+          + (intel.evidenceSummary ? '<div class="notes-story">' + _anlEsc(intel.evidenceSummary) + '</div>' : '')
+          + (archIssues.length ? '<div class="domain-group"><div class="domain-hd"><span class="domain-name">Architecture Issues</span><span class="domain-count">' + archIssues.length + '</span></div><div class="domain-body">'
+            + archIssues.map(issue => '<div class="sugg-card"><div class="sugg-title">' + _anlEsc(issue.moduleName || '') + ': ' + _anlEsc(issue.title || '') + '</div><div class="sugg-reasoning">' + _anlEsc(issue.evidence || '') + '</div></div>').join('')
+            + '</div></div>' : '')
+          + (blast.length ? '<div class="domain-group"><div class="domain-hd"><span class="domain-name">Highest Blast Radius</span><span class="domain-count">' + blast.length + '</span></div><div class="domain-body">'
+            + blast.map(b => '<div class="sugg-card"><div class="sugg-title">' + _anlEsc(b.moduleName || '') + '</div><div class="sugg-reasoning">' + (b.downstreamModuleCount || 0) + ' downstream modules · ' + (b.downstreamOutputCount || 0) + ' output modules</div></div>').join('')
+            + '</div></div>' : '')
+          + (plan.length ? '<div class="domain-group"><div class="domain-hd"><span class="domain-name">Remediation Sequence</span><span class="domain-count">' + plan.length + '</span></div><div class="domain-body">'
+            + plan.map(step => '<div class="sugg-card"><div class="sugg-title">' + _anlEsc(step.stage || '') + '</div><div class="sugg-reasoning">' + _anlEsc(step.rationale || '') + '</div></div>').join('')
+            + '</div></div>' : '');
       }
 
       // Notes

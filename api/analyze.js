@@ -2,6 +2,11 @@ import Anthropic from '@anthropic-ai/sdk';
 import { put, list, del } from '@vercel/blob';
 import { createHash } from 'crypto';
 import { applyCors } from './_cors.js';
+import {
+  buildAnalysisSnapshot,
+  normalizeBlueprint,
+  validateAiSuggestions,
+} from './analysis-core.js';
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SONNET_MODEL = 'claude-sonnet-4-6';
@@ -10,6 +15,7 @@ const MAX_HAIKU_ISSUES = 60;       // raised: 228-module models need more headro
 const FORMULA_MAX_CHARS = 200;     // allow longer formula previews
 const FORMULA_MAX_PER_MODULE = 12; // show more calculated line items per module
 const INPUT_MAX_PER_MODULE = 25;   // max input line items shown per module
+const MAX_INPUT_TOKENS = 180_000;
 
 // Caching
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -71,32 +77,41 @@ async function setCachedEvents(hash, events) {
 
 // ANLZ-03: Extraction pre-pass — strips banned fields, reduces appliesTo to dimensions[]
 export function extractionPrePass(blueprint) {
-  const results = [];
-  for (const mod of blueprint.modules) {
-    if (mod.fetchError || mod.lineItemCount === 0) continue;
-    results.push({
-      moduleId: mod.id,
-      moduleName: mod.name,
-      lineItemCount: mod.lineItemCount,
-      lineItems: mod.lineItems.map(li => ({
-        name: li.name,
-        formula: li.formula || null,
-        format: li.format || null,
-        summary: li.summary || null,
-        dimensions: Array.isArray(li.appliesTo)
-          ? li.appliesTo.map(d => (typeof d === 'string' ? d : (d?.name || ''))).filter(Boolean)
-          : [],
-        notes: li.notes || null,
-      })),
-    });
-  }
-  return results;
+  return normalizeBlueprint(blueprint).modules.map(mod => ({
+    moduleId: mod.id,
+    moduleName: mod.name,
+    lineItemCount: mod.lineItemCount,
+    lineItems: mod.lineItems.map(li => ({
+      id: li.id,
+      name: li.name,
+      formula: li.formula || null,
+      format: li.formatType || null,
+      summary: li.summaryMethod || null,
+      dimensions: li.dimensions,
+      notes: li.notes || null,
+      formulaLength: li.formulaLength,
+      ifDepth: li.ifDepth,
+    })),
+  }));
 }
 
 // Strip markdown fences and JSON.parse; return null on failure
 export function parseJsonStrict(text) {
   const cleaned = String(text || '').replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```\s*$/, '').trim();
   try { return JSON.parse(cleaned); } catch { return null; }
+}
+
+export async function guardTokens(client, model, messages, system = null) {
+  const result = await client.messages.countTokens({
+    model,
+    messages,
+    ...(system ? { system } : {}),
+  });
+  const inputTokens = result?.input_tokens ?? 0;
+  if (inputTokens > MAX_INPUT_TOKENS) {
+    throw new Error(`Prompt exceeds token budget: ${inputTokens} > ${MAX_INPUT_TOKENS}`);
+  }
+  return inputTokens;
 }
 
 // ANLZ-02: Single bulk Haiku call — all modules in one compact prompt, full reasoning
@@ -299,11 +314,12 @@ builderNote: ≤ 40 words — cross-module impact, specific Anaplan steps, or do
 Respond with a raw JSON array only — no markdown fences, no commentary.`;
 }
 
-async function runHaikuBulk(client, extractions, sendEvent) {
+async function runHaikuBulk(client, extractions, normalized, sendEvent) {
   sendEvent({ type: 'haiku-progress', modulesDone: 0, modulesTotal: extractions.length, moduleName: 'Scanning all modules…', skipped: false });
 
   // Prompt is larger now (full line-item visibility) but still well under 200K limit
   const messages = [{ role: 'user', content: buildHaikuBulkPrompt(extractions) }];
+  await guardTokens(client, HAIKU_MODEL, messages);
   // 12288: 60 issues × ~180 tokens each (longer reasoning/action/builderNote) = ~10800 tokens
   const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 12288, messages });
 
@@ -321,6 +337,8 @@ async function runHaikuBulk(client, extractions, sendEvent) {
     .map(item => ({
       moduleId:    item.moduleId   || 'unknown',
       moduleName:  item.moduleName || 'Unknown Module',
+      lineItemName: item.lineItemName || item.lineItem || '',
+      evidence:    item.evidence || '',
       domain:      item.domain,
       triage:      item.triage,
       text:        item.title || item.text || '',
@@ -328,10 +346,14 @@ async function runHaikuBulk(client, extractions, sendEvent) {
       action:      item.action || '',
       builderNote: item.builderNote || '',
     }));
+  const { valid: validatedIssues, rejected } = validateAiSuggestions(normalized, allIssues);
+  if (rejected.length) {
+    sendEvent({ type: 'validation', rejectedSuggestions: rejected.length });
+  }
 
   // Group by module and emit one suggestions event per affected module
   const byModule = new Map();
-  for (const issue of allIssues) {
+  for (const issue of validatedIssues) {
     if (!byModule.has(issue.moduleId)) {
       byModule.set(issue.moduleId, { moduleId: issue.moduleId, moduleName: issue.moduleName, items: [] });
     }
@@ -342,10 +364,10 @@ async function runHaikuBulk(client, extractions, sendEvent) {
   }
 
   sendEvent({ type: 'haiku-progress', modulesDone: extractions.length, modulesTotal: extractions.length, moduleName: 'Done', skipped: false });
-  return allIssues;
+  return validatedIssues;
 }
 
-function buildSonnetSynthesisPrompt(extractions, allSuggestions) {
+function buildSonnetSynthesisPrompt(extractions, allSuggestions, deterministicScore) {
   const fixNow = allSuggestions.filter(s => s.triage === 'Fix Now');
   const consider = allSuggestions.filter(s => s.triage === 'Consider');
   const monitor = allSuggestions.filter(s => s.triage === 'Monitor');
@@ -365,6 +387,11 @@ ${extractions.map(m =>
 ISSUES FOUND
 ${fixNow.length} Fix Now | ${consider.length} Consider | ${monitor.length} Monitor
 
+DETERMINISTIC BASE SCORE
+Health score: ${deterministicScore.healthScore}/100
+Verdict: ${deterministicScore.verdict}
+Dimension scores: ${Object.entries(deterministicScore.dimensions).map(([k, v]) => `${k}=${v}`).join(', ')}
+
 By domain:
 ${['Structural', 'Formula', 'Best Practice', 'Naming'].map(d => {
   const fn = allSuggestions.filter(s => s.domain === d && s.triage === 'Fix Now').length;
@@ -376,7 +403,7 @@ Fix Now issues:
 ${fixNow.map(s => `  [${s.domain}] ${s.moduleName}: ${s.text}`).join('\n') || '  None'}
 
 SCORING GUIDANCE (Anaplan Way)
-healthScore: start at 100, then deduct:
+Use the deterministic base score as the anchor. You may adjust by at most 10 points if the suggestion set shows severity the deterministic scan cannot infer. healthScore starts at 100, then deduct:
   - Each Structural "Fix Now": -8 (SUM+LOOKUP, daisy-chain, DISCO violation are architecture-critical)
   - Each Formula "Fix Now": -6 (missing zero-guard, SUM of percentage, hardcoded SELECT)
   - Each Best Practice "Fix Now": -5
@@ -416,15 +443,18 @@ Respond with raw JSON only — no markdown fences.`;
 }
 
 // ANLZ-01: Defensive normalisation of Sonnet synthesis response
-export function normalizeSynthesis(raw) {
+export function normalizeSynthesis(raw, fallbackScore = null) {
   const r = raw || {};
-  const score = typeof r.healthScore === 'number' ? Math.max(0, Math.min(100, r.healthScore)) : 50;
-  let verdict = r.verdict;
-  if (!['Good', 'Needs Work', 'Critical'].includes(verdict)) {
-    verdict = score >= 85 ? 'Good' : score >= 60 ? 'Needs Work' : 'Critical';
-  }
+  const baseScore = typeof fallbackScore?.healthScore === 'number' ? fallbackScore.healthScore : 50;
+  const rawScore = typeof r.healthScore === 'number' ? Math.max(0, Math.min(100, r.healthScore)) : baseScore;
+  const score = Math.max(0, Math.min(100, Math.max(baseScore - 10, Math.min(baseScore + 10, rawScore))));
+  const verdict = score >= 85 ? 'Good' : score >= 60 ? 'Needs Work' : 'Critical';
   const d = r.dimensions || {};
-  const dim = k => (typeof d[k] === 'number' ? Math.max(0, Math.min(100, d[k])) : 50);
+  const dim = k => {
+    const base = typeof fallbackScore?.dimensions?.[k] === 'number' ? fallbackScore.dimensions[k] : 50;
+    const rawDim = typeof d[k] === 'number' ? Math.max(0, Math.min(100, d[k])) : base;
+    return Math.max(0, Math.min(100, Math.max(base - 10, Math.min(base + 10, rawDim))));
+  };
   return {
     healthScore: score,
     verdict,
@@ -575,11 +605,32 @@ export default async function handler(req, res) {
 
     // Stage 2: Extraction pre-pass (ANLZ-03)
     sendEvent({ type: 'progress', stage: 'extracting', pct: 15 });
+    const snapshot = buildAnalysisSnapshot(blueprint);
     const extractions = extractionPrePass(blueprint);
     sendEvent({
       type: 'extraction-done',
       moduleCount: extractions.length,
       totalLineItems: extractions.reduce((s, m) => s + m.lineItemCount, 0),
+    });
+    const deterministicByModule = new Map();
+    for (const item of snapshot.deterministicSuggestions) {
+      if (!deterministicByModule.has(item.moduleId)) {
+        deterministicByModule.set(item.moduleId, { moduleId: item.moduleId, moduleName: item.moduleName, items: [] });
+      }
+      deterministicByModule.get(item.moduleId).items.push(item);
+    }
+    for (const group of deterministicByModule.values()) {
+      sendEvent({ type: 'suggestions', moduleId: group.moduleId, moduleName: group.moduleName, items: group.items });
+    }
+    sendEvent({
+      type: 'deterministic-scan',
+      findingCount: snapshot.findings.length,
+      healthScore: snapshot.score.healthScore,
+      verdict: snapshot.score.verdict,
+    });
+    sendEvent({
+      type: 'intelligence',
+      intelligence: snapshot.intelligence,
     });
 
     // Stage 3: Single Haiku bulk call — all modules, full reasoning (ANLZ-02)
@@ -590,7 +641,8 @@ export default async function handler(req, res) {
       const pct = Math.min(65, 25 + Math.round((elapsed / 28_000) * 40));
       sendEvent({ type: 'progress', stage: 'suggestions', pct });
     }, 2000);
-    const allSuggestions = await runHaikuBulk(client, extractions, sendEvent);
+    const aiSuggestions = await runHaikuBulk(client, extractions, snapshot.normalized, sendEvent);
+    const allSuggestions = [...snapshot.deterministicSuggestions, ...aiSuggestions];
     clearInterval(tickInterval); tickInterval = null;
 
     // Budget guard before Sonnet
@@ -610,10 +662,12 @@ export default async function handler(req, res) {
       const pct = Math.min(82, 70 + Math.round((elapsed / 14_000) * 12));
       sendEvent({ type: 'progress', stage: 'scoring', pct });
     }, 2000);
-    const { userContent: synthUser, system: synthSystem } = buildSonnetSynthesisPrompt(extractions, allSuggestions);
-    const synthRaw = await client.messages.create({ model: SONNET_MODEL, max_tokens: 1024, messages: [{ role: 'user', content: synthUser }], system: synthSystem });
+    const { userContent: synthUser, system: synthSystem } = buildSonnetSynthesisPrompt(extractions, allSuggestions, snapshot.score);
+    const synthMessages = [{ role: 'user', content: synthUser }];
+    await guardTokens(client, SONNET_MODEL, synthMessages, synthSystem);
+    const synthRaw = await client.messages.create({ model: SONNET_MODEL, max_tokens: 1024, messages: synthMessages, system: synthSystem });
     clearInterval(tickInterval); tickInterval = null;
-    const synth = normalizeSynthesis(parseJsonStrict(synthRaw.content?.[0]?.text));
+    const synth = normalizeSynthesis(parseJsonStrict(synthRaw.content?.[0]?.text), snapshot.score);
 
     sendEvent({
       type: 'score',
