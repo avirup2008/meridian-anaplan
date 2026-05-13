@@ -1,14 +1,16 @@
 import { put } from '@vercel/blob';
 import { applyCors } from './_cors.js';
 
-// BPRT-01: parallel batch size
-const BATCH_SIZE = 20;
+// BPRT-01: parallel batch size — raised from 20 to 60 so 228-module models
+// complete in ~4 rounds instead of 12, fitting within the 60s Vercel budget.
+const BATCH_SIZE = 60;
 // BPRT-04: default backoff if Retry-After missing
 const RETRY_AFTER_DEFAULT_MS = 10_000;
 // BPRT-04: per-module retry cap
 const MAX_RETRIES = 2;
-// Per-request timeout: abort a hung connection so it never blocks an entire batch
-const REQUEST_TIMEOUT_MS = 18_000;
+// Per-request timeout: lowered from 18s to 10s so a hung module fails fast
+// and doesn't stall the whole batch — 60 × 10s worst-case = 60s, fits budget.
+const REQUEST_TIMEOUT_MS = 10_000;
 
 async function fetchWithRetry(url, token) {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
