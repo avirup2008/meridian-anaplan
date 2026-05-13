@@ -930,6 +930,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
           <div class="anl-dim" data-key="governance"><label>Governance</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
         </div>
       </div>
+      <div class="intel-card wide" id="anl-intel-preview" hidden></div>
     </div>
 
     <div class="dash-panel" id="dash-panel-intelligence">
@@ -4090,6 +4091,11 @@ function confirmModelSelection() {
       if (intelBadge) intelBadge.textContent = '0';
       const intelBody = document.getElementById('dash-intelligence-body');
       if (intelBody) intelBody.innerHTML = '<div class="notes-empty">Model intelligence will appear after deterministic analysis completes.</div>';
+      const intelPreview = document.getElementById('anl-intel-preview');
+      if (intelPreview) {
+        intelPreview.hidden = true;
+        intelPreview.innerHTML = '';
+      }
       renderNotesStory();
       // Disable Export buttons at start of each analysis; _anlOnComplete re-enables them
       const _pdfBtn = document.getElementById('pdf-download-btn');
@@ -4330,6 +4336,32 @@ function confirmModelSelection() {
         + '</div>';
     }
 
+    function renderIntelligencePreview() {
+      const preview = document.getElementById('anl-intel-preview');
+      const intel = _anlState && _anlState.intelligence;
+      if (!preview) return;
+      if (!intel) {
+        preview.hidden = true;
+        preview.innerHTML = '';
+        return;
+      }
+      const archIssues = intel.architecture && Array.isArray(intel.architecture.issues) ? intel.architecture.issues : [];
+      const blast = Array.isArray(intel.blastRadius) ? intel.blastRadius : [];
+      const topBlast = blast[0];
+      preview.hidden = false;
+      preview.innerHTML = ''
+        + '<h3>Deterministic Model Intelligence</h3>'
+        + '<div class="intel-summary">' + _anlEsc(intel.evidenceSummary || 'Deterministic model intelligence is ready.') + '</div>'
+        + '<div class="intel-kpis">'
+        + '<div class="intel-kpi"><div class="intel-kpi-val">' + archIssues.length + '</div><div class="intel-kpi-lbl">Architecture issues</div></div>'
+        + '<div class="intel-kpi"><div class="intel-kpi-val">' + (topBlast ? topBlast.downstreamModuleCount || 0 : 0) + '</div><div class="intel-kpi-lbl">Top blast radius</div></div>'
+        + '<div class="intel-kpi"><div class="intel-kpi-val">' + (Array.isArray(intel.regressionChecklist) ? intel.regressionChecklist.length : 0) + '</div><div class="intel-kpi-lbl">Regression checks</div></div>'
+        + '<div class="intel-kpi"><div class="intel-kpi-val">' + (Array.isArray(intel.remediationPlan) ? intel.remediationPlan.length : 0) + '</div><div class="intel-kpi-lbl">Fix stages</div></div>'
+        + '</div>'
+        + (archIssues.length ? '<ul class="intel-list"><li><strong>' + _anlEsc(archIssues[0].moduleName || '') + '</strong>: ' + _anlEsc(archIssues[0].title || '') + '<span class="intel-meta">' + _anlEsc(archIssues[0].evidence || '') + '</span></li></ul>' : '')
+        + '<button class="btn btn-ghost btn-sm" type="button" onclick="switchTab(\\'intelligence\\')">Open full intelligence view</button>';
+    }
+
     // ════ Phase 5: PDF Export ════
     function _pdfSafeName(s) {
       return String(s || 'analysis').replace(/[^A-Za-z0-9_-]+/g, '-').slice(0, 60) || 'analysis';
@@ -4519,6 +4551,7 @@ function confirmModelSelection() {
     function _anlOnIntelligence(evt) {
       _anlState.intelligence = evt && evt.intelligence ? evt.intelligence : null;
       renderIntelligencePanel();
+      renderIntelligencePreview();
     }
 
     function _anlEsc(s) {

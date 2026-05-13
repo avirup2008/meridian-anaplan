@@ -19,7 +19,7 @@ const MAX_INPUT_TOKENS = 180_000;
 
 // Caching
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const CACHE_PREFIX = 'analysis-cache-v14/'; // v14: full line-item visibility (format, summary, dims, all names)
+const CACHE_PREFIX = 'analysis-cache-v15/'; // v15: deterministic graph and architecture intelligence included in cached event logs
 
 // CA-04: Hash only stable fields — exclude fetchedAt which changes on every blueprint fetch
 export function blueprintHash(blueprint) {

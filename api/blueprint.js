@@ -1,22 +1,35 @@
 import { put } from '@vercel/blob';
 import { applyCors } from './_cors.js';
 
-// BPRT-01: parallel batch size
-const BATCH_SIZE = 20;
+// BPRT-01: bounded worker pool. Do not wait for a whole batch before streaming progress.
+const FETCH_CONCURRENCY = 8;
 // BPRT-04: default backoff if Retry-After missing
-const RETRY_AFTER_DEFAULT_MS = 10_000;
+const RETRY_AFTER_DEFAULT_MS = 2_000;
+const RETRY_AFTER_MAX_MS = 3_000;
 // BPRT-04: per-module retry cap
-const MAX_RETRIES = 2;
+const MAX_RETRIES = 1;
 // Per-request timeout: abort a hung connection so it never blocks an entire batch
-const REQUEST_TIMEOUT_MS = 10_000;
+const REQUEST_TIMEOUT_MS = 7_000;
+// Leave enough time to write the partial/full blueprint to Blob before Vercel's 60s cap.
+const TOTAL_BUDGET_MS = 52_000;
 
-async function fetchWithRetry(url, token) {
+function elapsedSince(startMs) {
+  return Date.now() - startMs;
+}
+
+function budgetRemaining(startMs) {
+  return TOTAL_BUDGET_MS - elapsedSince(startMs);
+}
+
+async function fetchWithRetry(url, token, startMs) {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (budgetRemaining(startMs) < 5_000) return null;
     let r;
     try {
+      const timeoutMs = Math.min(REQUEST_TIMEOUT_MS, Math.max(1_000, budgetRemaining(startMs) - 3_000));
       r = await fetch(url, {
         headers: { 'Authorization': `AnaplanAuthToken ${token}` },
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (err) {
       // Timeout (AbortError/TimeoutError) — don't retry, just skip this module
@@ -27,15 +40,16 @@ async function fetchWithRetry(url, token) {
     }
     if (r.status !== 429) return r;
     const ra = parseInt(r.headers.get('Retry-After') ?? '10', 10);
-    const waitMs = (isNaN(ra) || ra <= 0) ? RETRY_AFTER_DEFAULT_MS : ra * 1000;
+    const waitMs = Math.min((isNaN(ra) || ra <= 0) ? RETRY_AFTER_DEFAULT_MS : ra * 1000, RETRY_AFTER_MAX_MS);
+    if (budgetRemaining(startMs) < waitMs + 5_000) return null;
     await new Promise((res) => setTimeout(res, waitMs));
   }
   return null; // exhausted retries
 }
 
-async function fetchModuleLineItems(mod, wsId, modelId, token) {
+async function fetchModuleLineItems(mod, wsId, modelId, token, startMs) {
   const url = `https://api.anaplan.com/2/0/workspaces/${wsId}/models/${modelId}/modules/${mod.id}/lineItems?includeAll=true`;
-  const r = await fetchWithRetry(url, token);
+  const r = await fetchWithRetry(url, token, startMs);
   if (!r || !r.ok) {
     return {
       id: mod.id,
@@ -48,6 +62,80 @@ async function fetchModuleLineItems(mod, wsId, modelId, token) {
   const data = await r.json();
   const items = data.items || [];
   return { id: mod.id, name: mod.name, lineItemCount: items.length, lineItems: items };
+}
+
+async function fetchModulesWithProgress({ modules, wsId, modelId, token, startMs, sendEvent }) {
+  const assembled = [];
+  let totalLineItems = 0;
+  let partialLoad = false;
+  let modulesDone = 0;
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < modules.length) {
+      if (budgetRemaining(startMs) < 6_000) return;
+      const mod = modules[cursor++];
+      let result;
+      try {
+        result = await fetchModuleLineItems(mod, wsId, modelId, token, startMs);
+      } catch (err) {
+        result = {
+          id: mod.id,
+          name: mod.name,
+          lineItemCount: 0,
+          lineItems: [],
+          fetchError: err?.message || 'Unknown fetch error',
+        };
+      }
+
+      if (result.fetchError) {
+        partialLoad = true;
+        sendEvent({ type: 'partial-warning', moduleName: result.name, reason: result.fetchError });
+      } else {
+        totalLineItems += result.lineItemCount;
+      }
+
+      assembled.push(result);
+      modulesDone++;
+      sendEvent({
+        type: 'progress',
+        modulesDone,
+        modulesTotal: modules.length,
+        moduleName: result.name,
+        lineItemCount: result.lineItemCount,
+      });
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(FETCH_CONCURRENCY, modules.length) }, () => worker());
+  await Promise.all(workers);
+
+  if (assembled.length < modules.length) {
+    partialLoad = true;
+    const fetchedIds = new Set(assembled.map(m => m.id));
+    for (const mod of modules) {
+      if (fetchedIds.has(mod.id)) continue;
+      const result = {
+        id: mod.id,
+        name: mod.name,
+        lineItemCount: 0,
+        lineItems: [],
+        fetchError: 'Serverless time budget reached — skipped',
+      };
+      assembled.push(result);
+      modulesDone++;
+      sendEvent({ type: 'partial-warning', moduleName: result.name, reason: result.fetchError });
+      sendEvent({
+        type: 'progress',
+        modulesDone,
+        modulesTotal: modules.length,
+        moduleName: result.name,
+        lineItemCount: 0,
+      });
+    }
+  }
+
+  return { assembled, totalLineItems, partialLoad };
 }
 
 export default async function handler(req, res) {
@@ -83,6 +171,8 @@ export default async function handler(req, res) {
     if (typeof res.flush === 'function') res.flush();
   }
 
+  const startMs = Date.now();
+
   try {
     // Step 1: Authenticate fresh — never reuse a stored token for blueprint
     const encoded = Buffer.from(`${username}:${password}`).toString('base64');
@@ -116,52 +206,15 @@ export default async function handler(req, res) {
 
     sendEvent({ type: 'progress', modulesDone: 0, modulesTotal: modules.length, moduleName: '', lineItemCount: 0 });
 
-    // Step 3: Fetch line items in batches (BPRT-01)
-    const assembled = [];
-    let totalLineItems = 0;
-    let partialLoad = false;
-    let modulesDone = 0;
-
-    for (let i = 0; i < modules.length; i += BATCH_SIZE) {
-      const batch = modules.slice(i, i + BATCH_SIZE);
-      const settled = await Promise.allSettled(
-        batch.map((mod) => fetchModuleLineItems(mod, wsId, modelId, token))
-      );
-
-      for (let j = 0; j < settled.length; j++) {
-        const mod = batch[j];
-        const s = settled[j];
-        let result;
-        if (s.status === 'fulfilled') {
-          result = s.value;
-        } else {
-          result = {
-            id: mod.id,
-            name: mod.name,
-            lineItemCount: 0,
-            lineItems: [],
-            fetchError: s.reason?.message || 'Unknown fetch error',
-          };
-        }
-
-        if (result.fetchError) {
-          partialLoad = true;
-          sendEvent({ type: 'partial-warning', moduleName: result.name, reason: result.fetchError });
-        } else {
-          totalLineItems += result.lineItemCount;
-        }
-
-        assembled.push(result);
-        modulesDone++;
-        sendEvent({
-          type: 'progress',
-          modulesDone,
-          modulesTotal: modules.length,
-          moduleName: result.name,
-          lineItemCount: result.lineItemCount,
-        });
-      }
-    }
+    // Step 3: Fetch line items with a bounded worker pool and stream every completed module.
+    const { assembled, totalLineItems, partialLoad } = await fetchModulesWithProgress({
+      modules,
+      wsId,
+      modelId,
+      token,
+      startMs,
+      sendEvent,
+    });
 
     // Build BlueprintDocument
     const blueprint = {
