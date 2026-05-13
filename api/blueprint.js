@@ -123,7 +123,7 @@ export default async function handler(req, res) {
     let modulesDone = 0;
 
     for (let i = 0; i < modules.length; i += BATCH_SIZE) {
-const batch = modules.slice(i, i + BATCH_SIZE);
+      const batch = modules.slice(i, i + BATCH_SIZE);
       const settled = await Promise.allSettled(
         batch.map((mod) => fetchModuleLineItems(mod, wsId, modelId, token))
       );

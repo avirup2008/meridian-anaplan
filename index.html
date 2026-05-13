@@ -4646,7 +4646,7 @@ function confirmModelSelection() {
             if (val != null) {
               el.querySelector('.anl-dim-val').textContent = String(val);
               const bar = el.querySelector('.prog-f');
-              if (bar) bar.style.width = Math.max(0, Math.min(100, Number(val) * 10)) + '%';
+              if (bar) bar.style.width = Math.max(0, Math.min(100, Number(val))) + '%';
             }
           });
         }
