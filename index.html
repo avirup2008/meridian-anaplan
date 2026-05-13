@@ -3964,9 +3964,8 @@ function confirmModelSelection() {
             }));
             currentEl.textContent = 'Complete.';
             fillEl.style.width = '100%';
-            // Auto-advance to analysis — no user action needed, it's the only next step
+            // Auto-advance to analysis — go() hook triggers runAnalysis via setTimeout
             go('s-analysis');
-            runAnalysis();
           } else if (evt.type === 'error') {
             fetchErr.style.display = 'block'; fetchErr.textContent = evt.message || 'Unknown error';
           }
@@ -4011,12 +4010,15 @@ function confirmModelSelection() {
 
     function _anlReset() {
       if (_anlNarrAbortCtrl) { _anlNarrAbortCtrl.abort(); _anlNarrAbortCtrl = null; }
+      const _sess = getSession();
       _anlState = {
         suggestionsByDomain: { 'Structural': [], 'Formula': [], 'Best Practice': [], 'Naming': [] },
         suggestionCount: 0,
         modules: [],     // narrative modules
         score: null,
         partial: null,
+        modelName: (_sess && _sess.modelName) || '',
+        workspaceName: (_sess && _sess.workspaceName) || '',
       };
       const _errEl = _anl$('anl-error');
       _errEl.hidden = true;
@@ -4588,7 +4590,7 @@ function confirmModelSelection() {
       const headerStatus = document.getElementById('shr-hdr-status');
 
       function showExpired(title, msg) {
-        if (headerStatus) headerStatus.innerHTML = '';
+        if (headerStatus) headerStatus.textContent = title;
         if (errBox) {
           document.getElementById('shr-error-title').textContent = title;
           document.getElementById('shr-error-msg').textContent = msg;

@@ -15,8 +15,8 @@ function isAllowedOrigin(origin) {
   if (ALLOWED_ORIGINS.has(origin)) return true;
   // Allow localhost for local development
   if (/^http:\/\/localhost(:\d+)?$/.test(origin)) return true;
-  // Allow Vercel preview deploy URLs for this project
-  if (/^https:\/\/meridian-anaplan[a-z0-9-]*\.vercel\.app$/.test(origin)) return true;
+  // Allow Vercel preview deploy URLs for this project (branch names may contain uppercase)
+  if (/^https:\/\/meridian-anaplan[a-zA-Z0-9-]*\.vercel\.app$/.test(origin)) return true;
   return false;
 }
 

@@ -22,14 +22,14 @@ async function handlePost(req, res) {
       return res.status(400).json({ error: 'Missing or invalid payload object' });
     }
     const serialized = JSON.stringify(payload);
-    if (serialized.length > MAX_PAYLOAD_BYTES) {
+    if (Buffer.byteLength(serialized, 'utf8') > MAX_PAYLOAD_BYTES) {
       return res.status(413).json({ error: 'Payload exceeds 1 MB limit' });
     }
     const shareId = randomUUID();
     const blob = await put(
       `${SHARE_PREFIX}${shareId}.json`,
       serialized,
-      { access: 'public', contentType: 'application/json', addRandomSuffix: false }
+      { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true }
     );
     return res.status(200).json({
       shareId,
@@ -47,7 +47,7 @@ async function handleGet(req, res) {
     if (!/^[0-9a-f-]{36}$/i.test(id)) {
       return res.status(400).json({ error: 'Invalid id format' });
     }
-    const { blobs } = await list({ prefix: `${SHARE_PREFIX}${id}`, limit: 1 });
+    const { blobs } = await list({ prefix: `${SHARE_PREFIX}${id}.json`, limit: 1 });
     if (!blobs || blobs.length === 0) {
       return res.status(404).json({ error: 'Report not found or expired' });
     }
