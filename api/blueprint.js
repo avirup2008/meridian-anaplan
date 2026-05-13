@@ -21,7 +21,9 @@ async function fetchWithRetry(url, token) {
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
     } catch (err) {
-      // Timeout or network error — treat as retryable
+      // Timeout (AbortError/TimeoutError) — don't retry, just skip this module
+      if (err.name === 'TimeoutError' || err.name === 'AbortError') return null;
+      // Other network error — retryable
       if (attempt < MAX_RETRIES) continue;
       return null;
     }
