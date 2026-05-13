@@ -5,7 +5,7 @@ import { applyCors } from './_cors.js';
 // Hobby plan cron timing variance (±59 min) so reports are reliably gone by 7d.
 const TTL_MS = 6.75 * 24 * 60 * 60 * 1000; // 583,200,000
 
-const PREFIXES = ['reports/', 'analysis-cache-v14/', 'analysis-narrative-cache-v2/'];
+const PREFIXES = ['reports/', 'blueprints/', 'analysis-cache-v14/', 'analysis-narrative-cache-v2/'];
 
 export default async function handler(req, res) {
   applyCors(req, res, 'GET, OPTIONS');

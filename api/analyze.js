@@ -544,6 +544,8 @@ export default async function handler(req, res) {
 
   const startMs = Date.now();
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  // Declared outside try so finally can always clearInterval it regardless of where error occurs
+  let tickInterval = null;
 
   try {
     // Stage 1: Fetch blueprint
@@ -582,8 +584,6 @@ export default async function handler(req, res) {
 
     // Stage 3: Single Haiku bulk call — all modules, full reasoning (ANLZ-02)
     sendEvent({ type: 'progress', stage: 'suggestions', pct: 25 });
-    // Real-time tick: creep bar 25→65% while awaiting Haiku response (~28s on large models)
-    let tickInterval = null;
     const _haikuStartMs = Date.now();
     tickInterval = setInterval(() => {
       const elapsed = Date.now() - _haikuStartMs;
@@ -631,7 +631,7 @@ export default async function handler(req, res) {
     console.error('Analyze error:', err.message);
     sendEvent({ type: 'error', message: err.message });
   } finally {
-    if (typeof tickInterval !== 'undefined' && tickInterval) clearInterval(tickInterval);
+    if (tickInterval) clearInterval(tickInterval);
     res.end();
   }
 }

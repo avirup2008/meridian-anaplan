@@ -3995,9 +3995,10 @@ function confirmModelSelection() {
     // Phase 4 — consumes /api/analyze SSE stream; renders score card, suggestions, narrative + drill-in.
     // ============================================================
 
-    let _anlState = null;   // accumulated analysis state across SSE events
-    let _anlAbortCtrl = null;  // AbortController for the current fetch
-    let _anlGen = 0;           // monotonic run ID — stale readers check this before acting
+    let _anlState = null;        // accumulated analysis state across SSE events
+    let _anlAbortCtrl = null;    // AbortController for the main analysis fetch
+    let _anlNarrAbortCtrl = null; // AbortController for the narrative fetch
+    let _anlGen = 0;             // monotonic run ID — stale readers check this before acting
 
     // ════ Phase 5: Dashboard tab + filter state ════
     let activeTab = 'verdict';
@@ -4217,7 +4218,7 @@ function confirmModelSelection() {
       if (!body || !chev) return;
       const open = body.style.display !== 'none';
       body.style.display = open ? 'none' : '';
-      chev.textContent = open ? '&#9658;' : '&#9660;';
+      chev.innerHTML = open ? '&#9658;' : '&#9660;';
     }
 
     // ════ Phase 5: Notes panel — story-text-only layout per UI-04 user decision ════
@@ -4431,8 +4432,6 @@ function confirmModelSelection() {
       }
     }
 
-    let _anlNarrAbortCtrl = null;
-
     async function runNarrative(blobUrl, myGen) {
       if (_anlNarrAbortCtrl) { _anlNarrAbortCtrl.abort(); }
       _anlNarrAbortCtrl = new AbortController();
@@ -4452,7 +4451,20 @@ function confirmModelSelection() {
         let buf = '';
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            // Flush any remaining buffered data (final chunk may lack trailing newline)
+            if (buf.trim()) {
+              const line = buf.trim();
+              if (line.startsWith('data:')) {
+                const payload = line.slice(5).trim();
+                try {
+                  const evt = JSON.parse(payload);
+                  if (evt.type === 'narrative') _anlOnNarrative(evt);
+                } catch {}
+              }
+            }
+            break;
+          }
           if (myGen !== _anlGen) { reader.cancel(); return; }
           buf += decoder.decode(value, { stream: true });
           const lines = buf.split('\n');
@@ -4516,7 +4528,21 @@ function confirmModelSelection() {
         let buf = '';
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            // Flush any remaining buffered data (final chunk may lack trailing newline)
+            if (buf.trim()) {
+              const line = buf.trim();
+              if (line.startsWith('data:')) {
+                const payload = line.slice(5).trim();
+                try {
+                  const evt = JSON.parse(payload);
+                  if (evt.type === 'complete') { _anlOnComplete(evt); runNarrative(blobUrl, myGen); }
+                  else if (evt.type === 'score') _anlOnScore(evt);
+                } catch {}
+              }
+            }
+            break;
+          }
           if (myGen !== _anlGen) { reader.cancel(); return; } // superseded
           buf += decoder.decode(value, { stream: true });
           const lines = buf.split('\n');
@@ -4554,13 +4580,15 @@ function confirmModelSelection() {
       }
     }
 
-    // Hook go('s-analysis') to trigger runAnalysis on entry
-    (function () {
+    // Single go() override handling both s-analysis and s-shared triggers
+    // (two separate overrides caused loadSharedReport to fire twice)
+    (function _installGoOverrides() {
       const _origGo = window.go;
       if (typeof _origGo !== 'function') return;
       window.go = function (screenId) {
         const r = _origGo.apply(this, arguments);
         if (screenId === 's-analysis') { setTimeout(runAnalysis, 0); }
+        if (screenId === 's-shared')   { setTimeout(loadSharedReport, 0); }
         return r;
       };
     })();
@@ -4636,8 +4664,15 @@ function confirmModelSelection() {
         const card = document.getElementById('shr-score-card');
         card.hidden = false;
         document.getElementById('shr-score-num').innerHTML = (p.score.healthScore != null ? p.score.healthScore : '--') + '<span>/100</span>';
-        document.getElementById('shr-verdict-text').textContent = p.score.verdict || '—';
+        const shrVerdict = p.score.verdict || '';
+        document.getElementById('shr-verdict-text').textContent = shrVerdict || '—';
         document.getElementById('shr-summary').textContent = p.score.summary || '';
+        const _sColors = { 'Good': '#217348', 'Needs Work': '#BF801E', 'Critical': '#B82E2E' };
+        const _sPales  = { 'Good': '#E1F0E5', 'Needs Work': '#FBF1DA', 'Critical': '#FCEBEA' };
+        const shrChip = document.getElementById('shr-verdict-chip');
+        const shrDot  = shrChip ? shrChip.querySelector('.anl-dot') : null;
+        if (shrChip) { shrChip.style.background = _sPales[shrVerdict] || '#EBE3CC'; shrChip.style.color = _sColors[shrVerdict] || '#555'; }
+        if (shrDot)  { shrDot.style.background  = _sColors[shrVerdict] || '#888'; }
         if (p.score.dimensions) {
           document.querySelectorAll('#shr-dims .anl-dim').forEach(el => {
             const key = el.getAttribute('data-key');
@@ -4700,30 +4735,14 @@ function confirmModelSelection() {
       try {
         const params = new URLSearchParams(window.location.search);
         if (params.has('id')) {
-          go('s-shared');
-          setTimeout(loadSharedReport, 0);
+          go('s-shared'); // go() override handles loadSharedReport
           return;
         }
       } catch (e) {}
       go('s-intro');
     })();
 
-    // ════ Phase 5: go() override — manual nav to s-shared must also load the report ════
-    // Without this, clicking the #n-s-shared nav button would show an empty Shared screen
-    // because loadSharedReport is otherwise only invoked from the boot-time URL router.
-    (function _phase5InstallGoOverride() {
-      if (typeof go !== 'function') return;
-      const _origGo = go;
-      // Re-declare go on window so all existing onclick="go(...)" handlers hit the wrapper
-      window.go = function(screenId) {
-        const result = _origGo.apply(this, arguments);
-        if (screenId === 's-shared') {
-          // Defer so the screen swap completes before the fetch begins
-          setTimeout(loadSharedReport, 0);
-        }
-        return result;
-      };
-    })();
+    // (s-shared go() override is now merged into _installGoOverrides above)
 
 </script>
 </body>
