@@ -8,6 +8,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.3.7/build/pdfmake.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.3.7/build/vfs_fonts.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -612,6 +614,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 #s-analysis .anl-suggestion-mod { font-size:11px; color:var(--text4,#888); margin-left:auto; }
 #s-analysis .anl-suggestion-reason { font-size:12.5px; color:#444; margin:4px 0 4px; line-height:1.5; }
 #s-analysis .anl-suggestion-action { font-size:12px; color:#175AA6; background:#F0F5FB; padding:6px 10px; border-radius:4px; }
+#s-analysis .anl-suggestion-builder { font-size:11.5px; color:#5a4e00; background:#FFFBE6; border:1px solid #EDE3A0; padding:5px 10px; border-radius:4px; margin-top:6px; line-height:1.5; }
+#s-analysis .anl-suggestion-builder::before { content:'🔧 Builder note: '; font-weight:600; }
 #s-analysis .anl-narrative { background:#fff; border:1px solid #E5DFD0; border-radius:10px; padding:22px 26px; }
 #s-analysis .anl-story { font-size:13.5px; line-height:1.65; color:#333; white-space:pre-wrap; margin-bottom:18px; }
 #s-analysis .anl-module-nodes { display:flex; flex-wrap:wrap; gap:8px; }
@@ -624,6 +628,76 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 #s-analysis .anl-drill-grid h4 { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text4,#888); margin:0 0 8px; }
 #s-analysis .anl-drill-grid ul { list-style:none; padding:0; margin:0; font-size:12.5px; }
 #s-analysis .anl-drill-grid li { padding:4px 0; color:#333; border-bottom:1px solid #F2EEDF; }
+
+/* ════ Phase 5: Dashboard tabs ════ */
+#s-analysis .dash-tab-bar { display:flex; gap:4px; border-bottom:1px solid #E5DFD0; margin:18px 0 0; padding:0 2px; }
+#s-analysis .dash-tab { background:transparent; border:0; padding:10px 16px; font-size:13px; font-weight:500; color:var(--text2); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; display:inline-flex; align-items:center; gap:6px; }
+#s-analysis .dash-tab:hover { color:var(--text); }
+#s-analysis .dash-tab.on { color:var(--text); border-bottom-color:#175AA6; }
+#s-analysis .dash-tab-badge { background:#175AA6; color:#fff; font-size:10px; padding:1px 7px; border-radius:9px; min-width:18px; text-align:center; }
+#s-analysis .dash-panel { display:none; padding:22px 2px 60px; }
+#s-analysis .dash-panel.active { display:block; }
+
+/* ════ Phase 5: Filter pills ════ */
+#s-analysis .filter-bar { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; padding:14px 16px; background:var(--accent-pale); border:1px solid #E5DFD0; border-radius:8px; }
+#s-analysis .filter-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+#s-analysis .filter-label { font-size:11px; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.5px; min-width:60px; }
+#s-analysis .pill { background:#fff; border:1px solid #E5DFD0; color:var(--text2); padding:5px 12px; border-radius:14px; font-size:12px; cursor:pointer; }
+#s-analysis .pill:hover { border-color:#175AA6; color:var(--text); }
+#s-analysis .pill.on { background:#175AA6; border-color:#175AA6; color:#fff; }
+
+/* ════ Phase 5: Collapsible domain groups ════ */
+#s-analysis .domain-group { border:1px solid #E5DFD0; border-radius:8px; margin-bottom:12px; background:#fff; }
+#s-analysis .domain-hd { display:flex; align-items:center; gap:10px; padding:12px 16px; cursor:pointer; user-select:none; }
+#s-analysis .domain-hd:hover { background:var(--accent-pale); }
+#s-analysis .domain-name { font-size:13px; font-weight:600; color:var(--text); flex:1; }
+#s-analysis .domain-count { background:var(--accent-pale); color:var(--text2); font-size:11px; padding:1px 8px; border-radius:9px; }
+#s-analysis .domain-chev { color:var(--text2); font-size:12px; width:14px; text-align:center; }
+#s-analysis .domain-body { padding:0 16px 14px; border-top:1px solid #F0EBDC; }
+#s-analysis .sugg-card { padding:14px 0; border-bottom:1px solid #F5F1E4; }
+#s-analysis .sugg-card:last-child { border-bottom:0; }
+#s-analysis .sugg-triage { display:inline-block; font-size:10px; font-weight:600; padding:2px 7px; border-radius:3px; text-transform:uppercase; letter-spacing:0.4px; margin-right:8px; }
+#s-analysis .sugg-triage.fix { background:#FCE4E4; color:#9A2424; }
+#s-analysis .sugg-triage.consider { background:#FFF3D6; color:#7A5500; }
+#s-analysis .sugg-triage.monitor { background:#E4F0FC; color:#1F5588; }
+#s-analysis .sugg-module { font-size:11px; color:var(--text2); }
+#s-analysis .sugg-title { font-size:13px; font-weight:500; color:var(--text); margin:6px 0; line-height:1.4; }
+#s-analysis .sugg-reasoning { font-size:12.5px; color:var(--text2); line-height:1.6; margin-bottom:8px; }
+#s-analysis .sugg-action { font-size:12.5px; padding:8px 12px; background:var(--accent-pale); border-left:3px solid var(--accent-bd); border-radius:0 4px 4px 0; color:var(--text); }
+#s-analysis .sugg-builder { font-size:11px; color:var(--text2); margin-top:6px; font-style:italic; }
+
+/* ════ Phase 5: Notes panel ════ */
+#s-analysis .notes-story { font-size:14px; line-height:1.72; color:var(--text); white-space:pre-wrap; padding:18px 22px; background:#fff; border:1px solid #E5DFD0; border-radius:10px; margin-bottom:18px; font-weight:300; }
+#s-analysis .notes-empty { font-size:13px; color:var(--text2); padding:24px; text-align:center; font-style:italic; }
+
+/* ════ Phase 5: Export panel (wiring in Plan 03) ════ */
+#s-analysis .export-sect { background:#fff; border:1px solid #E5DFD0; border-radius:10px; padding:20px 24px; margin-bottom:16px; }
+#s-analysis .export-sect h3 { font-size:14px; font-weight:600; margin:0 0 6px; color:var(--text); }
+#s-analysis .export-sect p.export-help { font-size:12.5px; color:var(--text2); margin:0 0 14px; line-height:1.5; }
+#s-analysis .export-options { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+#s-analysis .export-options label { font-size:13px; color:var(--text); display:flex; align-items:center; gap:8px; }
+#s-analysis .share-output { display:none; margin-top:12px; }
+#s-analysis .share-output.on { display:block; }
+#s-analysis .share-output input { width:100%; padding:8px 10px; font-size:12px; border:1px solid #E5DFD0; border-radius:6px; font-family:monospace; }
+
+/* ════ Phase 5: Shared Report screen — reuse anl-shell styling ════ */
+#s-shared .anl-section-h { font-size:14px; font-weight:600; color:var(--text); margin:24px 0 10px; }
+#s-shared .domain-group { border:1px solid #E5DFD0; border-radius:8px; margin-bottom:12px; background:#fff; }
+#s-shared .domain-hd { display:flex; align-items:center; gap:10px; padding:12px 16px; }
+#s-shared .domain-name { font-size:13px; font-weight:600; color:var(--text); flex:1; }
+#s-shared .domain-count { background:var(--accent-pale); color:var(--text2); font-size:11px; padding:1px 8px; border-radius:9px; }
+#s-shared .domain-body { padding:0 16px 14px; border-top:1px solid #F0EBDC; }
+#s-shared .sugg-card { padding:14px 0; border-bottom:1px solid #F5F1E4; }
+#s-shared .sugg-card:last-child { border-bottom:0; }
+#s-shared .sugg-triage { display:inline-block; font-size:10px; font-weight:600; padding:2px 7px; border-radius:3px; text-transform:uppercase; letter-spacing:0.4px; margin-right:8px; }
+#s-shared .sugg-triage.fix { background:#FCE4E4; color:#9A2424; }
+#s-shared .sugg-triage.consider { background:#FFF3D6; color:#7A5500; }
+#s-shared .sugg-triage.monitor { background:#E4F0FC; color:#1F5588; }
+#s-shared .sugg-module { font-size:11px; color:var(--text2); }
+#s-shared .sugg-title { font-size:13px; font-weight:500; color:var(--text); margin:6px 0; line-height:1.4; }
+#s-shared .sugg-reasoning { font-size:12.5px; color:var(--text2); line-height:1.6; margin-bottom:8px; }
+#s-shared .sugg-action { font-size:12.5px; padding:8px 12px; background:var(--accent-pale); border-left:3px solid var(--accent-bd); border-radius:0 4px 4px 0; color:var(--text); }
+#s-shared .notes-story { font-size:14px; line-height:1.72; color:var(--text); white-space:pre-wrap; padding:18px 22px; background:#fff; border:1px solid #E5DFD0; border-radius:10px; margin-bottom:18px; font-weight:300; }
 
 </style>
 </head>
@@ -799,62 +873,91 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     <h2 class="anl-title">Model Intelligence Report</h2>
     <p class="anl-sub" id="anl-sub">Analysing your model…</p>
 
-    <!-- Progress -->
     <div class="anl-progress-wrap" id="anl-progress-wrap">
       <div class="anl-progress-label"><span id="anl-stage-label">Fetching blueprint</span><span id="anl-progress-pct">0%</span></div>
       <div class="prog"><div class="prog-f" id="anl-progress-bar" style="width:0%"></div></div>
       <div class="anl-progress-detail" id="anl-progress-detail">&nbsp;</div>
     </div>
 
-    <!-- Error -->
     <div class="anl-error" id="anl-error" hidden>
       <strong>Analysis failed.</strong> <span id="anl-error-msg"></span>
       <button class="btn" onclick="go('s-fetch')">Re-fetch blueprint</button>
     </div>
 
-    <!-- Partial-load warning -->
     <div class="anl-warning" id="anl-warning" hidden>
       <strong>Partial analysis.</strong> <span id="anl-warning-msg"></span>
     </div>
 
-    <!-- Score card -->
-    <div class="anl-score-card" id="anl-score-card" hidden>
-      <div class="anl-score-main">
-        <div class="step-label">Model Health Score</div>
-        <div class="mii-num" id="anl-score-num">--<span>/100</span></div>
-        <div id="anl-verdict-chip" class="mii-band-chip"><span class="anl-dot"></span><span id="anl-verdict-text">—</span></div>
-        <p class="anl-summary" id="anl-summary"></p>
-      </div>
-      <div class="anl-dims" id="anl-dims">
-        <div class="anl-dim" data-key="architecture"><label>Architecture</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
-        <div class="anl-dim" data-key="naming"><label>Naming</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
-        <div class="anl-dim" data-key="formulas"><label>Formulas</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
-        <div class="anl-dim" data-key="dataHygiene"><label>Data Hygiene</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
-        <div class="anl-dim" data-key="governance"><label>Governance</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+    <div class="dash-tab-bar" id="dash-tab-bar" hidden>
+      <button class="dash-tab on" data-tab="verdict" onclick="switchTab('verdict')">Verdict</button>
+      <button class="dash-tab" data-tab="suggestions" onclick="switchTab('suggestions')">Suggestions <span class="dash-tab-badge" id="dash-badge-suggestions">0</span></button>
+      <button class="dash-tab" data-tab="notes" onclick="switchTab('notes')">Notes</button>
+      <button class="dash-tab" data-tab="export" onclick="switchTab('export')">Export</button>
+    </div>
+
+    <div class="dash-panel active" id="dash-panel-verdict">
+      <div class="anl-score-card" id="anl-score-card" hidden>
+        <div class="anl-score-main">
+          <div class="step-label">Model Health Score</div>
+          <div class="mii-num" id="anl-score-num">--<span>/100</span></div>
+          <div id="anl-verdict-chip" class="mii-band-chip"><span class="anl-dot"></span><span id="anl-verdict-text">—</span></div>
+          <p class="anl-summary" id="anl-summary"></p>
+        </div>
+        <div class="anl-dims" id="anl-dims">
+          <div class="anl-dim" data-key="architecture"><label>Architecture</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+          <div class="anl-dim" data-key="naming"><label>Naming</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+          <div class="anl-dim" data-key="formulas"><label>Formulas</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+          <div class="anl-dim" data-key="dataHygiene"><label>Data Hygiene</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+          <div class="anl-dim" data-key="governance"><label>Governance</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+        </div>
       </div>
     </div>
 
-    <!-- Suggestions panel -->
-    <div class="anl-suggestions" id="anl-suggestions" hidden>
-      <h3 class="anl-section-h">Improvement Suggestions <span class="anl-count" id="anl-sugg-count">0</span></h3>
-      <div class="anl-suggestion-domains" id="anl-suggestion-domains"></div>
+    <div class="dash-panel" id="dash-panel-suggestions">
+      <div class="filter-bar">
+        <div class="filter-row">
+          <span class="filter-label">Triage</span>
+          <button class="pill on" data-pill="triage" data-val="All" onclick="setSuggPill('triage','All')">All</button>
+          <button class="pill" data-pill="triage" data-val="Fix Now" onclick="setSuggPill('triage','Fix Now')">Fix Now</button>
+          <button class="pill" data-pill="triage" data-val="Consider" onclick="setSuggPill('triage','Consider')">Consider</button>
+          <button class="pill" data-pill="triage" data-val="Monitor" onclick="setSuggPill('triage','Monitor')">Monitor</button>
+        </div>
+        <div class="filter-row">
+          <span class="filter-label">Domain</span>
+          <button class="pill on" data-pill="domain" data-val="All" onclick="setSuggPill('domain','All')">All</button>
+          <button class="pill" data-pill="domain" data-val="Structural" onclick="setSuggPill('domain','Structural')">Structural</button>
+          <button class="pill" data-pill="domain" data-val="Formula" onclick="setSuggPill('domain','Formula')">Formula</button>
+          <button class="pill" data-pill="domain" data-val="Best Practice" onclick="setSuggPill('domain','Best Practice')">Best Practice</button>
+          <button class="pill" data-pill="domain" data-val="Naming" onclick="setSuggPill('domain','Naming')">Naming</button>
+        </div>
+      </div>
+      <div id="dash-suggestions-list"></div>
     </div>
 
-    <!-- Narrative + drill-in -->
-    <div class="anl-narrative" id="anl-narrative" hidden>
-      <div id="anl-narrative-story-view">
-        <h3 class="anl-section-h">Cross-Module Data Flow</h3>
-        <div class="anl-story" id="anl-story-text"></div>
-        <div class="anl-module-nodes" id="anl-module-nodes"></div>
+    <div class="dash-panel" id="dash-panel-notes">
+      <div id="dash-notes-body">
+        <div class="notes-empty">Model overview will appear after analysis completes.</div>
       </div>
-      <div id="anl-narrative-drill-view" hidden>
-        <div class="anl-breadcrumb"><a href="#" id="anl-breadcrumb-back">← Back to story</a> / <span id="anl-breadcrumb-mod"></span></div>
-        <h3 class="anl-section-h" id="anl-drill-name"></h3>
-        <p class="anl-drill-purpose" id="anl-drill-purpose"></p>
-        <div class="anl-drill-grid">
-          <div><h4>Receives from</h4><ul id="anl-drill-rx"></ul></div>
-          <div><h4>Sends to</h4><ul id="anl-drill-tx"></ul></div>
-          <div><h4>Risks</h4><ul id="anl-drill-risks"></ul></div>
+    </div>
+
+    <div class="dash-panel" id="dash-panel-export">
+      <div class="export-sect">
+        <h3>Download PDF</h3>
+        <p class="export-help">Compose a PDF report and download it locally.</p>
+        <div class="export-options">
+          <label><input type="checkbox" id="pdf-opt-verdict" checked> Verdict (score + dimensions + summary)</label>
+          <label><input type="checkbox" id="pdf-opt-suggestions" checked> Suggestions (filtered by current pills)</label>
+          <label><input type="checkbox" id="pdf-opt-notes" checked> Notes (model overview)</label>
+        </div>
+        <button class="btn" id="pdf-download-btn" onclick="exportAnalysisPDF()" disabled>Generate PDF</button>
+      </div>
+      <div class="export-sect">
+        <h3>Share read-only link</h3>
+        <p class="export-help">Creates a public link to this analysis. Recipients do not need an Anaplan account. Links expire after 7 days.</p>
+        <button class="btn" id="share-create-btn" onclick="createShareLink()" disabled>Generate shareable link</button>
+        <div class="share-output" id="share-output">
+          <input type="text" id="share-url-input" readonly>
+          <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="copyShareUrl()">Copy</button>
         </div>
       </div>
     </div>
@@ -1006,7 +1109,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
   <div class="act-bar"><div class="act-bar-inner">
     <button class="btn-act btn-act-ghost" onclick="go('s-hub')">← Report hub</button>
     <button class="btn-act btn-act-ghost" onclick="exportPDF()">📄 Export PDF</button>
-    <button class="btn-act btn-act-pri">📝 Export Word</button>
+    <button class="btn-act btn-act-pri" onclick="exportWord()">📝 Export Word</button>
   </div></div>
 </div>
 
@@ -1264,6 +1367,48 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
   </div>
 </div>
 
+<!-- ════════ S10: SHARED REPORT ════════ -->
+<div id="s-shared" class="screen">
+  <div class="hdr"><div class="hdr-inner">
+    <div class="hdr-logo"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-sp"></div>
+    <div class="hdr-status" id="shr-hdr-status"><span class="spinner"></span>Loading report…</div>
+  </div></div>
+
+  <div class="anl-shell">
+    <div class="step-label">Shared Model Intelligence Report</div>
+    <h2 class="anl-title" id="shr-title">Model Intelligence Report</h2>
+    <p class="anl-sub" id="shr-sub"></p>
+
+    <div class="anl-error" id="shr-error" hidden>
+      <strong id="shr-error-title">This report has expired.</strong>
+      <div id="shr-error-msg" style="margin-top:6px;">Shared reports are available for 7 days. Ask the sender for a fresh link.</div>
+    </div>
+
+    <div class="anl-score-card" id="shr-score-card" hidden>
+      <div class="anl-score-main">
+        <div class="step-label">Model Health Score</div>
+        <div class="mii-num" id="shr-score-num">--<span>/100</span></div>
+        <div id="shr-verdict-chip" class="mii-band-chip"><span class="anl-dot"></span><span id="shr-verdict-text">—</span></div>
+        <p class="anl-summary" id="shr-summary"></p>
+      </div>
+      <div class="anl-dims" id="shr-dims">
+        <div class="anl-dim" data-key="architecture"><label>Architecture</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+        <div class="anl-dim" data-key="naming"><label>Naming</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+        <div class="anl-dim" data-key="formulas"><label>Formulas</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+        <div class="anl-dim" data-key="dataHygiene"><label>Data Hygiene</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+        <div class="anl-dim" data-key="governance"><label>Governance</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+      </div>
+    </div>
+
+    <h3 class="anl-section-h" id="shr-sugg-heading" hidden>Improvement Suggestions <span class="anl-count" id="shr-sugg-count">0</span></h3>
+    <div id="shr-suggestions-list"></div>
+
+    <h3 class="anl-section-h" id="shr-notes-heading" hidden>Model Overview</h3>
+    <div id="shr-notes-body"></div>
+  </div>
+</div>
+
 <!-- SCREEN NAV -->
 <div class="snav">
   <button onclick="go('s-intro')" id="n-s-intro">Home</button>
@@ -1285,6 +1430,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
   <button onclick="go('s-guide')" id="n-s-guide">User Guide</button>
   <div class="snav-d"></div>
   <button onclick="go('s-settings')" id="n-s-settings">Settings</button>
+  <div class="snav-d"></div>
+  <button onclick="go('s-shared')" id="n-s-shared">Shared</button>
 </div>
 
 <script>
@@ -1299,7 +1446,8 @@ function go(id){
   if(nb)nb.classList.add('on');
   window.scrollTo(0,0);
 }
-go('s-intro');
+// NOTE: boot navigation is handled by _phase5BootRouter IIFE at the end of this script.
+// It calls go('s-shared') if ?id= is present, otherwise go('s-intro').
 
 // ═══════════════════════════════════════════════════════════════
 // GLOBAL STATE
@@ -1338,7 +1486,7 @@ function renderFileList(){
   el.innerHTML = uploadedFiles.map((f,i)=>`
     <div class="file-row">
       <span style="font-size:13px;">📋</span>
-      <span class="file-nm">${f.name}</span>
+      <span class="file-nm">${escHtml(f.name)}</span>
       <span class="file-sz">${(f.size/1024).toFixed(0)} KB</span>
       <span class="badge b-ok">✓ Valid</span>
       <button class="file-rm" onclick="removeFile(${i})">✕</button>
@@ -1458,8 +1606,9 @@ function parseCSV(csvText, filename){
   }
   if(noFormulaCount>formulaCount) inferredDisco='INP';
 
-  // Check DISCO prefix
-  const discoMatch = moduleName.match(/^(SYS|DAT|INP|CAL|REP)\./);
+  // Check DISCO prefix — M-07: expanded from 5 to all 12 valid codes per INSTRUCTIONS.md
+  // Accepts both CSV dot-notation (SYS.Name) and Anaplan Way XXX## format (DAT01 Name)
+  const discoMatch = moduleName.match(/^(SYS|DAT|CAP|TRK|PLN|PRC|MFG|FIN|SOP|KPI|IBP|SCN)(?:\.|(?:\d\d))/);
   const hasDisco = !!discoMatch;
   const discoPrefix = hasDisco ? discoMatch[1] : null;
 
@@ -1489,7 +1638,7 @@ function runRulesEngine(modules){
       violations.critical.push({
         rule:'§1.1', module:m.moduleName,
         title:`Module missing DISCO prefix — unclassified`,
-        body:`"${m.moduleName}" has no SYS/DAT/INP/CAL/REP prefix. Unclassified modules cannot be governed, sequenced in ALM revision tags, or handed over reliably. Inferred type based on content: ${m.inferredDisco}.`,
+        body:`"${m.moduleName}" has no valid DISCO prefix (SYS/DAT/CAP/TRK/PLN/PRC/MFG/FIN/SOP/KPI/IBP/SCN). Unclassified modules cannot be governed, sequenced in ALM revision tags, or handed over reliably. Inferred type based on content: ${m.inferredDisco}.`,
         resolve:`Rename to "${suggested}". Update all cross-module formula references. Estimated effort: 15–30 min per module.`,
         source:'Planual §1.1 · The Anaplan Way DISCO methodology'
       });
@@ -1844,7 +1993,7 @@ async function startAnalysis(){
   fileProgList.innerHTML = uploadedFiles.map((f,i)=>`
     <div class="file-prog-row" id="fpr-${i}">
       <span style="font-size:12px;">📋</span>
-      <span class="fp-nm">${f.name}</span>
+      <span class="fp-nm">${escHtml(f.name)}</span>
       <span class="fp-cnt" id="fpc-${i}">—</span>
       <span class="fp-q" id="fps-${i}">○ Queued</span>
     </div>`).join('');
@@ -1868,7 +2017,7 @@ async function startAnalysis(){
     statusEl.className='fp-act';
     statusEl.innerHTML='<div class="spinner" style="width:11px;height:11px;border-width:1.5px;"></div>Active';
 
-    addLog(`Reading: <span class="log-hl">${f.name}</span>`);
+    addLog(`Reading: <span class="log-hl">${escHtml(f.name)}</span>`);
 
     const csvText = await readFile(f);
     const mod = parseCSV(csvText, f.name);
@@ -1878,7 +2027,7 @@ async function startAnalysis(){
     if(!mod){
       statusEl.className='fp-q';
       statusEl.textContent='✗ Parse error';
-      addLog(`Parse error: ${f.name}`, 'log-err');
+      addLog(`Parse error: ${escHtml(f.name)}`, 'log-err');
       continue;
     }
 
@@ -1888,8 +2037,8 @@ async function startAnalysis(){
     statusEl.className='fp-done';
     statusEl.textContent='✓ Done';
 
-    if(!mod.hasDisco) addLog(`⚠ No DISCO prefix: "${mod.moduleName}" — inferred type: ${mod.inferredDisco}`, 'log-warn');
-    else addLog(`DISCO: <span class="log-ok">${mod.discoPrefix}</span> · "${mod.moduleName}" · ${mod.lineItems.length} line items`);
+    if(!mod.hasDisco) addLog(`⚠ No DISCO prefix: "${escHtml(mod.moduleName)}" — inferred type: ${escHtml(mod.inferredDisco)}`, 'log-warn');
+    else addLog(`DISCO: <span class="log-ok">${escHtml(mod.discoPrefix)}</span> · "${escHtml(mod.moduleName)}" · ${mod.lineItems.length} line items`);
 
     const boolViols = mod.lineItems.filter(li=>li.dataType==='BOOLEAN'&&!['ANY','ALL',''].includes(li.summaryMethod));
     if(boolViols.length>0) addLog(`⚠ ${boolViols.length} Boolean summary violation(s) detected`, 'log-warn');
@@ -1934,26 +2083,36 @@ function buildAnalysisScreen(){
   document.getElementById('anl-sub').textContent =
     `${parsedModules.length} modules · ${ar.totalLI} line items · ${ar.totalF} formula-driven`;
 
-  // MII number + colour
+  // MII number + colour — B-04: guard against missing elements (these IDs were
+  // removed when s-analysis was redesigned for the live-API path)
   const miiColor = ar.mii<40?'var(--neg)':ar.mii<65?'var(--gold)':'var(--pos)';
-  document.getElementById('anl-mii-num').innerHTML = `<span style="color:${miiColor}">${ar.mii}</span><span>/100</span>`;
+  const miiNumEl = document.getElementById('anl-mii-num');
+  if(miiNumEl) miiNumEl.innerHTML = `<span style="color:${miiColor}">${ar.mii}</span><span>/100</span>`;
   const arc = document.getElementById('anl-arc');
-  const dash = Math.round((ar.mii/100)*264);
-  arc.setAttribute('stroke-dasharray',`${dash} 264`);
-  arc.setAttribute('stroke', ar.mii<40?'#B82E2E':ar.mii<65?'#BF801E':'#217348');
-  document.getElementById('anl-num-txt').textContent = ar.mii;
-  document.getElementById('anl-mii-bar').style.width = ar.mii+'%';
-  document.getElementById('anl-mii-bar').style.background = ar.mii<40?'var(--neg)':ar.mii<65?'var(--gold)':'var(--pos)';
+  if(arc) {
+    const dash = Math.round((ar.mii/100)*264);
+    arc.setAttribute('stroke-dasharray',`${dash} 264`);
+    arc.setAttribute('stroke', ar.mii<40?'#B82E2E':ar.mii<65?'#BF801E':'#217348');
+  }
+  const numTxtEl = document.getElementById('anl-num-txt');
+  if(numTxtEl) numTxtEl.textContent = ar.mii;
+  const miiBarEl = document.getElementById('anl-mii-bar');
+  if(miiBarEl) {
+    miiBarEl.style.width = ar.mii+'%';
+    miiBarEl.style.background = ar.mii<40?'var(--neg)':ar.mii<65?'var(--gold)':'var(--pos)';
+  }
 
-  const chip = document.getElementById('anl-band-chip');
+  const chip = document.getElementById('anl-band-chip'); // B-04: may be null in live-API path
   const chipColors = {
     Critical:{bg:'var(--neg-pale)',color:'var(--neg)',bd:'var(--neg-bd)'},
     'At Risk':{bg:'var(--gold-pale)',color:'var(--gold)',bd:'var(--gold-bd)'},
     Compliant:{bg:'var(--pos-pale)',color:'var(--pos)',bd:'var(--pos-bd)'},
     Optimised:{bg:'var(--pos-pale)',color:'var(--pos)',bd:'var(--pos-bd)'},
   }[ar.band]||{};
-  chip.style.cssText=`background:${chipColors.bg};color:${chipColors.color};border:1px solid ${chipColors.bd}`;
-  chip.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:${chipColors.color};display:inline-block;"></span>${ar.band}`;
+  if(chip) {
+    chip.style.cssText=`background:${chipColors.bg};color:${chipColors.color};border:1px solid ${chipColors.bd}`;
+    chip.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:${chipColors.color};display:inline-block;"></span>${escHtml(ar.band)}`;
+  }
 
   // Dimension cards
   const dims = [
@@ -2463,13 +2622,13 @@ function buildIntelReport(){
     <div class="r-section">
       <div class="sec-label">Performance risk register — top formula-bearing line items</div>
       <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:14px;font-weight:300;">Sorted by formula character length as a proxy for calculation complexity. R08–R12 anti-pattern flags applied. Click any flagged row for decomposition guidance.</div>
-      \${buildPerfRiskHtml(ar, parsedModules)}
+      ${buildPerfRiskHtml(ar, parsedModules)}
     </div>
 
     <div class="r-section">
       <div class="sec-label">Change risk map — module blast radius</div>
       <div style="font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:14px;font-weight:300;">Blast radius = outbound cross-module references × modules that reference this module inbound. High in both = architectural hub requiring regression testing before any change.</div>
-      \${buildChangeRiskHtml(parsedModules)}
+      ${buildChangeRiskHtml(parsedModules)}
     </div>
 
     <div class="r-section">
@@ -2497,7 +2656,9 @@ function buildIntelReport(){
 // buildPrompt() that was here has been removed (it was never called
 // and was shadowing the technical-docs buildPrompt above).
 
-function generateFallbackNarrative(mod){
+// B-05: renamed from generateFallbackNarrative (duplicate of the function above) —
+// this version produces plain-English user-guide copy; the other produces builder narrative
+function generateFallbackGuideNarrative(mod){
   const guides={
     SYS:`This screen controls the planning calendar settings that drive the entire model. Your administrator opens it at the start of each month to advance the current period and unlock the new forecast window. To update it, confirm the current date is correct and verify the forecast horizon covers the intended number of future periods. Once saved, all other screens will automatically refresh to reflect the new planning period.`,
     DAT:`This screen holds the reference master data — such as products, BOMs, or cost prices — that other planning screens use for their calculations. You open it when you need to add or update a reference record before the next planning cycle begins. Locate the relevant item, update the fields, and save your changes. Your updates will automatically flow through to every calculation and reporting screen that uses this reference data.`,
@@ -2626,7 +2787,7 @@ function buildDocsReport(){
   ];
 
   const guideBlocks=parsedModules.map(m=>{
-    const narrative=docNarratives[m.moduleName]||generateFallbackNarrative(m);
+    const narrative=docNarratives[m.moduleName]||generateFallbackGuideNarrative(m);
     const typeLabel={SYS:'Setup / Configuration',DAT:'Reference Data',INP:'Planner Input',CAL:'Calculated — read only',REP:'Review & Reporting'}[m.inferredDisco]||'Calculation';
     const typeIcon={SYS:'⚙',DAT:'📋',INP:'✏',CAL:'📊',REP:'📈'}[m.inferredDisco]||'📊';
     const manualLIs=m.lineItems.filter(li=>!li.hasFormula);
@@ -3351,12 +3512,15 @@ async function connectToAnaplan() {
       return;
     }
 
-    // Store session — credentials in sessionStorage (clears on tab close), never localStorage
+    // SEC-03: Store Anaplan token for models/picker calls. Password also stored so
+    // blueprint.js can re-authenticate fresh on every fetch (token may expire mid-fetch
+    // on large models). sessionStorage clears on tab close, never localStorage.
     setSession({
       username,
       password,
+      token: data.tokenValue,
       tokenExpiresAt: data.tokenExpiresAt,
-      workspaces: data.workspaces, // array of { id, name }
+      workspaces: data.workspaces,
       totalModels: data.totalModels,
     });
 
@@ -3434,8 +3598,7 @@ async function reAuthenticate() {
       errEl.textContent = data.error || 'Reconnection failed.';
       return;
     }
-    // Refresh session with new token expiry and updated password
-    setSession({ ...s, password, tokenExpiresAt: data.tokenExpiresAt });
+    setSession({ ...s, password, token: data.tokenValue, tokenExpiresAt: data.tokenExpiresAt });
     hideReAuth();
   } catch {
     errEl.textContent = 'Network error. Please try again.';
@@ -3503,8 +3666,7 @@ async function loadModels() {
       fetch(`/api/models?workspaceId=${encodeURIComponent(ws.id.toLowerCase())}`, {
         method: 'GET',
         headers: {
-          'x-anaplan-user': s.username,
-          'x-anaplan-pass': s.password,
+          'x-anaplan-token': s.token, // SEC-04: token only — no password on wire
         },
       })
       .then(r => r.json())
@@ -3802,9 +3964,9 @@ function confirmModelSelection() {
             }));
             currentEl.textContent = 'Complete.';
             fillEl.style.width = '100%';
-            // Continue button advances to s-analysis (Phase 4 will replace that screen).
-            // NOTE: must be 's-analysis', NOT 's-dashboard' — dashboard does not exist until Phase 5.
-            continueBtn.onclick = function () { go('s-analysis'); };
+            // Auto-advance to analysis — no user action needed, it's the only next step
+            go('s-analysis');
+            runAnalysis();
           } else if (evt.type === 'error') {
             fetchErr.style.display = 'block'; fetchErr.textContent = evt.message || 'Unknown error';
           }
@@ -3838,9 +4000,17 @@ function confirmModelSelection() {
     let _anlAbortCtrl = null;  // AbortController for the current fetch
     let _anlGen = 0;           // monotonic run ID — stale readers check this before acting
 
+    // ════ Phase 5: Dashboard tab + filter state ════
+    let activeTab = 'verdict';
+    let suggFilter = { triage: 'All', domain: 'All' };
+    let noteScrollPos = { verdict: 0, suggestions: 0, notes: 0, export: 0 };
+    let suggData = []; // flat array of all suggestions across domains for filtering
+    let narrativeStory = ''; // populated by _anlOnNarrative
+
     function _anl$(id) { return document.getElementById(id); }
 
     function _anlReset() {
+      if (_anlNarrAbortCtrl) { _anlNarrAbortCtrl.abort(); _anlNarrAbortCtrl = null; }
       _anlState = {
         suggestionsByDomain: { 'Structural': [], 'Formula': [], 'Best Practice': [], 'Naming': [] },
         suggestionCount: 0,
@@ -3854,20 +4024,46 @@ function confirmModelSelection() {
       _errEl.dataset.info = '';
       _anl$('anl-warning').hidden = true;
       _anl$('anl-score-card').hidden = true;
-      _anl$('anl-suggestions').hidden = true;
-      _anl$('anl-narrative').hidden = true;
-      _anl$('anl-hdr-status').innerHTML = '<span class="spinner"></span>Preparing analysis…'; // reset header (not just banner)
-      _anl$('anl-sub').textContent = 'Analysing your model…'; // reset subtitle so previous run's count isn't shown during next run
+      _anl$('anl-hdr-status').innerHTML = '<span class="spinner"></span>Preparing analysis…';
+      _anl$('anl-sub').textContent = 'Analysing your model…';
       _anl$('anl-progress-wrap').style.display = '';
       _anl$('anl-progress-bar').style.width = '0%';
       _anl$('anl-progress-pct').textContent = '0%';
       _anl$('anl-stage-label').textContent = 'Starting…';
       _anl$('anl-progress-detail').textContent = ' ';
-      _anl$('anl-suggestion-domains').innerHTML = '';
-      _anl$('anl-story-text').textContent = '';
-      _anl$('anl-module-nodes').innerHTML = '';
-      _anl$('anl-narrative-story-view').hidden = false;
-      _anl$('anl-narrative-drill-view').hidden = true;
+      // Phase 5: reset new state on each analysis run
+      suggData = [];
+      narrativeStory = '';
+      suggFilter = { triage: 'All', domain: 'All' };
+      activeTab = 'verdict';
+      noteScrollPos = { verdict: 0, suggestions: 0, notes: 0, export: 0 };
+      // Reset pill UI to "All" selected
+      document.querySelectorAll('#s-analysis .pill').forEach(p => {
+        p.classList.toggle('on', p.getAttribute('data-val') === 'All');
+      });
+      // Reset tab UI to verdict
+      document.querySelectorAll('#s-analysis .dash-panel').forEach(p => p.classList.remove('active'));
+      const vPanel = document.getElementById('dash-panel-verdict');
+      if (vPanel) vPanel.classList.add('active');
+      document.querySelectorAll('#s-analysis .dash-tab').forEach(t => t.classList.toggle('on', t.getAttribute('data-tab') === 'verdict'));
+      // Hide tab bar until first data arrives
+      const tabBar = document.getElementById('dash-tab-bar');
+      if (tabBar) tabBar.hidden = true;
+      // Reset suggestions list and notes
+      const suggList = document.getElementById('dash-suggestions-list');
+      if (suggList) suggList.innerHTML = '';
+      const badge = document.getElementById('dash-badge-suggestions');
+      if (badge) badge.textContent = '0';
+      renderNotesStory();
+      // Disable Export buttons at start of each analysis; _anlOnComplete re-enables them
+      const _pdfBtn = document.getElementById('pdf-download-btn');
+      const _shareBtn = document.getElementById('share-create-btn');
+      if (_pdfBtn) _pdfBtn.disabled = true;
+      if (_shareBtn) _shareBtn.disabled = true;
+      const _shareOut = document.getElementById('share-output');
+      if (_shareOut) _shareOut.classList.remove('on');
+      const _shareInput = document.getElementById('share-url-input');
+      if (_shareInput) _shareInput.value = '';
     }
 
     function _anlShowError(message, isInfo) {
@@ -3890,9 +4086,9 @@ function confirmModelSelection() {
       const labels = {
         fetching: 'Fetching blueprint',
         extracting: 'Extracting modules',
-        suggestions: 'Analysing modules (Haiku)',
-        scoring: 'Computing health score (Sonnet)',
-        narrative: 'Generating data-flow narrative',
+        suggestions: 'Analysing modules',
+        scoring: 'Computing health score',
+        narrative: 'Generating model overview',
       };
       _anl$('anl-stage-label').textContent = labels[stage] || stage;
       _anl$('anl-progress-bar').style.width = pct + '%';
@@ -3917,13 +4113,264 @@ function confirmModelSelection() {
         if (!_anlState.suggestionsByDomain[it.domain]) continue;
         _anlState.suggestionsByDomain[it.domain].push({ ...it, moduleId: evt.moduleId, moduleName: evt.moduleName });
         _anlState.suggestionCount++;
+        // Phase 5: also push to flat suggData array for filter rendering
+        suggData.push({ ...it, moduleId: evt.moduleId, moduleName: evt.moduleName });
       }
+      // Show the tab bar on first data event
+      const tabBar = document.getElementById('dash-tab-bar');
+      if (tabBar && tabBar.hasAttribute('hidden')) tabBar.removeAttribute('hidden');
+      applySuggFilter();
     }
 
     function _anlOnPartial(reason, analysed, skipped) {
       _anlState.partial = { reason, analysed, skipped };
       _anl$('anl-warning').hidden = false;
       _anl$('anl-warning-msg').textContent = reason + ' (' + analysed + ' analysed, ' + skipped + ' skipped)';
+    }
+
+    function switchTab(name) {
+      if (name === activeTab) return;
+      const outgoing = document.getElementById('dash-panel-' + activeTab);
+      if (outgoing) noteScrollPos[activeTab] = outgoing.scrollTop || 0;
+
+      document.querySelectorAll('#s-analysis .dash-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('#s-analysis .dash-tab').forEach(t => t.classList.remove('on'));
+      const incoming = document.getElementById('dash-panel-' + name);
+      if (incoming) incoming.classList.add('active');
+      const tabBtn = document.querySelector('#s-analysis .dash-tab[data-tab="' + name + '"]');
+      if (tabBtn) tabBtn.classList.add('on');
+      activeTab = name;
+      if (incoming && noteScrollPos[name]) incoming.scrollTop = noteScrollPos[name];
+    }
+
+    function setSuggPill(group, val) {
+      suggFilter[group] = val;
+      document.querySelectorAll('#s-analysis .pill[data-pill="' + group + '"]').forEach(p => {
+        p.classList.toggle('on', p.getAttribute('data-val') === val);
+      });
+      applySuggFilter();
+    }
+
+    function applySuggFilter() {
+      const filtered = suggData.filter(s =>
+        (suggFilter.triage === 'All' || s.triage === suggFilter.triage) &&
+        (suggFilter.domain === 'All' || s.domain === suggFilter.domain)
+      );
+      renderSuggestionsList(filtered);
+      const badge = document.getElementById('dash-badge-suggestions');
+      if (badge) badge.textContent = String(filtered.length);
+    }
+
+    function renderSuggestionsList(items) {
+      const container = document.getElementById('dash-suggestions-list');
+      if (!container) return;
+      if (items.length === 0) {
+        container.innerHTML = '<div class="notes-empty">No suggestions match the current filters.</div>';
+        return;
+      }
+      // Group by domain in fixed order
+      const order = ['Structural', 'Formula', 'Best Practice', 'Naming'];
+      const groups = {};
+      for (const d of order) groups[d] = [];
+      for (const s of items) {
+        if (!groups[s.domain]) groups[s.domain] = [];
+        groups[s.domain].push(s);
+      }
+      const html = order
+        .filter(d => groups[d] && groups[d].length > 0)
+        .map(d => renderDomainGroup(d, groups[d]))
+        .join('');
+      container.innerHTML = html;
+    }
+
+    function renderDomainGroup(domain, items) {
+      const id = 'dg-' + domain.replace(/\s+/g, '-').toLowerCase();
+      return '<div class="domain-group">'
+        + '<div class="domain-hd" onclick="toggleDomain(\'' + id + '\')">'
+        +   '<span class="domain-name">' + _anlEsc(domain) + '</span>'
+        +   '<span class="domain-count">' + items.length + '</span>'
+        +   '<span class="domain-chev" id="' + id + '-chev">&#9660;</span>'
+        + '</div>'
+        + '<div class="domain-body" id="' + id + '">'
+        +   items.map(renderSuggCard).join('')
+        + '</div>'
+      + '</div>';
+    }
+
+    function renderSuggCard(s) {
+      const triageClass = s.triage === 'Fix Now' ? 'fix' : s.triage === 'Consider' ? 'consider' : 'monitor';
+      return '<div class="sugg-card">'
+        + '<span class="sugg-triage ' + triageClass + '">' + _anlEsc(s.triage || '') + '</span>'
+        + '<span class="sugg-module">' + _anlEsc(s.moduleName || '') + '</span>'
+        + '<div class="sugg-title">' + _anlEsc(s.text || '') + '</div>'
+        + (s.reasoning ? '<div class="sugg-reasoning">' + _anlEsc(s.reasoning) + '</div>' : '')
+        + (s.action ? '<div class="sugg-action">' + _anlEsc(s.action) + '</div>' : '')
+        + (s.builderNote ? '<div class="sugg-builder">' + _anlEsc(s.builderNote) + '</div>' : '')
+      + '</div>';
+    }
+
+    function toggleDomain(id) {
+      const body = document.getElementById(id);
+      const chev = document.getElementById(id + '-chev');
+      if (!body || !chev) return;
+      const open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : '';
+      chev.textContent = open ? '&#9658;' : '&#9660;';
+    }
+
+    // ════ Phase 5: Notes panel — story-text-only layout per UI-04 user decision ════
+    // UI-04 ROADMAP NOTE: The original roadmap suggested clickable module chips and drill-in.
+    // User explicitly decided to remove chips/drill (quote: "remove the chips, they add zero
+    // value honestly"). UI-04 is satisfied by rendering the narrative story string in a
+    // clean readable layout — no chips, no drill, no breadcrumb.
+    function renderNotesStory() {
+      const panel = document.getElementById('dash-notes-body');
+      if (!panel) return;
+      if (!narrativeStory) {
+        panel.innerHTML = '<div class="notes-empty">Model overview will appear after analysis completes.</div>';
+        return;
+      }
+      panel.innerHTML = '<div class="notes-story">' + _anlEsc(narrativeStory) + '</div>';
+    }
+
+    // ════ Phase 5: PDF Export ════
+    function _pdfSafeName(s) {
+      return String(s || 'analysis').replace(/[^A-Za-z0-9_-]+/g, '-').slice(0, 60) || 'analysis';
+    }
+
+    function buildAnalysisPdfDoc(options) {
+      const score = (_anlState && _anlState.score) || null;
+      const content = [];
+      const modelName = (_anlState && _anlState.modelName) || 'Anaplan Model';
+
+      content.push({ text: 'Meridian · Model Intelligence Report', style: 'header' });
+      content.push({ text: modelName, style: 'subheader' });
+      if (score) {
+        content.push({ text: 'Health Score: ' + score.healthScore + '/100 · ' + (score.verdict || ''), style: 'scoreline' });
+      }
+      content.push({ text: 'Generated ' + new Date().toLocaleString(), style: 'meta', margin: [0, 0, 0, 16] });
+
+      if (options.verdict && score) {
+        content.push({ text: 'Verdict', style: 'section' });
+        if (score.summary) content.push({ text: score.summary, margin: [0, 0, 0, 10] });
+        if (score.dimensions) {
+          const rows = [['Dimension', 'Score']];
+          const labels = { architecture: 'Architecture', naming: 'Naming', formulas: 'Formulas', dataHygiene: 'Data Hygiene', governance: 'Governance' };
+          for (const k of Object.keys(labels)) {
+            if (score.dimensions[k] != null) rows.push([labels[k], String(score.dimensions[k])]);
+          }
+          content.push({ table: { widths: ['*', 60], body: rows }, layout: 'lightHorizontalLines', margin: [0, 0, 0, 12] });
+        }
+      }
+
+      if (options.suggestions) {
+        // Respect the user's current pill filters
+        const filtered = suggData.filter(s =>
+          (suggFilter.triage === 'All' || s.triage === suggFilter.triage) &&
+          (suggFilter.domain === 'All' || s.domain === suggFilter.domain)
+        );
+        content.push({ text: 'Improvement Suggestions (' + filtered.length + ')', style: 'section' });
+        const order = ['Structural', 'Formula', 'Best Practice', 'Naming'];
+        for (const dom of order) {
+          const items = filtered.filter(s => s.domain === dom);
+          if (items.length === 0) continue;
+          content.push({ text: dom + ' (' + items.length + ')', style: 'domainHd' });
+          for (const s of items) {
+            content.push({ text: '[' + (s.triage || '') + '] ' + (s.moduleName || ''), style: 'suggMeta' });
+            content.push({ text: s.text || '', style: 'suggTitle' });
+            if (s.reasoning) content.push({ text: s.reasoning, style: 'suggBody' });
+            if (s.action) content.push({ text: 'Action: ' + s.action, style: 'suggAction', margin: [0, 2, 0, 8] });
+          }
+        }
+      }
+
+      if (options.notes && narrativeStory) {
+        content.push({ text: 'Model Overview', style: 'section' });
+        content.push({ text: narrativeStory, margin: [0, 0, 0, 12] });
+      }
+
+      return {
+        content,
+        styles: {
+          header: { fontSize: 20, bold: true, margin: [0, 0, 0, 4] },
+          subheader: { fontSize: 13, color: '#595E6B', margin: [0, 0, 0, 2] },
+          scoreline: { fontSize: 12, color: '#175AA6', margin: [0, 0, 0, 2] },
+          meta: { fontSize: 9, color: '#9EA1AB' },
+          section: { fontSize: 14, bold: true, margin: [0, 14, 0, 8] },
+          domainHd: { fontSize: 12, bold: true, color: '#175AA6', margin: [0, 8, 0, 4] },
+          suggMeta: { fontSize: 9, color: '#9EA1AB', margin: [0, 4, 0, 1] },
+          suggTitle: { fontSize: 11, bold: true, margin: [0, 0, 0, 2] },
+          suggBody: { fontSize: 10, color: '#444', lineHeight: 1.4 },
+          suggAction: { fontSize: 10, color: '#175AA6' }
+        },
+        defaultStyle: { font: 'Roboto', fontSize: 10.5, lineHeight: 1.4 }
+      };
+    }
+
+    function exportAnalysisPDF() {
+      if (typeof window.pdfMake === 'undefined') {
+        alert('PDF library failed to load. Check your internet connection and reload.');
+        return;
+      }
+      if (!_anlState || !_anlState.score) {
+        alert('Analysis is not yet complete.');
+        return;
+      }
+      const opts = {
+        verdict: !!document.getElementById('pdf-opt-verdict').checked,
+        suggestions: !!document.getElementById('pdf-opt-suggestions').checked,
+        notes: !!document.getElementById('pdf-opt-notes').checked
+      };
+      const docDef = buildAnalysisPdfDoc(opts);
+      const fname = 'Meridian-Analysis-' + _pdfSafeName(_anlState.modelName) + '.pdf';
+      window.pdfMake.createPdf(docDef).download(fname);
+    }
+
+    // ════ Phase 5: Share link ════
+    async function createShareLink() {
+      const btn = document.getElementById('share-create-btn');
+      if (!_anlState || !_anlState.score) { alert('Analysis is not yet complete.'); return; }
+      btn.disabled = true;
+      btn.textContent = 'Creating link…';
+      try {
+        const payload = {
+          modelName: _anlState.modelName || '',
+          workspaceName: _anlState.workspaceName || '',
+          createdAt: new Date().toISOString(),
+          score: _anlState.score,
+          suggestions: suggData,
+          narrative: { story: narrativeStory || '' }
+        };
+        const resp = await fetch('/api/share', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payload })
+        });
+        if (!resp.ok) {
+          const e = await resp.json().catch(() => ({}));
+          throw new Error(e.error || ('HTTP ' + resp.status));
+        }
+        const data = await resp.json();
+        const absoluteUrl = window.location.origin + data.shareUrl;
+        const input = document.getElementById('share-url-input');
+        const out = document.getElementById('share-output');
+        if (input) input.value = absoluteUrl;
+        if (out) out.classList.add('on');
+        btn.textContent = 'Generate another link';
+      } catch (err) {
+        alert('Share failed: ' + (err.message || err));
+        btn.textContent = 'Generate shareable link';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function copyShareUrl() {
+      const input = document.getElementById('share-url-input');
+      if (!input || !input.value) return;
+      input.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      if (navigator.clipboard) navigator.clipboard.writeText(input.value).catch(() => {});
     }
 
     function _anlOnScore(s) {
@@ -3950,106 +4397,92 @@ function confirmModelSelection() {
       _anl$('anl-score-card').hidden = false;
     }
 
-    function _anlRenderSuggestions() {
-      const root = _anl$('anl-suggestion-domains');
-      root.innerHTML = '';
-      const triageClass = { 'Fix Now': 't-fix', 'Consider': 't-con', 'Monitor': 't-mon' };
-      // Sort domain groups by Fix Now count desc
-      const domains = Object.keys(_anlState.suggestionsByDomain).sort((a, b) => {
-        const ca = _anlState.suggestionsByDomain[a].filter(s => s.triage === 'Fix Now').length;
-        const cb = _anlState.suggestionsByDomain[b].filter(s => s.triage === 'Fix Now').length;
-        return cb - ca;
-      });
-      for (const dom of domains) {
-        const items = _anlState.suggestionsByDomain[dom];
-        if (!items.length) continue;
-        // Sort: Fix Now > Consider > Monitor
-        const order = { 'Fix Now': 0, 'Consider': 1, 'Monitor': 2 };
-        items.sort((a, b) => (order[a.triage] || 9) - (order[b.triage] || 9));
-        const card = document.createElement('div');
-        card.className = 'anl-suggestion-domain';
-        let html = '<h4>' + dom + ' <span class="anl-count">' + items.length + '</span></h4>';
-        for (const s of items) {
-          const tcls = triageClass[s.triage] || 't-mon';
-          html += '<div class="anl-suggestion-card">';
-          html += '<div class="anl-suggestion-head">';
-          html += '<span class="anl-triage ' + tcls + '">' + s.triage + '</span>';
-          html += '<span class="anl-suggestion-title">' + _anlEsc(s.text || '') + '</span>';
-          html += '<span class="anl-suggestion-mod">' + _anlEsc(s.moduleName || '') + '</span>';
-          html += '</div>';
-          if (s.reasoning) html += '<div class="anl-suggestion-reason">' + _anlEsc(s.reasoning) + '</div>';
-          if (s.action) html += '<div class="anl-suggestion-action">→ ' + _anlEsc(s.action) + '</div>';
-          html += '</div>';
-        }
-        card.innerHTML = html;
-        root.appendChild(card);
-      }
-      _anl$('anl-sugg-count').textContent = _anlState.suggestionCount;
-      _anl$('anl-suggestions').hidden = false;
-    }
-
     function _anlEsc(s) {
-      return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
     function _anlOnNarrative(n) {
-      _anlState.modules = Array.isArray(n.modules)
-        ? n.modules.filter(m => m && typeof m === 'object')
-        : [];
-      _anl$('anl-story-text').textContent = n.story || '';
-      const nodes = _anl$('anl-module-nodes');
-      nodes.innerHTML = '';
-      for (const m of _anlState.modules) {
-        const chip = document.createElement('span');
-        chip.className = 'anl-module-node';
-        chip.textContent = m.name || m.id || '(unnamed)';
-        chip.onclick = () => _anlDrillIn(m.id);
-        nodes.appendChild(chip);
-      }
-      _anl$('anl-narrative').hidden = false;
+      narrativeStory = (n && n.story) || '';
+      renderNotesStory();
     }
 
-    function _anlDrillIn(moduleId) {
-      const mod = _anlState.modules.find(m => m.id === moduleId);
-      if (!mod) return;
-      _anl$('anl-narrative-story-view').hidden = true;
-      _anl$('anl-narrative-drill-view').hidden = false;
-      _anl$('anl-breadcrumb-mod').textContent = mod.name || mod.id;
-      _anl$('anl-drill-name').textContent = mod.name || mod.id;
-      _anl$('anl-drill-purpose').textContent = mod.purpose || 'No purpose description available.';
-      const fillList = (rootId, arr) => {
-        const root = _anl$(rootId);
-        root.innerHTML = '';
-        if (!arr || !arr.length) { root.innerHTML = '<li style="color:#999;font-style:italic;">none</li>'; return; }
-        for (const v of arr) {
-          const li = document.createElement('li');
-          li.textContent = v;
-          root.appendChild(li);
-        }
-      };
-      fillList('anl-drill-rx', mod.receivesFrom);
-      fillList('anl-drill-tx', mod.sendsTo);
-      fillList('anl-drill-risks', mod.risks);
-    }
-
-    document.addEventListener('DOMContentLoaded', function () {
-      const back = _anl$('anl-breadcrumb-back');
-      if (back) {
-        back.onclick = function (e) {
-          e.preventDefault();
-          _anl$('anl-narrative-drill-view').hidden = true;
-          _anl$('anl-narrative-story-view').hidden = false;
-        };
-      }
-    });
 
     function _anlOnComplete(c) {
       _anl$('anl-error').hidden = true; // clear any stale error banner
-      _anlRenderSuggestions();
       _anl$('anl-progress-wrap').style.display = 'none';
       _anl$('anl-hdr-status').innerHTML = 'Analysis complete';
       const _domainCount = Object.values(_anlState.suggestionsByDomain).filter(a => a.length > 0).length;
       _anl$('anl-sub').textContent = _anlState.suggestionCount + ' suggestions across ' + _domainCount + ' domain' + (_domainCount !== 1 ? 's' : '');
+      // Phase 5: ensure tab bar is visible
+      const tabBar = document.getElementById('dash-tab-bar');
+      if (tabBar && tabBar.hasAttribute('hidden')) tabBar.removeAttribute('hidden');
+      // Phase 5: auto-switch to suggestions tab if there are suggestions
+      if (_anlState.suggestionCount > 0 && activeTab === 'verdict') {
+        switchTab('suggestions');
+      }
+      // Phase 5: Enable Export buttons now that analysis state is complete
+      const pdfBtn = document.getElementById('pdf-download-btn');
+      const shareBtn = document.getElementById('share-create-btn');
+      if (pdfBtn) pdfBtn.disabled = false;
+      if (shareBtn) shareBtn.disabled = false;
+      // Show notes placeholder — runNarrative() will fill it in via _anlOnNarrative
+      if (!narrativeStory) {
+        const panel = document.getElementById('dash-notes-body');
+        if (panel) panel.innerHTML = '<div class="notes-empty"><span class="spinner" style="display:inline-block;vertical-align:middle;margin-right:6px;"></span>Generating model overview…</div>';
+      }
+    }
+
+    let _anlNarrAbortCtrl = null;
+
+    async function runNarrative(blobUrl, myGen) {
+      if (_anlNarrAbortCtrl) { _anlNarrAbortCtrl.abort(); }
+      _anlNarrAbortCtrl = new AbortController();
+      try {
+        const resp = await fetch('/api/analyze-narrative', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ blobUrl }),
+          signal: _anlNarrAbortCtrl.signal,
+        });
+        if (myGen !== _anlGen) return;
+        if (!resp.ok || !resp.body) {
+          return; // Notes panel stays showing placeholder — no crash
+        }
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (myGen !== _anlGen) { reader.cancel(); return; }
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.startsWith('data:')) continue;
+            const payload = line.slice(5).trim();
+            if (!payload) continue;
+            let evt;
+            try { evt = JSON.parse(payload); } catch { continue; }
+            try {
+              switch (evt.type) {
+                case 'progress': _anlOnProgress(evt.stage, evt.pct); break;
+                case 'narrative': _anlOnNarrative(evt); break;
+                case 'narrative-complete': break; // narrative already rendered by _anlOnNarrative
+                case 'narrative-error': renderNotesStory(); break; // reset to empty state
+              }
+            } catch (handlerErr) {
+              console.error('[meridian] narrative handler crash:', handlerErr);
+            }
+          }
+        }
+      } catch (err) {
+        if (err.name === 'AbortError' || myGen !== _anlGen) return;
+        console.error('[meridian] runNarrative error:', err);
+        renderNotesStory(); // reset notes to empty state — score/suggestions unaffected
+      } finally {
+        _anlNarrAbortCtrl = null;
+      }
     }
 
     async function runAnalysis() {
@@ -4105,7 +4538,7 @@ function confirmModelSelection() {
                 case 'partial-analysis': _anlOnPartial(evt.reason, evt.modulesAnalysed, evt.modulesSkipped); break;
                 case 'score': _anlOnScore(evt); break;
                 case 'narrative': _anlOnNarrative(evt); break;
-                case 'complete': _anlOnComplete(evt); _anl$('anl-sub').dataset.cached = evt.fromCache ? '1' : ''; break;
+                case 'complete': _anlOnComplete(evt); _anl$('anl-sub').dataset.cached = evt.fromCache ? '1' : ''; runNarrative(blobUrl, myGen); break;
                 case 'error': _anlShowError(evt.message); break;
               }
             } catch (handlerErr) {
@@ -4137,6 +4570,161 @@ function confirmModelSelection() {
     // SECTION: DASHBOARD
     // v2 Phase 4 — Verdict, Suggestions, Notes, Export
     // ============================================================
+
+    // ════ Phase 5: Shared Report — blob URL validator ════
+    function _isAllowedSharedBlobUrl(url) {
+      try {
+        const u = new URL(url);
+        if (u.protocol !== 'https:') return false;
+        // @vercel/blob public URLs use the *.public.blob.vercel-storage.com domain
+        if (/\.public\.blob\.vercel-storage\.com$/.test(u.hostname)) return true;
+        return false;
+      } catch (e) { return false; }
+    }
+
+    // ════ Phase 5: Shared Report — load + render ════
+    async function loadSharedReport() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id') || '';
+      const errBox = document.getElementById('shr-error');
+      const scoreBox = document.getElementById('shr-score-card');
+      const headerStatus = document.getElementById('shr-hdr-status');
+
+      function showExpired(title, msg) {
+        if (headerStatus) headerStatus.innerHTML = '';
+        if (errBox) {
+          document.getElementById('shr-error-title').textContent = title;
+          document.getElementById('shr-error-msg').textContent = msg;
+          errBox.hidden = false;
+        }
+      }
+
+      if (!/^[0-9a-f-]{36}$/i.test(id)) {
+        showExpired('Invalid link', 'This share link is malformed. Ask the sender for a fresh link.');
+        return;
+      }
+
+      try {
+        const resp = await fetch('/api/share?id=' + encodeURIComponent(id));
+        if (resp.status === 404) {
+          showExpired('This report has expired.', 'Shared reports are available for 7 days. Ask the sender for a fresh link.');
+          return;
+        }
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const { blobUrl } = await resp.json();
+        if (!blobUrl || !_isAllowedSharedBlobUrl(blobUrl)) {
+          showExpired('Report unavailable', 'The stored report could not be loaded.');
+          return;
+        }
+        const dataResp = await fetch(blobUrl);
+        if (!dataResp.ok) throw new Error('Blob fetch ' + dataResp.status);
+        const payload = await dataResp.json();
+        renderSharedReport(payload);
+      } catch (err) {
+        showExpired('Report unavailable', 'Could not load this report. ' + (err.message || ''));
+      }
+    }
+
+    function renderSharedReport(p) {
+      const headerStatus = document.getElementById('shr-hdr-status');
+      if (headerStatus) headerStatus.textContent = (p.modelName || 'Shared report') + (p.createdAt ? ' · ' + new Date(p.createdAt).toLocaleDateString() : '');
+
+      document.getElementById('shr-title').textContent = p.modelName || 'Model Intelligence Report';
+      document.getElementById('shr-sub').textContent = p.workspaceName || '';
+
+      // Score card
+      if (p.score) {
+        const card = document.getElementById('shr-score-card');
+        card.hidden = false;
+        document.getElementById('shr-score-num').innerHTML = (p.score.healthScore != null ? p.score.healthScore : '--') + '<span>/100</span>';
+        document.getElementById('shr-verdict-text').textContent = p.score.verdict || '—';
+        document.getElementById('shr-summary').textContent = p.score.summary || '';
+        if (p.score.dimensions) {
+          document.querySelectorAll('#shr-dims .anl-dim').forEach(el => {
+            const key = el.getAttribute('data-key');
+            const val = p.score.dimensions[key];
+            if (val != null) {
+              el.querySelector('.anl-dim-val').textContent = String(val);
+              const bar = el.querySelector('.prog-f');
+              if (bar) bar.style.width = Math.max(0, Math.min(100, Number(val) * 10)) + '%';
+            }
+          });
+        }
+      }
+
+      // Suggestions (read-only — no filter pills)
+      const suggs = Array.isArray(p.suggestions) ? p.suggestions : [];
+      if (suggs.length > 0) {
+        document.getElementById('shr-sugg-heading').hidden = false;
+        document.getElementById('shr-sugg-count').textContent = String(suggs.length);
+        const list = document.getElementById('shr-suggestions-list');
+        const order = ['Structural', 'Formula', 'Best Practice', 'Naming'];
+        const groups = {};
+        for (const d of order) groups[d] = [];
+        for (const s of suggs) {
+          if (!groups[s.domain]) groups[s.domain] = [];
+          groups[s.domain].push(s);
+        }
+        list.innerHTML = order
+          .filter(d => groups[d] && groups[d].length > 0)
+          .map(d => {
+            const items = groups[d];
+            return '<div class="domain-group">'
+              + '<div class="domain-hd"><span class="domain-name">' + _anlEsc(d) + '</span><span class="domain-count">' + items.length + '</span></div>'
+              + '<div class="domain-body">' + items.map(s => {
+                  const triageClass = s.triage === 'Fix Now' ? 'fix' : s.triage === 'Consider' ? 'consider' : 'monitor';
+                  return '<div class="sugg-card">'
+                    + '<span class="sugg-triage ' + triageClass + '">' + _anlEsc(s.triage || '') + '</span>'
+                    + '<span class="sugg-module">' + _anlEsc(s.moduleName || '') + '</span>'
+                    + '<div class="sugg-title">' + _anlEsc(s.text || '') + '</div>'
+                    + (s.reasoning ? '<div class="sugg-reasoning">' + _anlEsc(s.reasoning) + '</div>' : '')
+                    + (s.action ? '<div class="sugg-action">' + _anlEsc(s.action) + '</div>' : '')
+                  + '</div>';
+                }).join('')
+              + '</div>'
+            + '</div>';
+          })
+          .join('');
+      }
+
+      // Notes
+      const story = (p.narrative && p.narrative.story) || '';
+      if (story) {
+        document.getElementById('shr-notes-heading').hidden = false;
+        document.getElementById('shr-notes-body').innerHTML = '<div class="notes-story">' + _anlEsc(story) + '</div>';
+      }
+    }
+
+    // ════ Phase 5: Boot router — decides s-intro vs s-shared on page load ════
+    // Replaces the original standalone go('s-intro') call.
+    (function _phase5BootRouter() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('id')) {
+          go('s-shared');
+          setTimeout(loadSharedReport, 0);
+          return;
+        }
+      } catch (e) {}
+      go('s-intro');
+    })();
+
+    // ════ Phase 5: go() override — manual nav to s-shared must also load the report ════
+    // Without this, clicking the #n-s-shared nav button would show an empty Shared screen
+    // because loadSharedReport is otherwise only invoked from the boot-time URL router.
+    (function _phase5InstallGoOverride() {
+      if (typeof go !== 'function') return;
+      const _origGo = go;
+      // Re-declare go on window so all existing onclick="go(...)" handlers hit the wrapper
+      window.go = function(screenId) {
+        const result = _origGo.apply(this, arguments);
+        if (screenId === 's-shared') {
+          // Defer so the screen swap completes before the fetch begins
+          setTimeout(loadSharedReport, 0);
+        }
+        return result;
+      };
+    })();
 
 </script>
 </body>

@@ -1,4 +1,5 @@
 import { put } from '@vercel/blob';
+import { applyCors } from './_cors.js';
 
 // BPRT-01: parallel batch size
 const BATCH_SIZE = 20;
@@ -6,17 +7,28 @@ const BATCH_SIZE = 20;
 const RETRY_AFTER_DEFAULT_MS = 10_000;
 // BPRT-04: per-module retry cap
 const MAX_RETRIES = 2;
+// Per-request timeout: abort a hung connection so it never blocks an entire batch
+const REQUEST_TIMEOUT_MS = 18_000;
 
 async function fetchWithRetry(url, token) {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const r = await fetch(url, { headers: { 'Authorization': `AnaplanAuthToken ${token}` } });
+    let r;
+    try {
+      r = await fetch(url, {
+        headers: { 'Authorization': `AnaplanAuthToken ${token}` },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+    } catch (err) {
+      // Timeout or network error — treat as retryable
+      if (attempt < MAX_RETRIES) continue;
+      return null;
+    }
     if (r.status !== 429) return r;
     const ra = parseInt(r.headers.get('Retry-After') ?? '10', 10);
     const waitMs = (isNaN(ra) || ra <= 0) ? RETRY_AFTER_DEFAULT_MS : ra * 1000;
     await new Promise((res) => setTimeout(res, waitMs));
   }
-  // exhausted retries — caller decides what to do
-  return null;
+  return null; // exhausted retries
 }
 
 async function fetchModuleLineItems(mod, wsId, modelId, token) {
@@ -28,7 +40,7 @@ async function fetchModuleLineItems(mod, wsId, modelId, token) {
       name: mod.name,
       lineItemCount: 0,
       lineItems: [],
-      fetchError: r ? `HTTP ${r.status}` : 'Rate limit retries exhausted (429)',
+      fetchError: r ? `HTTP ${r.status}` : 'Timeout or rate limit — skipped',
     };
   }
   const data = await r.json();
@@ -37,37 +49,25 @@ async function fetchModuleLineItems(mod, wsId, modelId, token) {
 }
 
 export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-anaplan-user, x-anaplan-pass');
+  applyCors(req, res);
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { workspaceId, modelId } = req.body;
+  if (!workspaceId || !modelId) return res.status(400).json({ error: 'Missing workspaceId or modelId' });
 
-  if (!workspaceId || !modelId) {
-    return res.status(400).json({ error: 'Missing workspaceId or modelId' });
-  }
+  const wsId = workspaceId.toLowerCase();
 
+  // Blueprint always re-authenticates fresh — token reuse risks expiry mid-fetch
+  // on large models (100+ modules can take 60-90s). Re-auth cost is one round-trip
+  // at the start; reliable for any model size.
   const username = req.headers['x-anaplan-user'];
   const password = req.headers['x-anaplan-pass'];
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Missing credentials' });
   }
-
-  // Normalize workspace ID to lowercase
-  const wsId = workspaceId.toLowerCase();
-
-  // Build Basic Auth header server-side — encoded string is never logged
-  const encoded = Buffer.from(`${username}:${password}`).toString('base64');
 
   // CRITICAL: SSE headers BEFORE first await
   res.setHeader('Content-Type', 'text/event-stream');
@@ -82,24 +82,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Step 1: Authenticate with Anaplan via Basic Auth
+    // Step 1: Authenticate fresh — never reuse a stored token for blueprint
+    const encoded = Buffer.from(`${username}:${password}`).toString('base64');
     const authRes = await fetch('https://auth.anaplan.com/token/authenticate', {
       method: 'POST',
-      headers: {
-        'Authorization': `Basic ${encoded}`,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Authorization': `Basic ${encoded}`, 'Content-Type': 'application/json' },
       body: ''
     });
-
     if (!authRes.ok) {
       sendEvent({ type: 'error', message: 'Auth failed — please reconnect' });
       return;
     }
-
     const authData = await authRes.json();
     const token = authData?.tokenInfo?.tokenValue;
-
     if (!token) {
       sendEvent({ type: 'error', message: 'Auth failed — please reconnect' });
       return;
@@ -110,7 +105,6 @@ export default async function handler(req, res) {
       `https://api.anaplan.com/2/0/workspaces/${wsId}/models/${modelId}/modules`,
       { headers: { 'Authorization': `AnaplanAuthToken ${token}` } }
     );
-
     if (!modRes.ok) {
       sendEvent({ type: 'error', message: `Failed to list modules: HTTP ${modRes.status}` });
       return;
@@ -118,7 +112,6 @@ export default async function handler(req, res) {
     const modData = await modRes.json();
     const modules = modData.modules || [];
 
-    // Emit initial progress event
     sendEvent({ type: 'progress', modulesDone: 0, modulesTotal: modules.length, moduleName: '', lineItemCount: 0 });
 
     // Step 3: Fetch line items in batches (BPRT-01)
@@ -127,11 +120,8 @@ export default async function handler(req, res) {
     let partialLoad = false;
     let modulesDone = 0;
 
-    // BPRT-01: process modules in batches of 20 in parallel (controlled concurrency,
-    // NOT all-at-once Promise.all which would trigger 429 storms, and NOT fully
-    // sequential which would violate the batch-parallel requirement).
     for (let i = 0; i < modules.length; i += BATCH_SIZE) {
-      const batch = modules.slice(i, i + BATCH_SIZE);
+const batch = modules.slice(i, i + BATCH_SIZE);
       const settled = await Promise.allSettled(
         batch.map((mod) => fetchModuleLineItems(mod, wsId, modelId, token))
       );
@@ -143,7 +133,6 @@ export default async function handler(req, res) {
         if (s.status === 'fulfilled') {
           result = s.value;
         } else {
-          // Promise rejection (network error, etc.) — treat as fetchError sentinel
           result = {
             id: mod.id,
             name: mod.name,
@@ -154,7 +143,6 @@ export default async function handler(req, res) {
         }
 
         if (result.fetchError) {
-          // BPRT-04: surface partial-warning and continue rather than failing the whole fetch
           partialLoad = true;
           sendEvent({ type: 'partial-warning', moduleName: result.name, reason: result.fetchError });
         } else {
@@ -173,7 +161,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Build BlueprintDocument (locked schema)
+    // Build BlueprintDocument
     const blueprint = {
       modelId,
       workspaceId: wsId,
@@ -184,23 +172,15 @@ export default async function handler(req, res) {
       modules: assembled,
     };
 
-    // BPRT-03: write blueprint to Vercel Blob server-side; the raw JSON must never
-    // flow back through the function response body (4.5 MB body limit + privacy).
     const json = JSON.stringify(blueprint);
     const pathname = `blueprints/${modelId}-${Date.now()}.json`;
-
-    // Decision: access:"public" — the Blob URL is consumed by /api/analyze server-side in Phase 4,
-    // but downstream Phase 5 share flow also reads from Blob; "public" keeps the consumption path
-    // simple and the URL itself is opaque (random suffix). Re-evaluate in Phase 5 share planning.
     const putResult = await put(pathname, json, {
       access: 'public',
       contentType: 'application/json',
       allowOverwrite: true,
     });
 
-    // Developer-facing schema preview (NOT a BPRT requirement — internal Phase 3 → Phase 4
-    // hand-off checkpoint so the developer can confirm the BlueprintDocument shape before
-    // prompt engineering begins). Sent BEFORE the complete event.
+    // Schema preview for developer handoff checkpoint
     const sampleModule = blueprint.modules.find((m) => m.lineItems.length > 0);
     const schemaPreview = {
       moduleCount: blueprint.moduleCount,
@@ -221,7 +201,6 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    // Only log err.message (string) — never log err object, req.body, or encoded
     console.error('Blueprint error:', err.message);
     sendEvent({ type: 'error', message: err.message });
   } finally {

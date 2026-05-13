@@ -1,8 +1,7 @@
+import { applyCors } from './_cors.js';
+
 export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res);
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -62,23 +61,34 @@ export default async function handler(req, res) {
       name: w.name
     }));
 
-    // Step 3: Fetch model counts for all workspaces in parallel
-    const modelCounts = await Promise.all(
-      workspaces.map(ws =>
-        fetch(`https://api.anaplan.com/2/0/workspaces/${ws.id}/models`, {
-          headers: { 'Authorization': `AnaplanAuthToken ${token}` }
-        })
-        .then(r => r.ok ? r.json() : { models: [] })
-        .then(data => (data.models || []).filter(m => m.activeState === 'UNLOCKED').length)
-        .catch(() => 0) // partial failure: use 0 for this workspace, don't fail entire call
-      )
-    );
+    // Step 3: Fetch model counts in small batches — B-07: all-at-once Promise.all
+    // fires N simultaneous requests at login, triggering 429 storms on large tenants.
+    // Batch size of 3 balances speed vs rate-limit pressure.
+    const WS_BATCH = 3;
+    const modelCounts = [];
+    for (let i = 0; i < workspaces.length; i += WS_BATCH) {
+      const batch = workspaces.slice(i, i + WS_BATCH);
+      const batchCounts = await Promise.all(
+        batch.map(ws =>
+          fetch(`https://api.anaplan.com/2/0/workspaces/${ws.id}/models`, {
+            headers: { 'Authorization': `AnaplanAuthToken ${token}` }
+          })
+          .then(r => r.ok ? r.json() : { models: [] })
+          .then(data => (data.models || []).filter(m => m.activeState === 'UNLOCKED').length)
+          .catch(() => 0) // partial failure: use 0, don't fail entire login
+        )
+      );
+      modelCounts.push(...batchCounts);
+    }
 
     const totalModels = modelCounts.reduce((sum, c) => sum + c, 0);
 
+    // SEC-04: Return the Anaplan token so the client can use it directly on subsequent
+    // calls — client no longer needs to store or re-send the password.
     return res.status(200).json({
       workspaces,
       tokenExpiresAt: expiresAt,
+      tokenValue: token,
       totalModels
     });
 

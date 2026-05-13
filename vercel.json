@@ -17,6 +17,12 @@
     "api/connect.js": { "maxDuration": 10 },
     "api/models.js": { "maxDuration": 10 },
     "api/blueprint.js": { "maxDuration": 60 },
-    "api/analyze.js": { "maxDuration": 60 }
-  }
+    "api/analyze.js": { "maxDuration": 60 },
+    "api/analyze-narrative.js": { "maxDuration": 60 },
+    "api/share.js": { "maxDuration": 10 },
+    "api/cleanup.js": { "maxDuration": 10 }
+  },
+  "crons": [
+    { "path": "/api/cleanup", "schedule": "0 3 * * *" }
+  ]
 }

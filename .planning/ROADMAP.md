@@ -85,8 +85,13 @@
   4. Notes panel has a cross-module story with clickable flow diagram nodes and inline module name links that drill into per-module notes with a breadcrumb back to the story
   5. A recipient with only the shareable link (no Anaplan account, no login) can open the report in their browser and see all sections the sender included — the Shared Report screen renders correctly from Blob-stored data
   6. Vercel Blob reports older than 7 days are automatically deleted by a daily cron job — no manual cleanup required; expired reports return 404 or equivalent
-**Plans**: TBD
+**Plans**: 3 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 05-01-PLAN.md — Backend: api/share.js (POST+GET) + api/cleanup.js (daily cron) + vercel.json updates
+- [ ] 05-02-PLAN.md — Dashboard 4-tab overhaul: Verdict/Suggestions/Notes/Export markup, CSS, filter pills, collapsible domain groups, scroll-preserving tab switching
+- [ ] 05-03-PLAN.md — Export wiring (pdfmake CDN + PDF generation + share link create/copy) + Shared Report screen (s-shared) + initial URL router
 
 ---
 
@@ -98,7 +103,7 @@
 | 2. Connection | 0/3 | Planned | - |
 | 3. Blueprint | 3/3 | Complete    | 2026-05-11 |
 | 4. Analysis | 0/3 | Planned | - |
-| 5. Export, Share & UI | 0/? | Not started | - |
+| 5. Export, Share & UI | 0/3 | Not started | - |
 
 ---
 

@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { put, list } from '@vercel/blob';
+import { put, list, del } from '@vercel/blob';
 import { createHash } from 'crypto';
+import { applyCors } from './_cors.js';
 
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SONNET_MODEL = 'claude-sonnet-4-6';
@@ -11,13 +12,30 @@ const FORMULA_MAX_PER_MODULE = 5;  // max formula lines shown per module
 
 // Caching
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const CACHE_PREFIX = 'analysis-cache-v5/'; // bumped to invalidate v4 entries — Haiku prompt rewritten for Anaplan domain accuracy
+const CACHE_PREFIX = 'analysis-cache-v13/'; // v13: summary prompt rewritten — model description + dimensional score rationale
 
-function blueprintHash(blueprint) {
+// CA-04: Hash only stable fields — exclude fetchedAt which changes on every blueprint fetch
+export function blueprintHash(blueprint) {
+  const stableKey = { modelId: blueprint.modelId, modules: blueprint.modules };
   return createHash('sha256')
-    .update(JSON.stringify(blueprint))
+    .update(JSON.stringify(stableKey))
     .digest('hex')
     .slice(0, 24);
+}
+
+// SEC-01: Only allow Vercel Blob domains to prevent SSRF.
+// Vercel Blob URLs are prefixed with a store-specific subdomain:
+// e.g. https://<store-id>.public.blob.vercel-storage.com/<path>
+export function isAllowedBlobUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' && (
+      u.hostname.endsWith('.public.blob.vercel-storage.com') ||
+      u.hostname.endsWith('.blob.vercel-storage.com')
+    );
+  } catch {
+    return false;
+  }
 }
 
 async function getCachedEvents(hash) {
@@ -25,7 +43,11 @@ async function getCachedEvents(hash) {
     const { blobs } = await list({ prefix: `${CACHE_PREFIX}${hash}` });
     if (!blobs.length) return null;
     const blob = blobs[0];
-    if (Date.now() - new Date(blob.uploadedAt).getTime() > CACHE_TTL_MS) return null;
+    // CA-03: Delete stale blobs rather than silently skipping — prevents storage accumulation
+    if (Date.now() - new Date(blob.uploadedAt).getTime() > CACHE_TTL_MS) {
+      del(blob.url).catch(e => console.error('Stale blob delete failed (non-fatal):', e.message));
+      return null;
+    }
     const resp = await fetch(blob.url);
     if (!resp.ok) return null;
     return await resp.json();
@@ -91,48 +113,161 @@ function buildHaikuBulkPrompt(extractions) {
     return formulas.length ? header + '\n' + formulas.join('\n') : header;
   }).join('\n');
 
-  return `You are a senior Anaplan certified model builder reviewing a production Anaplan model for Anaplan Way compliance.
+  return `You are a senior Anaplan certified model builder. Review the modules below against the Anaplan Way rules listed here and flag genuine violations only.
 
-Analyze the modules below and flag genuine issues only.
+=== ANAPLAN WAY REFERENCE ===
+
+PLATFORM RULES
+- Engine: Polaris (NOT Classic). No circular references, no PREVIOUS() across versions.
+- Maximum 6 dimensions per module (hard Anaplan limit) — flag any module that appears to exceed this
+- 60-character limit on all module/list/line item names — flag names that are clearly too long
+- Formula length: keep under 120 characters per PLANS methodology; decompose into intermediate line items if longer
+- Time functions: use CURRENTPERIODSTART(), CURRENTPERIODEND() — never hardcode period names
+- Version handling: ISACTUALVERSION() is dynamic to version switchover; CURRENTPERIOD() is model-wide — never confuse them
+- Text line items: avoid unless truly needed (consume significantly more memory than numbers)
+
+MODULE NAMING — correct pattern is: XXX## Description (code + 2-digit number + space + name)
+Valid prefix codes: SYS (System Settings), DAT (Data Hub), CAP (Capture/Pipeline),
+TRK (Track/Project), PLN (Plan/Resource), PRC (Procure), MFG (Make/Manufacturing),
+FIN (Financial), SOP (S&OP), KPI (KPI Reporting), IBP (Integrated Business Planning), SCN (Scenarios)
+Flag: module names missing the XXX## prefix entirely, or using wrong/invented codes.
+Do NOT flag: modules that follow the pattern even if you don't recognise the functional area.
+
+LIST NAMING
+- Flat list: Plural noun (e.g. "Projects", "Resources")
+- Numbered list: # prefix (e.g. "#BOM Items", "#Milestones")
+- Subset: "sub ListName: Description"
+Flag: lists that don't follow these conventions.
+
+LINE ITEM NAMING
+Boolean line items must start with a verb: "Is Active", "Has BOM", "Can Ship"
+Flag: booleans named without verb prefix; vague names like "Number 1", "Test", "Temp", "Copy of"
+
+DISCO CLASSIFICATION RULES (Data / Input / System / Calculation / Output)
+- D (Data): source system imports only — never mix with user input
+- I (Input): end-user entry, minimal calculations
+- S (System): lookups, mappings, time management — summaries typically OFF
+- C (Calculation): heavy computation, fan-out pattern — summaries ALWAYS OFF
+- O (Output): reads from Calculation modules, never recalculates
+Flag: mixing imported data and user input in the same module; Calculation modules with summaries ON.
+
+PLANS CRITICAL RULES — NEVER VIOLATE:
+1. NEVER SUM + LOOKUP in same line item → split: LOOKUP first (intermediate), then SUM
+2. NEVER daisy-chain formulas A→B→C→D → fan-out: B, C, D each reference A directly
+3. NEVER SELECT with hardcoded list member names → use a System lookup module
+4. NEVER nest IF-THEN-ELSE more than 3 levels deep → use mapping module + LOOKUP
+5. NEVER SUM a percentage, rate, or ratio → re-derive: SUM(numerator)/SUM(denominator)
+6. ALWAYS set correct Summary Method: Currency/Count→SUM | Rate/Percentage/Ratio→NONE | Boolean→NONE | Date→NONE
+Flag: division A/B with no zero-guard; hardcoded magic numbers in formulas; formulas >120 chars without intermediate decomposition.
+
+CROSS-MODULE DATA FLOW — correct direction is strictly top-down:
+  Source Systems (ERP/MES/QMS)
+    → Data Hub (DAT01–DAT14) — flat lists and properties only
+    → Operational modules: CAP (Pipeline) → PLN (Demand) → PRC (Procurement)
+                                                           → MFG (Production)
+                           TRK (Tracking) ←→ PLN (demand from projects)
+    → Financial modules (FIN01–FIN08)
+    → Strategic modules (SOP01–SOP05, KPI01–KPI02, IBP01–IBP04)
+    → Dashboards
+
+Key expected references (flag if these are reversed or missing):
+- DAT01 Project Master → all pillars (project attributes, contract value)
+- TRK04 EVM Input → FIN02 Cost Aggregation (actual labor cost)
+- TRK05 EVM Calc → KPI01, FIN04 (CPI, SPI, EV%)
+- PLN07 Demand Summary → SOP01 Demand Review (resource demand by type)
+- PRC03 Procurement Calc → FIN02 Cost Aggregation (material costs)
+- MFG07 NCR Calc → FIN02 Cost Aggregation (NCR rework costs)
+- MFG02 Capacity Calc → SOP02 Supply Review (available capacity)
+- FIN08 Financial Output → SOP/KPI/IBP (revenue, margin, P&L)
+Flag: any module referencing another module that is DOWNSTREAM of it in this flow (e.g. a DAT module reading from FIN, or SYS reading from an Output module).
+
+HUB-AND-SPOKE ARCHITECTURE
+- Data Hub modules (DAT01–DAT14): flat lists and property modules ONLY — no planning logic, no hierarchies, no calculations
+- Spoke modules (CAP/TRK/PLN/PRC/MFG/FIN/SOP/KPI/IBP): all input/calculation/output logic lives here
+- Store attributes as line items in property modules, NOT as list properties
+- Lists stay flat in Data Hub; build hierarchies via saved views in spoke models
+Flag: DAT modules that contain calculated line items or planning logic.
+
+VERSION HANDLING
+Modules that SHOULD be versioned: FIN03–FIN08, SOP01–SOP03, IBP02, IBP04, PLN04–PLN07
+Modules that must NOT be versioned (actuals/source data): TRK01–TRK12, PRC01–PRC06, MFG01–MFG10, FIN01–FIN02, all DAT modules, all SYS modules
+Rule: if a module contains actual/historical data imported from source systems, it must NOT have the version dimension.
+Flag: TRK, PRC, MFG, DAT, or SYS modules that appear to have version dimension enabled.
+
+VALID ANAPLAN FORMULA FUNCTIONS — only flag formula issues using functions that actually exist:
+LOOKUP, SELECT, SUM, IF/THEN/ELSE, OFFSET, CUMULATE, FINDITEM, RANK, PARENT, CHILDREN,
+CURRENTPERIODSTART(), CURRENTPERIODEND(), CURRENTPERIOD(), ISACTUALVERSION(),
+AND(), OR(), NOT(), ANY(), ALL(), LAG(), LEAD(), YEARVALUE(), MONTHVALUE(),
+ABS(), MAX(), MIN(), ROUND(), POWER(), SQRT(), TEXT(), VALUE(), LENGTH(),
+LEFT(), RIGHT(), MID(), TRIM(), UPPER(), LOWER(), SUBSTITUTE(), CONCATENATE()
+NEVER flag a formula for using an invented or non-existent function.
+
+SUMMARY METHODS — correct mapping by data type:
+Currency / Revenue / Hours / Count → SUM
+Rate / Price / Percentage / Ratio / Index → NONE (NEVER SUM these)
+Boolean → NONE (or ANY / ALL for rollups)
+Date → NONE (or MIN / MAX)
+Text → NONE
+Headcount (snapshot, not additive across time) → NONE
+Flag: percentage/rate/ratio line items with SUM summary; currency/count line items with NONE summary when aggregation is needed.
+
+CORRECT FORMULA PATTERNS — DO NOT FLAG THESE:
+- IF NOT Is Active THEN 0 ELSE [calculation] — valid performance guard when >50% cells are zero
+- RAG threshold pattern: Is Green / Is Amber / Is Red as separate boolean line items feeding a status text — correct decomposition
+- Fan-out: multiple modules all referencing the same source module — correct (NOT daisy-chaining)
+- EAC override: IF Manual Override > 0 THEN Manual Override ELSE Calculated EAC — correct override pattern
+- Numerator/Denominator split for portfolio rates: SUM(EV) / SUM(AC) — correct aggregation
+- OFFSET(line_item, N) for payment delay or time-shifting — correct cash flow pattern
+- CUMULATE(line_item) for running totals — correct
+- SELECT with Versions.Actual or Versions.Forecast is acceptable when referencing version dimension members (not arbitrary list members)
+
+ANTI-PATTERNS (flag if clearly present):
+- SUM+LOOKUP in same line item
+- Daisy-chain (A→B→C→D sequential dependency)
+- SELECT with hardcoded member names
+- Nested IF > 3 levels
+- SUM of percentages/rates
+- Missing Summary Method on currency or count line items
+- Mixing imports with user input in same module
+- Duplicate logic in multiple modules instead of one shared SYS module
+- Hardcoded time period names (use CURRENTPERIODSTART/END instead)
+- DAT module with calculations (violates Hub-and-Spoke)
+- TRK/PRC/MFG/DAT/SYS module with version dimension (should never be versioned)
+
+=== PATTERNS THAT ARE CORRECT — DO NOT FLAG ===
+- IF Future / IF Current / IF Prior / IF ISANCESTOR() — standard time-phasing, always intentional
+- IF [time condition] THEN value ELSE 0 — correct; forecasts/plans are zero outside planning horizon
+- IF [time condition] THEN value ELSE BLANK() — also correct
+- LOOKUP, SUM, COLLECT across lists — normal cross-module reads
+- Input modules with few or no formulas — correct DISCO separation (I category)
+- Modules with only BOOLEAN line items — valid filter/flag modules (S or C category)
+- Setting forecast or plan to 0 for history periods — CORRECT forward-looking practice
+- Long but readable formulas — only flag if >120 chars AND no intermediate decomposition
+
+=== MODULES TO REVIEW ===
 
 ${moduleLines}
 
-ANAPLAN-SPECIFIC PATTERNS THAT ARE CORRECT — DO NOT FLAG THESE:
-- IF ISANCESTOR(...) / IF Future / IF Current / IF Prior — standard time-phasing, always intentional
-- IF [time condition] THEN value ELSE 0 — correct; forecasts/plans are zero for non-applicable periods
-- IF [time condition] THEN value ELSE BLANK() — also correct
-- LOOKUP, SUM, COLLECT across lists — normal cross-module reads
-- Long formulas with nested IF — acceptable if logic is clear
-- Input modules with few or no formulas — correct separation of concerns
-- Modules with only BOOLEAN line items — valid filter/flag modules
-- Setting forecast or plan to 0 outside the planning horizon is CORRECT practice
-
-GENUINE ISSUES TO FLAG (Anaplan Way violations):
-- Naming: modules not following SYS / INP / DAT / DYN / OUT / REP prefix convention
-- Naming: line items with vague names (e.g. "Number 1", "Test", "Temp", "Copy of")
-- Structural: modules that mix input and calculated line items without clear separation
-- Structural: modules with 50+ line items that could be split by domain
-- Formula: complex nested IFs that could be simplified with a subsidiary calculation
-- Formula: hardcoded numeric constants (magic numbers) in formulas
-- Formula: division without a zero-guard (e.g. A / B with no IF B = 0 check)
-- Formula: circular or self-referencing patterns
-- Best Practice: missing summary methods on line items that need aggregation
-- Best Practice: boolean line items used as numeric values (not as true booleans)
-- Best Practice: duplicate logic spread across multiple modules instead of a shared SYS module
-
-Rules:
-- SKIP a module if it has no genuine issues — do not invent problems
+=== OUTPUT QUALITY RULES ===
+- NEVER invent module names, line item names, or formulas not present in the blueprint above
+- NEVER flag a missing cross-module reference unless you have confirmed the source module does not exist in the blueprint
+- VERIFY: before flagging a formula issue, confirm the formula text is actually present in the data above
+- FLAG RISKS: if fixing an issue could break downstream modules that reference this one, note it in builderNote
+- PLAIN ENGLISH: reasoning and action must be understandable to a non-technical stakeholder
+- Add a builderNote when the fix is non-trivial, involves cross-module impact, or requires specific Anaplan steps
+- SKIP a module entirely if it has no genuine violations — do not invent problems
 - Total issues capped at ${MAX_HAIKU_ISSUES}. Prioritise "Fix Now" first, then "Consider", then "Monitor"
-- Only flag something if you are confident it is a real Anaplan Way violation
+- Only flag something if you are confident it is a real Anaplan Way violation per the rules above
 
-Each issue: { "moduleId", "moduleName", "domain", "triage", "title", "reasoning", "action" }
+Each issue: { "moduleId", "moduleName", "domain", "triage", "title", "reasoning", "action", "builderNote" }
 domain: "Structural" | "Formula" | "Best Practice" | "Naming"
 triage: "Fix Now" | "Consider" | "Monitor"
 title: ≤ 50 chars
-reasoning: ≤ 12 words — why it matters
-action: ≤ 12 words — what to do
+reasoning: ≤ 15 words plain English — why it matters
+action: ≤ 15 words plain English — what to do
+builderNote: ≤ 30 words — implementation guidance, cross-module risks, or specific Anaplan steps (omit if straightforward)
 
-Respond with raw JSON only — no markdown fences, no commentary.`;
+Respond with a raw JSON array only — no markdown fences, no commentary.`;
 }
 
 async function runHaikuBulk(client, extractions, sendEvent) {
@@ -140,9 +275,8 @@ async function runHaikuBulk(client, extractions, sendEvent) {
 
   // No guardTokens: bulk prompt is ~35K tokens, well under 180K limit
   const messages = [{ role: 'user', content: buildHaikuBulkPrompt(extractions) }];
-  // 4096 gives headroom: 25 issues × ~100 tokens each (JSON formatting) = ~2500 tokens
-  // 2048 was too tight — JSON truncation caused parseJsonStrict to return null → 0 suggestions
-  const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 4096, messages });
+  // 6144 gives headroom: 25 issues × ~150 tokens each (with builderNote) = ~3750 tokens
+  const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 6144, messages });
 
   const parsed = parseJsonStrict(resp.content?.[0]?.text);
   if (!parsed || !Array.isArray(parsed)) {
@@ -156,13 +290,14 @@ async function runHaikuBulk(client, extractions, sendEvent) {
   const allIssues = parsed
     .filter(item => item && VALID_TRIAGE.has(item.triage) && VALID_DOMAIN.has(item.domain))
     .map(item => ({
-      moduleId:   item.moduleId   || 'unknown',
-      moduleName: item.moduleName || 'Unknown Module',
-      domain:     item.domain,
-      triage:     item.triage,
-      text:       item.title || item.text || '',
-      reasoning:  item.reasoning || '',
-      action:     item.action || '',
+      moduleId:    item.moduleId   || 'unknown',
+      moduleName:  item.moduleName || 'Unknown Module',
+      domain:      item.domain,
+      triage:      item.triage,
+      text:        item.title || item.text || '',
+      reasoning:   item.reasoning || '',
+      action:      item.action || '',
+      builderNote: item.builderNote || '',
     }));
 
   // Group by module and emit one suggestions event per affected module
@@ -182,33 +317,61 @@ async function runHaikuBulk(client, extractions, sendEvent) {
 }
 
 function buildSonnetSynthesisPrompt(extractions, allSuggestions) {
-  const userContent = `Assess the health of this Anaplan model blueprint.
+  const fixNow = allSuggestions.filter(s => s.triage === 'Fix Now');
+  const consider = allSuggestions.filter(s => s.triage === 'Consider');
+  const monitor = allSuggestions.filter(s => s.triage === 'Monitor');
 
-Model has ${extractions.length} modules and ${extractions.reduce((s, m) => s + m.lineItemCount, 0)} line items.
+  const userContent = `You are a senior Anaplan certified model builder. Assess the health of this Anaplan ETO model blueprint using Anaplan Way standards.
 
-Module Summaries:
+MODEL OVERVIEW
+${extractions.length} modules | ${extractions.reduce((s, m) => s + m.lineItemCount, 0)} line items
+${extractions.filter(m => m.lineItems.some(li => li.formula)).length} modules with calculated line items
+${extractions.filter(m => m.lineItems.every(li => !li.formula)).length} input-only modules
+
+MODULE BREAKDOWN
 ${extractions.map(m =>
-  `${m.moduleName}: ${m.lineItemCount} items, ` +
-  `${m.lineItems.filter(li => li.formula).length} calculated, ` +
-  `${m.lineItems.filter(li => !li.formula).length} inputs`
+  `${m.moduleName}: ${m.lineItemCount} items (${m.lineItems.filter(li => li.formula).length} calc, ${m.lineItems.filter(li => !li.formula).length} input)`
 ).join('\n')}
 
-Collected Issues Summary:
-${allSuggestions.filter(s => s.triage === 'Fix Now').length} Fix Now
-${allSuggestions.filter(s => s.triage === 'Consider').length} Consider
-${allSuggestions.filter(s => s.triage === 'Monitor').length} Monitor
+ISSUES FOUND
+${fixNow.length} Fix Now | ${consider.length} Consider | ${monitor.length} Monitor
 
-Top issues by domain:
+By domain:
 ${['Structural', 'Formula', 'Best Practice', 'Naming'].map(d => {
-  const n = allSuggestions.filter(s => s.domain === d && s.triage === 'Fix Now').length;
-  return `${d}: ${n} Fix Now`;
+  const fn = allSuggestions.filter(s => s.domain === d && s.triage === 'Fix Now').length;
+  const co = allSuggestions.filter(s => s.domain === d && s.triage === 'Consider').length;
+  return `  ${d}: ${fn} Fix Now, ${co} Consider`;
 }).join('\n')}
+
+Fix Now issues:
+${fixNow.map(s => `  [${s.domain}] ${s.moduleName}: ${s.text}`).join('\n') || '  None'}
+
+SCORING GUIDANCE (Anaplan Way)
+healthScore: start at 100, then deduct:
+  - Each Structural "Fix Now": -8 (SUM+LOOKUP, daisy-chain, DISCO violation are architecture-critical)
+  - Each Formula "Fix Now": -6 (missing zero-guard, SUM of percentage, hardcoded SELECT)
+  - Each Best Practice "Fix Now": -5
+  - Each Naming "Fix Now": -3
+  - Each "Consider": -1.5
+  - Each "Monitor": -0.5
+  Cap minimum at 5. Round to nearest integer.
+
+verdict: "Good" (≥85) | "Needs Work" (60–84) | "Critical" (<60)
+
+Dimension scoring:
+  architecture: penalise hub-and-spoke violations, wrong versioning, DISCO mixing; boost if module structure is clean
+  naming: penalise missing XXX## prefixes, vague names, wrong boolean naming
+  formulas: penalise SUM+LOOKUP, zero-guard missing, SUM of ratios, hardcoded members
+  dataHygiene: penalise mixing imports with input, wrong summary methods, text line items overuse
+  governance: penalise daisy-chains, hardcoded periods, duplicate logic, lack of SYS modules
+
+summary: 2 sentences max. Sentence 1: describe what this model does — its planning scope, the functional areas it covers, and its scale (use the module count above). Sentence 2: explain the score at a dimensional level — which dimensions held up and which pulled it down. Do NOT list specific violations, module names, or recommendations (those appear in the suggestions panel below). Do NOT use filler phrases.
 
 Return JSON:
 {
   "healthScore": <0-100>,
   "verdict": "Good" | "Needs Work" | "Critical",
-  "summary": "<2-3 sentence executive summary>",
+  "summary": "<2-3 sentence specific executive summary>",
   "dimensions": {
     "architecture": <0-100>,
     "naming": <0-100>,
@@ -219,7 +382,7 @@ Return JSON:
 }
 Respond with raw JSON only — no markdown fences.`;
 
-  const system = 'You are an expert Anaplan model reviewer. You assess blueprints and produce structured health assessments. Always respond with valid JSON only, no markdown.';
+  const system = 'You are a senior Anaplan certified model builder producing health assessments grounded in Anaplan Way standards. Always respond with valid JSON only, no markdown.';
   return { userContent, system };
 }
 
@@ -258,7 +421,8 @@ export function detectDependencies(extractions) {
       if (!li.formula) continue;
       for (const other of extractions) {
         if (other.moduleId === mod.moduleId) continue;
-        if (li.formula.includes(other.moduleName)) {
+        // B-10: append '.' so 'FIN02' won't match inside 'FIN020' or 'FIN02Cost'
+        if (li.formula.includes(other.moduleName + '.')) {
           deps[mod.moduleId].receivesFrom.add(other.moduleName);
           if (!deps[other.moduleId]) deps[other.moduleId] = { receivesFrom: new Set(), sendsTo: new Set() };
           deps[other.moduleId].sendsTo.add(mod.moduleName);
@@ -276,53 +440,62 @@ export function detectDependencies(extractions) {
   return result;
 }
 
-function buildSonnetNarrativePrompt(extractions, deps) {
-  const MAX_NARR_MODULES = 20;
-  const ranked = extractions
-    .map(m => {
-      const d = deps[m.moduleId] || { receivesFrom: [], sendsTo: [] };
-      return { m, connections: d.receivesFrom.length + d.sendsTo.length };
-    })
-    .sort((a, b) => b.connections - a.connections)
-    .slice(0, MAX_NARR_MODULES)
-    .map(x => x.m);
+// B-02: Generates a plain-English model overview — layers, scope, data flow direction
+export function buildNarrativePrompt(extractions, _deps) {
+  const totalLineItems = extractions.reduce((s, m) => s + m.lineItemCount, 0);
 
-  const userContent = `Generate a cross-module data-flow narrative for this Anaplan model.
+  // Group modules by pillar prefix so Sonnet understands what layers exist
+  const pillarMap = {};
+  for (const m of extractions) {
+    const prefix = (m.moduleName.match(/^([A-Z]{2,4})/) || ['', 'OTHER'])[1];
+    pillarMap[prefix] = (pillarMap[prefix] || 0) + 1;
+  }
+  const pillarSummary = Object.entries(pillarMap)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${k}: ${v} modules`)
+    .join(', ');
 
-Showing the ${ranked.length} most-connected modules (out of ${extractions.length} total).
+  const sampleNames = extractions.slice(0, 30).map(m => m.moduleName).join(', ');
 
-Modules and dependencies:
-${ranked.map(m => {
-  const d = deps[m.moduleId] || { receivesFrom: [], sendsTo: [] };
-  return `${m.moduleName} (id:${m.moduleId}) — receives-from: [${d.receivesFrom.join(', ')}] — sends-to: [${d.sendsTo.join(', ')}]`;
-}).join('\n')}
+  const userContent = `You are a senior Anaplan model builder. Write a concise plain-English description of this model's design for a business stakeholder — not a technical audience.
 
-Return JSON:
-{
-  "story": "<2-3 paragraph narrative of how data flows>",
-  "modules": [
-    { "id": "<moduleId>", "name": "<moduleName>", "purpose": "<1 sentence ≤ 15 words>",
-      "receivesFrom": ["<moduleName>", ...], "sendsTo": ["<moduleName>", ...],
-      "risks": ["<≤ 10 words>"] }
-  ]
-}
-One entry per module above. Keep all strings concise — total response must fit in 3000 tokens.
-Respond with raw JSON only — no markdown fences.`;
+MODEL: ${extractions.length} modules, ${totalLineItems} line items
+PILLARS: ${pillarSummary}
+SAMPLE NAMES: ${sampleNames}
 
-  const system = 'You are an expert Anaplan model reviewer producing data-flow narratives. Always respond with valid JSON only.';
+Describe:
+1. What planning problem this model solves and its overall scope
+2. The main layers (e.g. data hub, operational planning, financial consolidation, reporting) and how data flows top-down through them
+3. Any notable structural approach (e.g. whether it separates actuals from forecasts, centralises master data, etc.)
+
+Format — use this exact structure:
+• One opening sentence covering what the model does and its scale
+• 3–5 bullet points (use the • character) for the main layers and data flow
+• One closing sentence on the overall structural approach
+
+Rules:
+- Under 130 words total
+- Avoid Anaplan jargon: do not use terms like hub-and-spoke, DISCO, PLANS, Polaris, fan-out, daisy-chain
+- Do not mention formula issues, violations, or health score
+- Do not fabricate module names not in the list above
+- Write as if explaining to a finance or ops director, not a developer
+
+Return JSON only: { "story": "<description>" }`;
+
+  const system = 'You are a senior Anaplan model builder writing plain-English model overviews for business stakeholders. Always respond with valid JSON only, no markdown fences.';
   return { userContent, system };
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res);
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const blobUrl = req.body?.blobUrl; // safe — req.body may be undefined if body parsing fails
   if (!blobUrl) return res.status(400).json({ error: 'Missing blobUrl' });
+  // SEC-01: Reject non-Vercel-Blob URLs before any network call (SSRF guard)
+  if (!isAllowedBlobUrl(blobUrl)) return res.status(400).json({ error: 'Invalid blobUrl — must be a Vercel Blob URL' });
   if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
 
   // SSE headers BEFORE first await
@@ -380,7 +553,16 @@ export default async function handler(req, res) {
 
     // Stage 3: Single Haiku bulk call — all modules, full reasoning (ANLZ-02)
     sendEvent({ type: 'progress', stage: 'suggestions', pct: 25 });
+    // Real-time tick: creep bar 25→65% while awaiting Haiku response (~28s on large models)
+    let tickInterval = null;
+    const _haikuStartMs = Date.now();
+    tickInterval = setInterval(() => {
+      const elapsed = Date.now() - _haikuStartMs;
+      const pct = Math.min(65, 25 + Math.round((elapsed / 28_000) * 40));
+      sendEvent({ type: 'progress', stage: 'suggestions', pct });
+    }, 2000);
     const allSuggestions = await runHaikuBulk(client, extractions, sendEvent);
+    clearInterval(tickInterval); tickInterval = null;
 
     // Budget guard before Sonnet
     if (Date.now() - startMs > TOTAL_BUDGET_MS) {
@@ -391,10 +573,17 @@ export default async function handler(req, res) {
     }
 
     // Stage 4a: Sonnet synthesis — health score, verdict, dimensions (ANLZ-01)
-    // No guardTokens: synthesis prompt is ~5K tokens, well under 180K limit
     sendEvent({ type: 'progress', stage: 'scoring', pct: 70 });
+    // Real-time tick: creep bar 70→82% while awaiting Sonnet response (~14s)
+    const _sonnetStartMs = Date.now();
+    tickInterval = setInterval(() => {
+      const elapsed = Date.now() - _sonnetStartMs;
+      const pct = Math.min(82, 70 + Math.round((elapsed / 14_000) * 12));
+      sendEvent({ type: 'progress', stage: 'scoring', pct });
+    }, 2000);
     const { userContent: synthUser, system: synthSystem } = buildSonnetSynthesisPrompt(extractions, allSuggestions);
     const synthRaw = await client.messages.create({ model: SONNET_MODEL, max_tokens: 1024, messages: [{ role: 'user', content: synthUser }], system: synthSystem });
+    clearInterval(tickInterval); tickInterval = null;
     const synth = normalizeSynthesis(parseJsonStrict(synthRaw.content?.[0]?.text));
 
     sendEvent({
@@ -405,39 +594,15 @@ export default async function handler(req, res) {
       dimensions: synth.dimensions,
     });
 
-    // Stage 4b: Haiku narrative — cross-module data flow (ANLZ-04)
-    // Haiku ~300 tps vs Sonnet ~50 tps: 1500 tokens takes ~5s not ~30s
-    // No guardTokens: narrative prompt is ~1.5K tokens, well under 180K limit
-    sendEvent({ type: 'progress', stage: 'narrative', pct: 85 });
-
-    if (Date.now() - startMs > TOTAL_BUDGET_MS) {
-      sendEvent({ type: 'complete', healthScore: synth.healthScore, totalSuggestions: allSuggestions.length, analysisId: blueprint.modelId });
-      await setCachedEvents(hash, eventLog);
-      return;
-    }
-
-    const deps = detectDependencies(extractions);
-    const { userContent: narrUser, system: narrSystem } = buildSonnetNarrativePrompt(extractions, deps);
-    // 3000 gives headroom: story ~300 tokens + 20 modules × ~75 tokens = ~1800 tokens
-    // 1500 was too tight — JSON truncation caused parseJsonStrict to return null → blank narrative
-    const narrResp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 3000, messages: [{ role: 'user', content: narrUser }], system: narrSystem });
-    const narrRaw = parseJsonStrict(narrResp.content?.[0]?.text) || { story: '', modules: [] };
-
-    sendEvent({
-      type: 'narrative',
-      story: narrRaw.story || '',
-      modules: Array.isArray(narrRaw.modules) ? narrRaw.modules : [],
-    });
-
+    // Narrative is handled by /api/analyze-narrative — this endpoint is now complete after scoring
     sendEvent({ type: 'complete', healthScore: synth.healthScore, totalSuggestions: allSuggestions.length, analysisId: blueprint.modelId });
-
-    // Store result in cache for future requests
     await setCachedEvents(hash, eventLog);
 
   } catch (err) {
     console.error('Analyze error:', err.message);
     sendEvent({ type: 'error', message: err.message });
   } finally {
+    if (typeof tickInterval !== 'undefined' && tickInterval) clearInterval(tickInterval);
     res.end();
   }
 }
