@@ -6,13 +6,14 @@ import { applyCors } from './_cors.js';
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 const SONNET_MODEL = 'claude-sonnet-4-6';
 const TOTAL_BUDGET_MS = 52_000;    // guard before Vercel 60s hard kill
-const MAX_HAIKU_ISSUES = 25;       // soft cap; at ~100 tokens/issue fits in 4096 max_tokens
-const FORMULA_MAX_CHARS = 120;     // truncate long formulas in bulk prompt
-const FORMULA_MAX_PER_MODULE = 5;  // max formula lines shown per module
+const MAX_HAIKU_ISSUES = 60;       // raised: 228-module models need more headroom
+const FORMULA_MAX_CHARS = 200;     // allow longer formula previews
+const FORMULA_MAX_PER_MODULE = 12; // show more calculated line items per module
+const INPUT_MAX_PER_MODULE = 25;   // max input line items shown per module
 
 // Caching
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const CACHE_PREFIX = 'analysis-cache-v13/'; // v13: summary prompt rewritten — model description + dimensional score rationale
+const CACHE_PREFIX = 'analysis-cache-v14/'; // v14: full line-item visibility (format, summary, dims, all names)
 
 // CA-04: Hash only stable fields — exclude fetchedAt which changes on every blueprint fetch
 export function blueprintHash(blueprint) {
@@ -103,14 +104,39 @@ function buildHaikuBulkPrompt(extractions) {
   const moduleLines = extractions.map(m => {
     const calc = m.lineItems.filter(li => li.formula);
     const inp  = m.lineItems.filter(li => !li.formula);
-    const header = `[${m.moduleId}] ${m.moduleName} (${m.lineItemCount} items: ${calc.length} calc, ${inp.length} input)`;
-    const formulas = calc.slice(0, FORMULA_MAX_PER_MODULE).map(li => {
+
+    // Collect all unique dimensions across all line items in the module
+    const allDims = [...new Set(m.lineItems.flatMap(li => li.dimensions || []))];
+    const dimStr = allDims.length ? allDims.join(', ') : 'none';
+
+    const header = `[${m.moduleId}] ${m.moduleName} (${m.lineItemCount} items: ${calc.length} calc, ${inp.length} input | dims: ${dimStr})`;
+
+    // Input line items: name + format + summary — critical for detecting naming violations
+    // and wrong summary methods (e.g. percentage with SUM). Previously invisible to the AI.
+    const inputLines = inp.slice(0, INPUT_MAX_PER_MODULE).map(li => {
+      const fmt = li.format || '?';
+      const sum = li.summary || '?';
+      return `  INPUT: ${li.name} [${fmt}/${sum}]`;
+    });
+    if (inp.length > INPUT_MAX_PER_MODULE) {
+      inputLines.push(`  INPUT: … +${inp.length - INPUT_MAX_PER_MODULE} more`);
+    }
+
+    // Calculated line items: name + format + summary + formula
+    const formulaLines = calc.slice(0, FORMULA_MAX_PER_MODULE).map(li => {
       const f = li.formula.length > FORMULA_MAX_CHARS
         ? li.formula.slice(0, FORMULA_MAX_CHARS) + '…'
         : li.formula;
-      return `  ${li.name} = ${f}`;
+      const fmt = li.format || '?';
+      const sum = li.summary || '?';
+      return `  CALC: ${li.name} [${fmt}/${sum}] = ${f}`;
     });
-    return formulas.length ? header + '\n' + formulas.join('\n') : header;
+    if (calc.length > FORMULA_MAX_PER_MODULE) {
+      formulaLines.push(`  CALC: … +${calc.length - FORMULA_MAX_PER_MODULE} more`);
+    }
+
+    const lines = [...inputLines, ...formulaLines];
+    return lines.length ? header + '\n' + lines.join('\n') : header;
   }).join('\n');
 
   return `You are a senior Anaplan certified model builder. Review the modules below against the Anaplan Way rules listed here and flag genuine violations only.
@@ -257,15 +283,18 @@ ${moduleLines}
 - Add a builderNote when the fix is non-trivial, involves cross-module impact, or requires specific Anaplan steps
 - SKIP a module entirely if it has no genuine violations — do not invent problems
 - Total issues capped at ${MAX_HAIKU_ISSUES}. Prioritise "Fix Now" first, then "Consider", then "Monitor"
+- Use the [format/summary] data shown for INPUT and CALC items to flag wrong summary methods (e.g. Percentage with SUM, Currency with NONE)
+- Use the dims list on each module header to flag modules with more than 6 dimensions
+- Use INPUT item names to flag naming violations (booleans without verb prefix, vague names like Temp/Copy/Test/Number)
 - Only flag something if you are confident it is a real Anaplan Way violation per the rules above
 
 Each issue: { "moduleId", "moduleName", "domain", "triage", "title", "reasoning", "action", "builderNote" }
 domain: "Structural" | "Formula" | "Best Practice" | "Naming"
 triage: "Fix Now" | "Consider" | "Monitor"
-title: ≤ 50 chars
-reasoning: ≤ 15 words plain English — why it matters
-action: ≤ 15 words plain English — what to do
-builderNote: ≤ 30 words — implementation guidance, cross-module risks, or specific Anaplan steps (omit if straightforward)
+title: ≤ 60 chars — specific: name the line item or pattern
+reasoning: ≤ 25 words — why it violates Anaplan Way and what risk it creates
+action: ≤ 25 words — concrete step to fix it
+builderNote: ≤ 40 words — cross-module impact, specific Anaplan steps, or downstream risk (omit if trivial)
 
 Respond with a raw JSON array only — no markdown fences, no commentary.`;
 }
@@ -273,10 +302,10 @@ Respond with a raw JSON array only — no markdown fences, no commentary.`;
 async function runHaikuBulk(client, extractions, sendEvent) {
   sendEvent({ type: 'haiku-progress', modulesDone: 0, modulesTotal: extractions.length, moduleName: 'Scanning all modules…', skipped: false });
 
-  // No guardTokens: bulk prompt is ~35K tokens, well under 180K limit
+  // Prompt is larger now (full line-item visibility) but still well under 200K limit
   const messages = [{ role: 'user', content: buildHaikuBulkPrompt(extractions) }];
-  // 6144 gives headroom: 25 issues × ~150 tokens each (with builderNote) = ~3750 tokens
-  const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 6144, messages });
+  // 12288: 60 issues × ~180 tokens each (longer reasoning/action/builderNote) = ~10800 tokens
+  const resp = await client.messages.create({ model: HAIKU_MODEL, max_tokens: 12288, messages });
 
   const parsed = parseJsonStrict(resp.content?.[0]?.text);
   if (!parsed || !Array.isArray(parsed)) {

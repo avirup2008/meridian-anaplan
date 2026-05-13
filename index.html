@@ -4264,11 +4264,8 @@ function confirmModelSelection() {
       }
 
       if (options.suggestions) {
-        // Respect the user's current pill filters
-        const filtered = suggData.filter(s =>
-          (suggFilter.triage === 'All' || s.triage === suggFilter.triage) &&
-          (suggFilter.domain === 'All' || s.domain === suggFilter.domain)
-        );
+        // PDF always exports ALL suggestions — ignore active filter pills
+        const filtered = suggData;
         content.push({ text: 'Improvement Suggestions (' + filtered.length + ')', style: 'section' });
         const order = ['Structural', 'Formula', 'Best Practice', 'Naming'];
         for (const dom of order) {
