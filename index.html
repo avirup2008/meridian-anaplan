@@ -910,9 +910,65 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     </div>
 
     <div class="dash-panel" id="dash-panel-model" data-alias="tab-panel-model">
-      <div class="model-stub">
-        <h2>Model</h2>
-        <p>Module classification, dependency graph, and DISCO architecture map ship in the next update.</p>
+      <!-- Model tab: populated by _anlOnModelComprehension() when model-comprehension SSE event arrives -->
+      <div id="model-loading" class="notes-empty">Analysing model architecture — this usually takes a few seconds.</div>
+
+      <!-- Module classification table — hidden until model-comprehension arrives -->
+      <div id="model-classification-section" hidden>
+        <h3 class="step-label">Module Classification</h3>
+        <p class="anl-summary" id="model-classification-subtitle"></p>
+        <div id="model-classification-table-wrap" style="overflow-x:auto;margin-top:12px;">
+          <table id="model-classification-table" class="data-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:6px 10px;">Module</th>
+                <th style="text-align:left;padding:6px 10px;">DISCO</th>
+                <th style="text-align:left;padding:6px 10px;">Confidence</th>
+                <th style="text-align:right;padding:6px 10px;">Formulas</th>
+                <th style="text-align:right;padding:6px 10px;">Inputs</th>
+              </tr>
+            </thead>
+            <tbody id="model-classification-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- DISCO architecture map — hidden until model-comprehension arrives -->
+      <div id="model-disco-section" hidden style="margin-top:24px;">
+        <h3 class="step-label">Architecture Map</h3>
+        <div id="model-disco-map" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;"></div>
+      </div>
+
+      <!-- Limitation cards — shown when gates fail -->
+      <div id="model-limitations-section" hidden style="margin-top:24px;">
+        <h3 class="step-label">Evidence Limitations</h3>
+        <div id="model-limitation-cards"></div>
+      </div>
+
+      <!-- Dependency graph table -->
+      <div id="model-graph-section" hidden style="margin-top:24px;">
+        <h3 class="step-label">Cross-Module Dependencies</h3>
+        <p class="anl-summary" id="model-graph-subtitle"></p>
+        <div style="overflow-x:auto;margin-top:12px;">
+          <table id="model-graph-table" class="data-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:6px 10px;">From</th>
+                <th style="text-align:left;padding:6px 10px;">To</th>
+                <th style="text-align:right;padding:6px 10px;">Line Items</th>
+              </tr>
+            </thead>
+            <tbody id="model-graph-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Dead logic and patterns -->
+      <div id="model-patterns-section" hidden style="margin-top:24px;">
+        <h3 class="step-label">Formula Patterns</h3>
+        <div id="model-dead-logic-wrap"></div>
+        <div id="model-cycles-wrap" style="margin-top:12px;"></div>
+        <div id="model-daisy-chains-wrap" style="margin-top:12px;"></div>
       </div>
     </div>
 
@@ -4962,6 +5018,152 @@ function confirmModelSelection() {
       renderIntelligencePreview();
     }
 
+    // XSS helper — used by model comprehension renderer and health workstream renderer
+    function escapeHtml(str) {
+      return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function _anlOnModelComprehension(evt) {
+      // Hide loading placeholder
+      const loading = _anl$('model-loading');
+      if (loading) loading.hidden = true;
+
+      // ── Module classification table ──────────────────────────────────────────
+      const classSection = _anl$('model-classification-section');
+      const classBody = _anl$('model-classification-body');
+      const classSubtitle = _anl$('model-classification-subtitle');
+      if (classSection && classBody && evt.modules && evt.modules.length) {
+        classSubtitle.textContent = `${evt.modules.length} functional modules classified`;
+        classBody.innerHTML = '';
+        for (const m of evt.modules) {
+          const tr = document.createElement('tr');
+          const confColor = m.confidenceLabel === 'High' ? '#2ecc71' : m.confidenceLabel === 'Medium' ? '#f39c12' : '#e74c3c';
+          tr.innerHTML = `
+            <td style="padding:6px 10px;border-bottom:1px solid #eee;">${escapeHtml(m.moduleName)}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #eee;font-family:monospace;">${escapeHtml(m.discoLabel)}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #eee;">
+              <span style="display:inline-block;padding:2px 8px;border-radius:12px;background:${confColor}22;color:${confColor};font-size:11px;font-weight:600;" title="${escapeHtml(m.confidenceReason)}">${escapeHtml(m.confidenceLabel)}</span>
+            </td>
+            <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;">${m.formulaCount}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;">${m.inputCount}</td>
+          `;
+          classBody.appendChild(tr);
+        }
+        classSection.hidden = false;
+      }
+
+      // ── DISCO architecture map ────────────────────────────────────────────────
+      const discoSection = _anl$('model-disco-section');
+      const discoMap = _anl$('model-disco-map');
+      if (discoSection && discoMap && evt.discoMap) {
+        discoMap.innerHTML = '';
+        const labels = { SYS: 'System', DAT: 'Data', CAL: 'Calculation', INP: 'Planning', REP: 'Output', UNKNOWN: 'Unknown' };
+        for (const [key, count] of Object.entries(evt.discoMap)) {
+          if (!count && key !== 'UNKNOWN') continue;
+          const tile = document.createElement('div');
+          tile.className = 'intel-card';
+          tile.style.cssText = 'min-width:100px;text-align:center;padding:14px 18px;';
+          if (key === 'UNKNOWN' && count > 0) tile.style.borderColor = '#e74c3c';
+          tile.innerHTML = `<div style="font-size:22px;font-weight:700;">${count}</div><div style="font-size:11px;margin-top:4px;opacity:.7;">${key} — ${escapeHtml(labels[key] || key)}</div>`;
+          discoMap.appendChild(tile);
+        }
+        discoSection.hidden = false;
+      }
+
+      // ── Limitation cards (when gates fail) ───────────────────────────────────
+      const limSection = _anl$('model-limitations-section');
+      const limCards = _anl$('model-limitation-cards');
+      if (limSection && limCards && evt.limitationCards && evt.limitationCards.length) {
+        limCards.innerHTML = '';
+        for (const text of evt.limitationCards) {
+          const card = document.createElement('div');
+          card.className = 'limitation-card';
+          card.style.cssText = 'background:#fff8f0;border:1px solid #f39c12;border-radius:6px;padding:12px 16px;margin-bottom:8px;';
+          card.innerHTML = `<strong style="color:#b7770d;">Limitation</strong><p style="margin:6px 0 0;font-size:13px;">${escapeHtml(text)}</p>`;
+          limCards.appendChild(card);
+        }
+        limSection.hidden = false;
+      }
+
+      // ── Dependency graph table ────────────────────────────────────────────────
+      const graphSection = _anl$('model-graph-section');
+      const graphBody = _anl$('model-graph-body');
+      const graphSubtitle = _anl$('model-graph-subtitle');
+      if (graphSection && graphBody && evt.graph && evt.graph.edges && evt.graph.edges.length) {
+        const edges = evt.graph.edges.slice().sort((a, b) => b.lineItems.length - a.lineItems.length);
+        graphSubtitle.textContent = `${edges.length} cross-module reference edge${edges.length === 1 ? '' : 's'} detected`;
+        graphBody.innerHTML = '';
+        for (const edge of edges.slice(0, 100)) { // cap at 100 rows for rendering performance
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;">${escapeHtml(edge.fromModuleName)}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;">${escapeHtml(edge.toModuleName)}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;font-size:12px;">${edge.lineItems.length}</td>
+          `;
+          graphBody.appendChild(tr);
+        }
+        graphSection.hidden = false;
+      } else if (graphSection && evt.limitationCards && evt.limitationCards.length) {
+        // Gates failed — graph already suppressed via limitationCards, don't show empty table
+        graphSection.hidden = true;
+      }
+
+      // ── Dead logic, cycles, daisy chains ─────────────────────────────────────
+      const patternsSection = _anl$('model-patterns-section');
+      const deadLogicWrap = _anl$('model-dead-logic-wrap');
+      const cyclesWrap = _anl$('model-cycles-wrap');
+      const daisyWrap = _anl$('model-daisy-chains-wrap');
+      let hasPatterns = false;
+
+      if (deadLogicWrap && evt.deadLogic && evt.deadLogic.length) {
+        hasPatterns = true;
+        deadLogicWrap.innerHTML = `
+          <details>
+            <summary style="cursor:pointer;font-weight:600;font-size:13px;">
+              Dead Logic — ${evt.deadLogic.length} unreferenced CALC item${evt.deadLogic.length === 1 ? '' : 's'}
+              <span style="font-size:11px;font-weight:400;color:#888;margin-left:8px;">(Medium confidence — truncated formulas excluded)</span>
+            </summary>
+            <ul style="margin:8px 0 0 18px;font-size:12px;">
+              ${evt.deadLogic.map(d => `<li><strong>${escapeHtml(d.moduleName)}</strong> / ${escapeHtml(d.lineItemName)}</li>`).join('')}
+            </ul>
+          </details>
+        `;
+      }
+
+      if (cyclesWrap && evt.cycles && evt.cycles.length) {
+        hasPatterns = true;
+        const nodeById = new Map((evt.graph.nodes || []).map(n => [n.moduleId, n.moduleName]));
+        cyclesWrap.innerHTML = `
+          <details>
+            <summary style="cursor:pointer;font-weight:600;font-size:13px;color:#c0392b;">
+              Circular Dependencies — ${evt.cycles.length} cycle${evt.cycles.length === 1 ? '' : 's'} detected
+            </summary>
+            <ul style="margin:8px 0 0 18px;font-size:12px;">
+              ${evt.cycles.map(c => `<li>${c.map(id => escapeHtml(nodeById.get(id) || id)).join(' → ')}</li>`).join('')}
+            </ul>
+          </details>
+        `;
+      }
+
+      if (daisyWrap && evt.daisyChains && evt.daisyChains.length) {
+        hasPatterns = true;
+        const nodeById = new Map((evt.graph.nodes || []).map(n => [n.moduleId, n.moduleName]));
+        daisyWrap.innerHTML = `
+          <details>
+            <summary style="cursor:pointer;font-weight:600;font-size:13px;">
+              Single-Path Passthrough Modules — ${evt.daisyChains.length} candidate${evt.daisyChains.length === 1 ? '' : 's'}
+              <span style="font-size:11px;font-weight:400;color:#888;margin-left:8px;">(review intent with model owner)</span>
+            </summary>
+            <ul style="margin:8px 0 0 18px;font-size:12px;">
+              ${evt.daisyChains.map(id => `<li>${escapeHtml(nodeById.get(id) || id)}</li>`).join('')}
+            </ul>
+          </details>
+        `;
+      }
+
+      if (patternsSection) patternsSection.hidden = !hasPatterns;
+    }
+
     function _anlEsc(s) {
       return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
@@ -5139,6 +5341,9 @@ function confirmModelSelection() {
             try { evt = JSON.parse(payload); } catch { continue; }
             try {
               switch (evt.type) {
+                case 'stage': { const stageEl = _anl$('anl-stage-label'); if (stageEl) stageEl.textContent = evt.label || ''; break; }
+                case 'model-comprehension': _anlOnModelComprehension(evt); break;
+                case 'health-workstreams': _anlOnHealthWorkstreams(evt); break;
                 case 'cache-hit': _anl$('anl-hdr-status').innerHTML = 'Loading from cache…'; break;
                 case 'progress': _anlOnProgress(evt.stage, evt.pct); break;
                 case 'extraction-done': _anlOnExtractionDone(evt.moduleCount, evt.totalLineItems); break;
@@ -5148,7 +5353,7 @@ function confirmModelSelection() {
                 case 'partial-analysis': _anlOnPartial(evt.reason, evt.modulesAnalysed, evt.modulesSkipped); break;
                 case 'score': _anlOnScore(evt); break;
                 case 'narrative': _anlOnNarrative(evt); break;
-                case 'complete': _anlOnComplete(evt); _anl$('anl-sub').dataset.cached = evt.fromCache ? '1' : ''; if (!evt.deterministicOnly) runNarrative(blobUrl, myGen); break;
+                case 'complete': _anlOnComplete(evt); _anl$('anl-sub').dataset.cached = evt.fromCache ? '1' : ''; if (!isV3 && !evt.deterministicOnly) runNarrative(blobUrl, myGen); break;
                 case 'error': _anlShowError(evt.message); break;
               }
             } catch (handlerErr) {
