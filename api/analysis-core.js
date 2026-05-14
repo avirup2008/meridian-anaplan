@@ -1035,6 +1035,7 @@ function moduleFootprint(normalized) {
   const formulaCount = normalized.modules.reduce((sum, mod) => sum + mod.lineItems.filter(li => li.hasFormula).length, 0);
   const inputCount = lineItemCount - formulaCount;
   const excludedDecorative = (normalized.excludedModules || []).filter(m => m.reason === 'decorative_separator' || m.reason === 'empty_or_header_only').length;
+  const fetchErrorCount = (normalized.excludedModules || []).filter(m => m.reason === 'fetch_error' || m.reason === 'missing_line_items').length;
   return {
     rawModuleCount: normalized.rawModuleCount || normalized.modules.length,
     functionalModuleCount: normalized.modules.length,
@@ -1042,6 +1043,97 @@ function moduleFootprint(normalized) {
     formulaCount,
     inputCount,
     excludedDecorative,
+    fetchErrorCount,
+  };
+}
+
+function pct(numerator, denominator) {
+  if (!denominator) return 0;
+  return Number((numerator / denominator).toFixed(2));
+}
+
+function gate(status, label, detail, blocks = []) {
+  return { status, label, detail, blocks };
+}
+
+function plural(count, singular, pluralLabel = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : pluralLabel}`;
+}
+
+export function buildEvidenceDiagnostics(normalized, graph, architecture) {
+  const footprint = moduleFootprint(normalized);
+  const declared = architecture.modules.filter(m => m.declaredLayer !== 'unknown').length;
+  const unknown = architecture.modules.length - declared;
+  const formulaModules = normalized.modules.filter(m => m.lineItems.some(li => li.hasFormula)).length;
+  const edgeCount = graph.edges.length;
+  const formulaCoverage = pct(footprint.formulaCount, Math.max(1, footprint.lineItemCount));
+  const dependencyDensity = pct(edgeCount, Math.max(1, formulaModules));
+  const namingCoverage = pct(declared, Math.max(1, architecture.modules.length));
+  const partial = normalized.partialLoad || footprint.fetchErrorCount > 0;
+
+  const dependencyStatus = formulaModules === 0
+    ? 'not_applicable'
+    : edgeCount === 0
+    ? 'absent'
+    : edgeCount < Math.max(3, Math.ceil(normalized.modules.length * 0.08))
+      ? 'weak'
+      : 'usable';
+  const classificationStatus = namingCoverage < 0.55
+    ? 'low_confidence'
+    : namingCoverage < 0.75
+      ? 'limited'
+      : 'usable';
+
+  const gates = {
+    dataCompleteness: partial
+      ? gate('limited', 'Partial blueprint', `${footprint.fetchErrorCount} module${footprint.fetchErrorCount === 1 ? '' : 's'} were skipped or missing line items.`, ['complete_model_assessment'])
+      : gate('usable', 'Blueprint fetched', 'No skipped modules were present in the fetched blueprint.'),
+    dependencyGraph: dependencyStatus === 'usable'
+      ? gate('usable', 'Dependency evidence usable', `${plural(edgeCount, 'cross-module formula edge')} detected across ${plural(formulaModules, 'formula-bearing module')}.`)
+      : dependencyStatus === 'not_applicable'
+        ? gate('not_applicable', 'No formula dependency evidence expected', 'No formula-bearing modules were present in the fetched blueprint, so dependency diagrams are not applicable.', ['dependency_map', 'blast_radius'])
+      : gate(dependencyStatus, dependencyStatus === 'absent' ? 'No dependency evidence' : 'Sparse dependency evidence', `${plural(edgeCount, 'cross-module formula edge')} detected across ${plural(formulaModules, 'formula-bearing module')}. Architecture and blast-radius claims should be treated as low-confidence.`, ['dependency_map', 'blast_radius', 'architecture_flow']),
+    architectureClassification: classificationStatus === 'usable'
+      ? gate('usable', 'Classification evidence usable', `${Math.round(namingCoverage * 100)}% of functional modules have recognizable layer prefixes.`)
+      : gate(classificationStatus, classificationStatus === 'low_confidence' ? 'Low classification confidence' : 'Limited classification confidence', `${unknown} of ${architecture.modules.length} functional modules do not have recognizable layer prefixes. DISCO-style architecture conclusions should be qualified.`, ['architecture_mix', 'layer_remediation']),
+  };
+
+  const blockedClaims = [
+    'Actual model performance, recalculation time, and open time',
+    'True cell count, sparsity, or Polaris calculation complexity unless exported in blueprint fields',
+    'UX page usage and whether a line item is user-facing',
+    'Import/export/action/process quality and scheduling',
+    'ALM history, change frequency, user roles, and access controls',
+  ];
+
+  const usableClaims = [
+    'Blueprint fetch completeness and separator/header exclusion',
+    'Module, line-item, format, summary, formula, and applies-to facts',
+    'Text-visible formula anti-patterns and summary-method risk signals',
+    'Formula-reference dependency edges when module names appear in formulas',
+    'Classification confidence based on naming coverage and observed line-item behavior',
+  ];
+
+  const visualizations = {
+    showDependencyMap: gates.dependencyGraph.status === 'usable',
+    showBlastRadius: gates.dependencyGraph.status === 'usable',
+    showLayerDistribution: gates.architectureClassification.status === 'usable',
+  };
+
+  return {
+    footprint,
+    metrics: {
+      formulaCoverage,
+      dependencyDensity,
+      namingCoverage,
+      edgeCount,
+      formulaModules,
+      unknownModuleCount: unknown,
+    },
+    gates,
+    visualizations,
+    usableClaims,
+    blockedClaims,
   };
 }
 
@@ -1086,9 +1178,9 @@ function summarizeEvidenceList(items) {
     evidenceCount: items.length,
     affectedModuleCount: moduleCount,
     affectedLineItemCount: lineItemCount,
-    examples: items
+    examples: [...new Set(items
       .map(item => item.lineItemName ? `${item.moduleName}: ${item.lineItemName}` : item.moduleName)
-      .filter(Boolean)
+      .filter(Boolean))]
       .slice(0, EXAMPLE_LIMIT),
   };
 }
@@ -1106,18 +1198,19 @@ function workstreamTriage(priority) {
   return 'Monitor';
 }
 
-function makeWorkstream({ id, title, domain, evidence, whyItMatters, reviewQuestion, action, regressionChecks }) {
+function makeWorkstream({ id, title, domain, evidence, whyItMatters, reviewQuestion, action, regressionChecks, priority = null, confidence = 'High', kind = 'remediation' }) {
   if (!evidence.length) return null;
   const summary = summarizeEvidenceList(evidence);
-  const priority = workstreamPriority(evidence);
+  const resolvedPriority = priority || workstreamPriority(evidence);
   const topEvidence = evidence.slice(0, WORKSTREAM_EVIDENCE_LIMIT);
   return {
     id,
     title,
     domain,
-    priority,
-    triage: workstreamTriage(priority),
-    confidence: 'High',
+    kind,
+    priority: resolvedPriority,
+    triage: workstreamTriage(resolvedPriority),
+    confidence,
     whyItMatters,
     reviewQuestion,
     action,
@@ -1130,11 +1223,72 @@ function makeWorkstream({ id, title, domain, evidence, whyItMatters, reviewQuest
   };
 }
 
-export function buildEvidenceWorkstreams(normalized, evidenceItems, intelligence) {
+function diagnosticEvidence(id, diagnostics, observation, evidence, action) {
+  return {
+    ruleId: id,
+    severity: 'warning',
+    domain: 'Structural',
+    moduleId: '',
+    moduleName: 'Evidence quality',
+    lineItemId: '',
+    lineItemName: '',
+    observation,
+    evidence,
+    action,
+    downstreamModuleCount: 0,
+    downstreamOutputCount: 0,
+    diagnostics,
+  };
+}
+
+function buildDiagnosticWorkstreams(diagnostics) {
+  const streams = [];
+  const depGate = diagnostics.gates.dependencyGraph;
+  const classGate = diagnostics.gates.architectureClassification;
+  const dataGate = diagnostics.gates.dataCompleteness;
+
+  const dependencyBlocksArchitecture = depGate.status !== 'usable' && depGate.status !== 'not_applicable';
+  if (dataGate.status !== 'usable' || dependencyBlocksArchitecture || classGate.status !== 'usable') {
+    const evidence = [];
+    if (dataGate.status !== 'usable') {
+      evidence.push(diagnosticEvidence('EVIDENCE_PARTIAL_BLUEPRINT', diagnostics, dataGate.label, dataGate.detail, 'Re-fetch the blueprint or split the fetch before using the report as a complete model assessment.'));
+    }
+    if (dependencyBlocksArchitecture) {
+      evidence.push(diagnosticEvidence('EVIDENCE_SPARSE_DEPENDENCIES', diagnostics, depGate.label, depGate.detail, 'Do not use dependency diagrams or blast-radius ranking as architecture proof until formula-reference coverage improves.'));
+    }
+    if (classGate.status !== 'usable') {
+      evidence.push(diagnosticEvidence('EVIDENCE_LOW_CLASSIFICATION', diagnostics, classGate.label, classGate.detail, 'Treat architecture classification as a coverage limitation; ask the model owner for naming conventions and module intent before proposing redesign.'));
+    }
+    streams.push(makeWorkstream({
+      id: 'evidence-admissibility',
+      title: 'Resolve evidence limits before making architecture claims',
+      domain: 'Structural',
+      evidence,
+      priority: dataGate.status !== 'usable' ? 'High' : 'Medium',
+      confidence: 'High',
+      kind: 'evidence-limit',
+      whyItMatters: 'The fetched blueprint can support line-item checks, but weak dependency or naming evidence can make architecture conclusions look more certain than they are.',
+      reviewQuestion: 'Is this blueprint complete enough to support architecture review, or should Meridian ask for a fuller export/API fetch before diagnosing model design?',
+      action: 'Use this report for concrete line-item risks, but hold architecture remediation until dependency and classification evidence are adequate.',
+      regressionChecks: [],
+    }));
+  }
+  return streams;
+}
+
+export function buildEvidenceWorkstreams(normalized, evidenceItems, intelligence, diagnostics = null) {
+  const diagnosticStreams = diagnostics ? buildDiagnosticWorkstreams(diagnostics) : [];
+  const architectureConfidence = diagnostics?.gates?.dependencyGraph?.status === 'usable' && diagnostics?.gates?.architectureClassification?.status !== 'low_confidence'
+    ? 'Medium'
+    : 'Low';
+  const architectureKind = architectureConfidence === 'Low' ? 'evidence-limit' : 'remediation';
   const workstreams = [
+    ...diagnosticStreams,
     makeWorkstream({
       id: 'architecture-flow',
-      title: 'Validate architecture flow before remediation',
+      title: architectureKind === 'evidence-limit'
+        ? 'Qualify architecture findings before redesign'
+        : 'Validate declared architecture exceptions',
       domain: 'Structural',
       evidence: evidenceForRules(evidenceItems, [
         'ARCH_OUTPUT_READS_RAW_LAYER',
@@ -1144,14 +1298,23 @@ export function buildEvidenceWorkstreams(normalized, evidenceItems, intelligence
         'ARCH_MIXED_RESPONSIBILITY_MODULE',
         'ARCH_CALC_MODULE_STORES_INPUTS',
       ]),
-      whyItMatters: 'These observations point to layer boundaries or data-flow assumptions that affect model ownership and regression scope.',
-      reviewQuestion: 'Do the named modules intentionally cross DISCO/Data Hub boundaries, or are they carrying logic in the wrong layer?',
-      action: 'Review the affected modules with the model owner, confirm intended layer ownership, then move logic or rename modules only where the evidence matches the design intent.',
+      priority: architectureConfidence === 'Low' ? 'Medium' : null,
+      confidence: architectureConfidence,
+      kind: architectureKind,
+      whyItMatters: architectureKind === 'evidence-limit'
+        ? 'The blueprint shows possible layer-boundary signals, but naming or dependency evidence is not strong enough to justify redesign recommendations.'
+        : 'These observations point to layer boundaries or data-flow assumptions that affect model ownership and regression scope.',
+      reviewQuestion: architectureKind === 'evidence-limit'
+        ? 'Are these modules intentionally named outside DISCO, and is the formula graph complete enough to diagnose architecture?'
+        : 'Do the named modules intentionally cross DISCO/Data Hub boundaries, or are they carrying logic in the wrong layer?',
+      action: architectureKind === 'evidence-limit'
+        ? 'Ask the model owner for naming conventions and validate formula extraction coverage before treating these as remediation items.'
+        : 'Review the affected modules with the model owner, confirm intended layer ownership, then move logic only where the evidence matches design intent.',
       regressionChecks: (intelligence.regressionChecklist || []).slice(0, 5),
     }),
     makeWorkstream({
       id: 'formula-correctness',
-      title: 'Review formula correctness and maintainability',
+      title: 'Refactor only formulas with concrete evidence',
       domain: 'Formula',
       evidence: evidenceForRules(evidenceItems, [
         'FORMULA_SUM_LOOKUP',
@@ -1160,20 +1323,20 @@ export function buildEvidenceWorkstreams(normalized, evidenceItems, intelligence
         'FORMULA_DIVISION_UNGUARDED',
         'FORMULA_LONG',
       ]),
-      whyItMatters: 'These are formula patterns with direct calculation or maintainability risk and concrete line-item evidence.',
+      whyItMatters: 'These are text-visible formula patterns with direct calculation or maintainability risk.',
       reviewQuestion: 'Which flagged formulas are business-approved exceptions, and which should be decomposed into auditable intermediate line items?',
       action: 'Prioritize formulas that feed output modules or shared calculation modules; split complex expressions into named intermediates and validate downstream values.',
       regressionChecks: (intelligence.regressionChecklist || []).slice(0, 5),
     }),
     makeWorkstream({
       id: 'aggregation-accuracy',
-      title: 'Check aggregation and reporting accuracy',
+      title: 'Validate rollups that can change executive numbers',
       domain: 'Best Practice',
       evidence: evidenceForRules(evidenceItems, [
         'RATE_SUMMARY_SUM',
         'BOOLEAN_SUMMARY_INVALID',
       ]),
-      whyItMatters: 'Wrong summaries can make a model look structurally fine while reporting incorrect totals, rates, or flags.',
+      whyItMatters: 'Summary methods define parent aggregation, so rate-like or boolean rollups can change reported totals without looking like formula defects.',
       reviewQuestion: 'Are these summary methods intentional, or do they change rolled-up reporting values?',
       action: 'For each affected line item, confirm the intended rollup; rates should usually be recalculated from numerator and denominator, not summed.',
       regressionChecks: (intelligence.regressionChecklist || []).slice(0, 5),
@@ -1209,23 +1372,33 @@ export function buildEvidenceWorkstreams(normalized, evidenceItems, intelligence
   return workstreams
     .sort((a, b) => {
       const rank = { Critical: 0, High: 1, Medium: 2, Watch: 3 };
-      return rank[a.priority] - rank[b.priority] || b.evidenceCount - a.evidenceCount || a.title.localeCompare(b.title);
+      const kindRank = { 'evidence-limit': 0, remediation: 1 };
+      return (kindRank[a.kind] ?? 1) - (kindRank[b.kind] ?? 1) ||
+        rank[a.priority] - rank[b.priority] ||
+        b.evidenceCount - a.evidenceCount ||
+        a.title.localeCompare(b.title);
     })
     .slice(0, MAX_WORKSTREAMS);
 }
 
-function buildAssessment(workstreams) {
+function buildAssessment(workstreams, diagnostics = null) {
+  const hasEvidenceLimit = workstreams.some(w => w.kind === 'evidence-limit');
   const critical = workstreams.filter(w => w.priority === 'Critical').length;
   const high = workstreams.filter(w => w.priority === 'High').length;
   const medium = workstreams.filter(w => w.priority === 'Medium').length;
   let verdict = 'Stable';
-  if (critical > 0) verdict = 'Executive Review';
+  if (hasEvidenceLimit) verdict = 'Evidence Limited';
+  else if (critical > 0) verdict = 'Executive Review';
   else if (high > 0) verdict = 'Focused Review';
   else if (medium > 0) verdict = 'Builder Review';
+  const depGate = diagnostics?.gates?.dependencyGraph;
+  const classGate = diagnostics?.gates?.architectureClassification;
   return {
     healthScore: null,
     verdict,
-    summary: critical > 0
+    summary: hasEvidenceLimit
+      ? `The blueprint supports concrete line-item checks, but ${depGate?.label || 'dependency evidence'} and ${classGate?.label || 'classification evidence'} limit architecture conclusions.`
+      : critical > 0
       ? 'Evidence indicates at least one high-impact workstream that should be reviewed before this model is positioned as clean or production-grade.'
       : high > 0
         ? 'Evidence indicates focused model-builder review is warranted; no synthetic precision score is assigned.'
@@ -1234,42 +1407,51 @@ function buildAssessment(workstreams) {
           : 'No material evidence-backed workstreams were generated from the fetched blueprint.',
     dimensions: null,
     posture: verdict,
-    confidence: workstreams.length ? 'Evidence-backed' : 'Low evidence',
+    confidence: hasEvidenceLimit ? 'Qualified evidence' : (workstreams.length ? 'Evidence-backed' : 'Low evidence'),
   };
 }
 
-function buildIntelligenceSummary(normalized, workstreams, intelligence) {
+function buildIntelligenceSummary(normalized, workstreams, intelligence, diagnostics = null) {
   const footprint = moduleFootprint(normalized);
   const top = workstreams[0];
-  const dependencyText = intelligence.graph.edges.length
-    ? `${intelligence.graph.edges.length} formula dependency edge${intelligence.graph.edges.length === 1 ? '' : 's'}`
-    : 'no formula dependency edges';
+  const depGate = diagnostics?.gates?.dependencyGraph;
+  const classGate = diagnostics?.gates?.architectureClassification;
+  const dependencyText = depGate
+    ? `${depGate.label.toLowerCase()} (${depGate.detail})`
+    : intelligence.graph.edges.length
+      ? `${intelligence.graph.edges.length} formula dependency edge${intelligence.graph.edges.length === 1 ? '' : 's'}`
+      : 'no formula dependency edges';
   const separatorText = footprint.excludedDecorative
     ? `${footprint.excludedDecorative} separator/header module${footprint.excludedDecorative === 1 ? '' : 's'} excluded`
     : 'no separator modules included';
   return top
-    ? `Evaluated ${footprint.functionalModuleCount} functional modules and ${footprint.lineItemCount} line items; ${dependencyText}; ${separatorText}. Top review workstream: ${top.title}.`
+    ? `Evaluated ${footprint.functionalModuleCount} functional modules and ${footprint.lineItemCount} line items; ${dependencyText}; ${classGate ? classGate.label.toLowerCase() + '; ' : ''}${separatorText}. Top workstream: ${top.title}.`
     : `Evaluated ${footprint.functionalModuleCount} functional modules and ${footprint.lineItemCount} line items; ${dependencyText}; ${separatorText}. No evidence-backed review workstream was generated.`;
 }
 
-function buildExecutiveBrief(normalized, workstreams, intelligence, assessment) {
+function buildExecutiveBrief(normalized, workstreams, intelligence, assessment, diagnostics = null) {
   const footprint = moduleFootprint(normalized);
+  const depGate = diagnostics?.gates?.dependencyGraph;
+  const classGate = diagnostics?.gates?.architectureClassification;
   const lines = [
     `Scope reviewed: ${footprint.functionalModuleCount} functional modules, ${footprint.lineItemCount} line items, ${footprint.formulaCount} formula-bearing line items. ${footprint.excludedDecorative} separator/header-only modules were excluded from analysis.`,
-    `Assessment posture: ${assessment.verdict}. Meridian is no longer assigning a fake 0-100 precision score here; this report is organized around evidence-backed review workstreams.`,
+    `Assessment posture: ${assessment.verdict}. Meridian is no longer assigning a fake 0-100 precision score; claims are gated by evidence quality before they become workstreams.`,
   ];
+  if (diagnostics) {
+    lines.push(`Evidence limits: ${depGate.label} — ${depGate.detail} ${classGate.label} — ${classGate.detail}`);
+  }
   if (workstreams.length) {
     lines.push(`Primary workstreams: ${workstreams.slice(0, 3).map(w => `${w.title} (${w.priority})`).join('; ')}.`);
   } else {
     lines.push('No material workstream was generated from the available blueprint evidence. If that seems wrong, re-fetch the blueprint and verify line-item formulas and formats were returned.');
   }
-  if (intelligence.graph.edges.length) {
+  if (depGate?.status === 'usable' && intelligence.graph.edges.length) {
     const topBlast = intelligence.blastRadius[0];
     lines.push(topBlast
       ? `Dependency evidence is available from formula references. Highest observed fan-out is ${topBlast.moduleName}, feeding ${topBlast.downstreamModuleCount} downstream module${topBlast.downstreamModuleCount === 1 ? '' : 's'}.`
       : 'Dependency evidence is available from formula references, but no module has material downstream fan-out.');
   } else {
-    lines.push('No dependency diagram is inferred because the fetched formulas did not expose cross-module references.');
+    lines.push('Dependency diagrams and blast-radius rankings are withheld because formula-reference evidence is too sparse for a reliable architecture claim.');
   }
   lines.push('Recommended use: treat this as a senior review agenda, not an auto-generated task list. Each workstream requires owner confirmation before model changes.');
   return lines.join('\n\n');
@@ -1280,15 +1462,18 @@ export function buildEvidenceBackedIntelligence(normalized, findings) {
   const architecture = buildArchitectureClassification(normalized, graph);
   const blastRadius = buildBlastRadius(normalized, graph);
   const regressionImpact = buildBlastRadius(normalized, graph, { includeZero: true });
+  const diagnostics = buildEvidenceDiagnostics(normalized, graph, architecture);
   const baseIntelligence = {
     graph,
     architecture,
     blastRadius: blastRadius.slice(0, 20),
-    regressionChecklist: buildRegressionChecklist(regressionImpact),
+    regressionChecklist: diagnostics.visualizations.showBlastRadius ? buildRegressionChecklist(regressionImpact) : [],
+    diagnostics,
+    visualizations: diagnostics.visualizations,
   };
   const evidenceItems = buildEvidenceItems(findings, blastRadius);
-  const workstreams = buildEvidenceWorkstreams(normalized, evidenceItems, baseIntelligence);
-  const assessment = buildAssessment(workstreams);
+  const workstreams = buildEvidenceWorkstreams(normalized, evidenceItems, baseIntelligence, diagnostics);
+  const assessment = buildAssessment(workstreams, diagnostics);
   return {
     ...baseIntelligence,
     evidenceItems,
@@ -1305,10 +1490,20 @@ export function buildEvidenceBackedIntelligence(normalized, findings) {
       })),
     })),
     prioritizedFindings: evidenceItems.slice(0, 30),
-    evidenceSummary: buildIntelligenceSummary(normalized, workstreams, baseIntelligence),
-    executiveNarrative: buildExecutiveBrief(normalized, workstreams, baseIntelligence, assessment),
+    evidenceSummary: buildIntelligenceSummary(normalized, workstreams, baseIntelligence, diagnostics),
+    executiveNarrative: buildExecutiveBrief(normalized, workstreams, baseIntelligence, assessment, diagnostics),
     assessment,
     footprint: moduleFootprint(normalized),
+    feasibility: {
+      supportedNow: diagnostics.usableClaims,
+      notKnowableYet: diagnostics.blockedClaims,
+      needsAdditionalData: [
+        'Saved views, UX pages, and action/process metadata',
+        'Model history and ALM revision metadata',
+        'Cell counts, calculation complexity, and performance telemetry',
+        'Business owner confirmation of naming conventions and module intent',
+      ],
+    },
   };
 }
 
@@ -1330,6 +1525,7 @@ export function workstreamToSuggestion(workstream) {
     evidence: workstream.evidence.map(e => e.evidence).filter(Boolean).join(' | '),
     source: 'evidence-workstream',
     ruleId: workstream.id,
+    kind: workstream.kind,
     priority: workstream.priority,
     confidence: workstream.confidence,
     affectedCount: workstream.evidenceCount,

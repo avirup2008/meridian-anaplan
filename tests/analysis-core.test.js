@@ -457,7 +457,7 @@ test('builds evidence-backed workstreams instead of fake precision scoring', () 
   const snapshot = buildAnalysisSnapshot(blueprint);
 
   assert.equal(snapshot.score.healthScore, null);
-  assert.match(snapshot.score.verdict, /Review/);
+  assert.match(snapshot.score.verdict, /Review|Evidence Limited/);
   assert(snapshot.workstreams.length > 0);
   assert(snapshot.workstreams.length <= 6);
   assert.equal(snapshot.deterministicSuggestions.length, snapshot.workstreams.length);
@@ -486,4 +486,44 @@ test('workstreams consolidate high-volume low-risk metadata into one review agen
   assert.equal(snapshot.workstreams[0].id, 'metadata-governance');
   assert.equal(snapshot.workstreams[0].evidenceCount, 400);
   assert.equal(snapshot.deterministicSuggestions.length, 1);
+});
+
+test('downgrades architecture intelligence when dependency and naming evidence are weak', () => {
+  const modules = [
+    {
+      id: 'mod1',
+      name: 'MOD01 - General Settings',
+      lineItemCount: 4,
+      lineItems: [
+        { id: 'a', name: 'Rate %', format: 'Percentage', summary: 'SUM', appliesTo: ['Products'] },
+        { id: 'b', name: 'Status', format: 'Text', summary: 'None', appliesTo: ['Products'], formula: 'IF Rate % > 0 THEN "Open" ELSE "Closed"' },
+      ],
+    },
+    {
+      id: 'mod2',
+      name: 'MOD02 - Scenario Settings',
+      lineItemCount: 3,
+      lineItems: [
+        { id: 'c', name: 'Active', format: 'Boolean', summary: 'ANY', appliesTo: ['Versions'] },
+      ],
+    },
+    {
+      id: 'out',
+      name: 'OUT01 Reporting',
+      lineItemCount: 1,
+      lineItems: [
+        { id: 'd', name: 'Output Rate', format: 'Percentage', summary: 'SUM', appliesTo: ['Products'], formula: 'MOD01 - General Settings.Rate %' },
+      ],
+    },
+  ];
+  const snapshot = buildAnalysisSnapshot({ modelId: 'weak-evidence', modules });
+  const diagnostics = snapshot.intelligence.diagnostics;
+
+  assert.equal(snapshot.score.verdict, 'Evidence Limited');
+  assert.equal(diagnostics.gates.dependencyGraph.status, 'weak');
+  assert.equal(diagnostics.gates.architectureClassification.status, 'low_confidence');
+  assert.equal(snapshot.intelligence.visualizations.showDependencyMap, false);
+  assert.equal(snapshot.intelligence.visualizations.showLayerDistribution, false);
+  assert.equal(snapshot.workstreams[0].id, 'evidence-admissibility');
+  assert.match(snapshot.workstreams[0].action, /hold architecture remediation/i);
 });

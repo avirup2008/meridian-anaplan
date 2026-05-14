@@ -4380,9 +4380,11 @@ function confirmModelSelection() {
       const ws = s.workstream || null;
       const priority = s.priority || (ws && ws.priority) || '';
       const confidence = s.confidence || (ws && ws.confidence) || '';
+      const kind = s.kind || (ws && ws.kind) || 'review';
       const evidence = ws && Array.isArray(ws.evidence) ? ws.evidence.slice(0, 4) : [];
       return '<div class="sugg-card">'
         + '<span class="sugg-triage ' + triageClass + '">' + _anlEsc(s.triage || '') + '</span>'
+        + '<span class="sugg-module">' + _anlEsc(kind) + '</span>'
         + (priority ? '<span class="sugg-module">Priority: ' + _anlEsc(priority) + '</span>' : '')
         + (confidence ? '<span class="sugg-module">Confidence: ' + _anlEsc(confidence) + '</span>' : '')
         + '<span class="sugg-module">' + _anlEsc(s.moduleName || '') + '</span>'
@@ -4425,6 +4427,14 @@ function confirmModelSelection() {
         return '<div class="notes-empty">' + _anlEsc(emptyText || 'No items detected.') + '</div>';
       }
       return '<ul class="intel-list">' + items.map(renderItem).join('') + '</ul>';
+    }
+
+    function renderLimitCard(title, gate) {
+      return '<div class="intel-card wide evidence-limit-card">'
+        + '<h3>' + _anlEsc(title) + '</h3>'
+        + '<div class="intel-summary">' + _anlEsc((gate && gate.detail) || 'The fetched blueprint does not contain enough evidence for this view.') + '</div>'
+        + '<ul class="intel-list"><li><strong>Status</strong><span class="intel-meta">' + _anlEsc((gate && gate.label) || 'Evidence limited') + '</span></li></ul>'
+        + '</div>';
     }
 
     function _svgText(s, max) {
@@ -4613,6 +4623,11 @@ function confirmModelSelection() {
       const edgeCount = Array.isArray(graph.edges) ? graph.edges.length : 0;
       const moduleCount = Array.isArray(graph.nodes) ? graph.nodes.length : 0;
       const footprint = intel.footprint || {};
+      const diagnostics = intel.diagnostics || {};
+      const gates = diagnostics.gates || {};
+      const visuals = intel.visualizations || diagnostics.visualizations || {};
+      const claimsNow = Array.isArray((intel.feasibility || {}).supportedNow) ? intel.feasibility.supportedNow : (Array.isArray(diagnostics.usableClaims) ? diagnostics.usableClaims : []);
+      const claimsBlocked = Array.isArray((intel.feasibility || {}).notKnowableYet) ? intel.feasibility.notKnowableYet : (Array.isArray(diagnostics.blockedClaims) ? diagnostics.blockedClaims : []);
 
       const badge = document.getElementById('dash-badge-intelligence');
       if (badge) badge.textContent = String(evidenceItems.length);
@@ -4626,15 +4641,30 @@ function confirmModelSelection() {
         + '<div class="intel-kpi"><div class="intel-kpi-val">' + regression.length + '</div><div class="intel-kpi-lbl">Regression checks</div></div>'
         + '</div>'
         + '<div class="intel-grid">'
-        + '<div class="intel-card wide"><h3>Review Workstreams</h3>'
-        + renderIntelList(workstreams, w => '<li><strong>' + _anlEsc(w.title || '') + '</strong><span class="intel-meta">' + _anlEsc((w.priority || '') + ' priority · ' + (w.evidenceCount || 0) + ' evidence items · ' + (w.confidence || '') + ' confidence') + '</span><span class="intel-meta">' + _anlEsc(w.reviewQuestion || '') + '</span></li>', 'No evidence-backed workstreams generated.')
+        + '<div class="intel-card wide"><h3>Evidence Admissibility</h3>'
+        + renderIntelList(Object.values(gates), g => '<li><span class="intel-pill">' + _anlEsc(g.status || '') + '</span><strong>' + _anlEsc(g.label || '') + '</strong><span class="intel-meta">' + _anlEsc(g.detail || '') + '</span></li>', 'No evidence gates available.')
         + '</div>'
-        + '<div class="intel-card"><h3>Architecture Mix</h3><div class="diagram-wrap">' + renderLayerDistributionSvg(intel) + '</div></div>'
+        + '<div class="intel-card"><h3>What Meridian Can Say</h3>'
+        + renderIntelList(claimsNow.slice(0, 6), c => '<li>' + _anlEsc(c) + '</li>', 'No supported claims available.')
+        + '</div>'
+        + '<div class="intel-card"><h3>Not Knowable From Blueprint Alone</h3>'
+        + renderIntelList(claimsBlocked.slice(0, 6), c => '<li>' + _anlEsc(c) + '</li>', 'No blocked claims listed.')
+        + '</div>'
+        + '<div class="intel-card wide"><h3>Review Workstreams</h3>'
+        + renderIntelList(workstreams, w => '<li><strong>' + _anlEsc(w.title || '') + '</strong><span class="intel-meta">' + _anlEsc((w.kind || 'review') + ' · ' + (w.priority || '') + ' priority · ' + (w.evidenceCount || 0) + ' evidence items · ' + (w.confidence || '') + ' confidence') + '</span><span class="intel-meta">' + _anlEsc(w.reviewQuestion || '') + '</span></li>', 'No evidence-backed workstreams generated.')
+        + '</div>'
+        + (visuals.showLayerDistribution
+          ? '<div class="intel-card"><h3>Architecture Mix</h3><div class="diagram-wrap">' + renderLayerDistributionSvg(intel) + '</div></div>'
+          : renderLimitCard('Architecture Mix Withheld', gates.architectureClassification))
         + '<div class="intel-card"><h3>Architecture Classification</h3>'
         + renderIntelList(Object.entries(layerCounts), ([layer, count]) => '<li><span class="intel-pill">' + _anlEsc(layer) + '</span>' + count + ' module' + (count === 1 ? '' : 's') + '</li>', 'No layer classification available.')
         + '</div>'
-        + '<div class="intel-card wide"><h3>Dependency Map</h3><div class="diagram-wrap">' + renderDependencyMapSvg(intel) + '</div></div>'
-        + '<div class="intel-card wide"><h3>Blast Radius Ranking</h3><div class="diagram-wrap">' + renderBlastRadiusSvg(intel) + '</div></div>'
+        + (visuals.showDependencyMap
+          ? '<div class="intel-card wide"><h3>Dependency Map</h3><div class="diagram-wrap">' + renderDependencyMapSvg(intel) + '</div></div>'
+          : renderLimitCard('Dependency Map Withheld', gates.dependencyGraph))
+        + (visuals.showBlastRadius
+          ? '<div class="intel-card wide"><h3>Blast Radius Ranking</h3><div class="diagram-wrap">' + renderBlastRadiusSvg(intel) + '</div></div>'
+          : renderLimitCard('Blast Radius Withheld', gates.dependencyGraph))
         + '<div class="intel-card"><h3>Architecture Evidence</h3>'
         + renderIntelList(archIssues.slice(0, 6), issue => '<li><strong>' + _anlEsc(issue.moduleName || '') + '</strong>: ' + _anlEsc(issue.title || '') + '<span class="intel-meta">' + _anlEsc(issue.evidence || '') + '</span></li>', 'No architecture issues detected.')
         + '</div>'
@@ -4852,8 +4882,8 @@ function confirmModelSelection() {
       const chip = _anl$('anl-verdict-chip');
       _anl$('anl-verdict-text').textContent = s.verdict;
       const dot = chip.querySelector('.anl-dot');
-      const colors = { 'Stable': '#217348', 'Builder Review': '#175AA6', 'Focused Review': '#BF801E', 'Executive Review': '#B82E2E', 'Good': '#217348', 'Needs Work': '#BF801E', 'Critical': '#B82E2E' };
-      const pales  = { 'Stable': '#E1F0E5', 'Builder Review': '#E6EEF7', 'Focused Review': '#FBF1DA', 'Executive Review': '#FCEBEA', 'Good': '#E1F0E5', 'Needs Work': '#FBF1DA', 'Critical': '#FCEBEA' };
+      const colors = { 'Stable': '#217348', 'Builder Review': '#175AA6', 'Focused Review': '#BF801E', 'Executive Review': '#B82E2E', 'Evidence Limited': '#7047A3', 'Good': '#217348', 'Needs Work': '#BF801E', 'Critical': '#B82E2E' };
+      const pales  = { 'Stable': '#E1F0E5', 'Builder Review': '#E6EEF7', 'Focused Review': '#FBF1DA', 'Executive Review': '#FCEBEA', 'Evidence Limited': '#EFE8F8', 'Good': '#E1F0E5', 'Needs Work': '#FBF1DA', 'Critical': '#FCEBEA' };
       chip.style.background = pales[s.verdict] || '#EBE3CC';
       chip.style.color = colors[s.verdict] || '#555';
       if (dot) dot.style.background = colors[s.verdict] || '#888';
@@ -5161,8 +5191,8 @@ function confirmModelSelection() {
         const shrVerdict = p.score.verdict || '';
         document.getElementById('shr-verdict-text').textContent = shrVerdict || '—';
         document.getElementById('shr-summary').textContent = p.score.summary || '';
-        const _sColors = { 'Stable': '#217348', 'Builder Review': '#175AA6', 'Focused Review': '#BF801E', 'Executive Review': '#B82E2E', 'Good': '#217348', 'Needs Work': '#BF801E', 'Critical': '#B82E2E' };
-        const _sPales  = { 'Stable': '#E1F0E5', 'Builder Review': '#E6EEF7', 'Focused Review': '#FBF1DA', 'Executive Review': '#FCEBEA', 'Good': '#E1F0E5', 'Needs Work': '#FBF1DA', 'Critical': '#FCEBEA' };
+        const _sColors = { 'Stable': '#217348', 'Builder Review': '#175AA6', 'Focused Review': '#BF801E', 'Executive Review': '#B82E2E', 'Evidence Limited': '#7047A3', 'Good': '#217348', 'Needs Work': '#BF801E', 'Critical': '#B82E2E' };
+        const _sPales  = { 'Stable': '#E1F0E5', 'Builder Review': '#E6EEF7', 'Focused Review': '#FBF1DA', 'Executive Review': '#FCEBEA', 'Evidence Limited': '#EFE8F8', 'Good': '#E1F0E5', 'Needs Work': '#FBF1DA', 'Critical': '#FCEBEA' };
         const shrChip = document.getElementById('shr-verdict-chip');
         const shrDot  = shrChip ? shrChip.querySelector('.anl-dot') : null;
         if (shrChip) { shrChip.style.background = _sPales[shrVerdict] || '#EBE3CC'; shrChip.style.color = _sColors[shrVerdict] || '#555'; }
