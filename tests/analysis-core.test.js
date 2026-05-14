@@ -156,6 +156,34 @@ test('aggregates repetitive deterministic findings into prioritised suggestion c
   assert.match(booleanNameCards[0].evidence, /Examples: Active, Closed, Locked/);
 });
 
+test('scores repeated line-item findings as a grouped pattern, not raw card spam', () => {
+  const repeatedBlueprint = {
+    modelId: 'wide-repeat-model',
+    modules: [
+      {
+        id: 'sys',
+        name: 'SYS01 Flags',
+        lineItemCount: 50,
+        lineItems: Array.from({ length: 50 }, (_, i) => ({
+          id: `flag-${i}`,
+          name: `Flag ${i + 1}`,
+          format: 'Boolean',
+          summary: 'ANY',
+          appliesTo: ['Projects'],
+        })),
+      },
+    ],
+  };
+  const findings = scanDeterministicFindings(normalizeBlueprint(repeatedBlueprint));
+  const rawPenaltyWouldBe = findings.reduce((sum, f) => sum + (f.severity === 'info' ? 1 : f.severity === 'warning' ? 2 : 4), 0);
+  const score = scoreFindings(findings);
+
+  assert.equal(findings.filter(f => f.ruleId === 'BOOLEAN_NAME_WEAK').length, 50);
+  assert.equal(rawPenaltyWouldBe, 50);
+  assert(score.healthScore > 85);
+  assert(score.dimensions.naming > 85);
+});
+
 test('validates AI suggestions against real modules, line items, and formula evidence', () => {
   const normalized = normalizeBlueprint(blueprint);
   const suggestions = validateAiSuggestions(normalized, [

@@ -390,13 +390,11 @@ export function validateAiSuggestions(normalized, suggestions) {
 }
 
 export function scoreFindings(findings) {
-  const penalties = findings.reduce((sum, f) => sum + (SCORE_WEIGHTS[f.severity] || 1), 0);
+  const penalties = groupedPenalty(findings);
   const healthScore = Math.max(5, Math.round(100 - penalties));
   const dimensions = {};
   for (const [dimension, rules] of Object.entries(DIMENSION_RULES)) {
-    const dimPenalty = findings
-      .filter(f => rules.has(f.ruleId))
-      .reduce((sum, f) => sum + (SCORE_WEIGHTS[f.severity] || 1), 0);
+    const dimPenalty = groupedPenalty(findings.filter(f => rules.has(f.ruleId)));
     dimensions[dimension] = Math.max(5, Math.round(100 - dimPenalty));
   }
   return {
@@ -404,6 +402,22 @@ export function scoreFindings(findings) {
     verdict: healthScore >= 85 ? 'Good' : healthScore >= 60 ? 'Needs Work' : 'Critical',
     dimensions,
   };
+}
+
+function groupedPenalty(findings) {
+  const grouped = new Map();
+  for (const finding of findings) {
+    const key = `${finding.moduleId || finding.moduleName}:${finding.ruleId}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(finding);
+  }
+  let penalty = 0;
+  for (const group of grouped.values()) {
+    const first = group[0] || {};
+    const weight = SCORE_WEIGHTS[first.severity] || 1;
+    penalty += weight * (1 + Math.log2(Math.max(1, group.length)));
+  }
+  return penalty;
 }
 
 function findModuleReferences(formula, modules) {
