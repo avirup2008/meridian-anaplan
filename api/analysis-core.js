@@ -1558,3 +1558,107 @@ export function buildAnalysisSnapshot(blueprint) {
     intelligence,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Comprehension engine: three detection functions added in Plan 07-02
+// ---------------------------------------------------------------------------
+
+export function detectDeadLogic(modules, graph) {
+  // Build a set of all line item names that appear as a reference target
+  // in any other module's formula. Use the graph's edge lineItems arrays
+  // (already computed by buildDependencyGraph) — these are the names of
+  // line items whose formula references a source module.
+  // But we also need the reverse: which CALC line items are referenced BY others.
+  // Build a referenced-name set by scanning all module formulas directly.
+  const referencedNames = new Set();
+  for (const mod of modules) {
+    for (const li of mod.lineItems) {
+      if (!li.formula) continue;
+      // Match "{ModuleName}.{ItemName}" pattern — item name after the dot
+      // Use a simple indexOf scan to avoid regex DoS on large formulas.
+      // Cap formula scan at 500 chars per RESEARCH.md security guidance.
+      const f = li.formula.length > 500 ? li.formula.slice(0, 500) : li.formula;
+      // Find all ".{word}" segments after module name patterns
+      let i = 0;
+      while (i < f.length) {
+        const dot = f.indexOf('.', i);
+        if (dot === -1) break;
+        // Extract the word after the dot
+        let end = dot + 1;
+        while (end < f.length && /[\w\s]/.test(f[end])) end++;
+        const itemName = f.slice(dot + 1, end).trim();
+        if (itemName) referencedNames.add(itemName);
+        i = dot + 1;
+      }
+    }
+  }
+
+  const dead = [];
+  for (const mod of modules) {
+    for (const li of mod.lineItems) {
+      // Only check CALC items — inputs are user-entered, always "live"
+      if (!li.hasFormula) continue;
+      // Exclude truncated formulas — we cannot know their full reference set
+      if (li.formulaTruncated) continue;
+      if (!referencedNames.has(li.name)) {
+        dead.push({
+          moduleId: mod.id,
+          moduleName: mod.name,
+          lineItemName: li.name,
+          formula: li.formula,
+        });
+      }
+    }
+  }
+  return dead;
+  // Callers MUST label this result as MEDIUM confidence due to formula truncation.
+}
+
+export function detectCircularDependencies(graph) {
+  // Build adjacency map from graph edges (module-level)
+  const adj = new Map();
+  for (const edge of graph.edges) {
+    if (!adj.has(edge.fromModuleId)) adj.set(edge.fromModuleId, new Set());
+    adj.get(edge.fromModuleId).add(edge.toModuleId);
+  }
+
+  const cycles = [];
+  const visited = new Set();
+  const stack = new Set();
+
+  function dfs(node, path) {
+    if (stack.has(node)) {
+      // Found a cycle — extract the cycle portion of path
+      const idx = path.indexOf(node);
+      if (idx !== -1) cycles.push(path.slice(idx).concat(node));
+      return;
+    }
+    if (visited.has(node)) return;
+    visited.add(node);
+    stack.add(node);
+    path.push(node);
+    for (const neighbour of (adj.get(node) || [])) {
+      dfs(neighbour, path);
+    }
+    path.pop();
+    stack.delete(node);
+  }
+
+  for (const nodeId of adj.keys()) {
+    if (!visited.has(nodeId)) dfs(nodeId, []);
+  }
+  return cycles; // array of module-ID arrays
+}
+
+export function detectDaisyChains(graph) {
+  // Passthrough module: exactly one upstream (inDegree=1) and one downstream (outDegree=1)
+  const inDegree = new Map();
+  const outDegree = new Map();
+  for (const edge of graph.edges) {
+    outDegree.set(edge.fromModuleId, (outDegree.get(edge.fromModuleId) || 0) + 1);
+    inDegree.set(edge.toModuleId, (inDegree.get(edge.toModuleId) || 0) + 1);
+  }
+  return [...inDegree.keys()].filter(id =>
+    inDegree.get(id) === 1 && (outDegree.get(id) || 0) === 1
+  );
+}
