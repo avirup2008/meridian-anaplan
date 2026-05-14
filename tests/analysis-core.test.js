@@ -11,6 +11,7 @@ import {
   buildModelIntelligence,
   buildArchitectureClassification,
   buildDependencyGraph,
+  isDecorativeModuleName,
 } from '../api/analysis-core.js';
 import { guardTokens, normalizeSynthesis } from '../api/analyze.js';
 
@@ -140,6 +141,42 @@ test('refuses to score an empty or fully skipped blueprint as healthy', () => {
   );
 });
 
+test('excludes decorative Anaplan section separators from analysis and diagrams', () => {
+  const separatorBlueprint = {
+    modelId: 'separator-model',
+    modules: [
+      {
+        id: 'sep',
+        name: '▼▼▼ COMPONENT ALLOCATION ▼▼▼',
+        lineItemCount: 1,
+        lineItems: [{ id: 'sep-li', name: '▼▼▼', format: 'Text', summary: 'None' }],
+      },
+      {
+        id: 'dat',
+        name: 'DAT01 Source Data',
+        lineItemCount: 1,
+        lineItems: [{ id: 'dat-li', name: 'Value', format: 'Number', summary: 'SUM', appliesTo: ['Products'] }],
+      },
+      {
+        id: 'calc',
+        name: 'CAL01 Working Calc',
+        lineItemCount: 1,
+        lineItems: [{ id: 'calc-li', name: 'Value', format: 'Number', summary: 'SUM', appliesTo: ['Products'], formula: 'DAT01 Source Data.Value' }],
+      },
+    ],
+  };
+  const normalized = normalizeBlueprint(separatorBlueprint);
+  const graph = buildDependencyGraph(normalized);
+  const intelligence = buildModelIntelligence(normalized, scanDeterministicFindings(normalized));
+
+  assert.equal(isDecorativeModuleName('▼▼▼ COMPONENT ALLOCATION ▼▼▼'), true);
+  assert.deepEqual(normalized.modules.map(m => m.name), ['DAT01 Source Data', 'CAL01 Working Calc']);
+  assert.equal(normalized.excludedModules[0].reason, 'decorative_separator');
+  assert(!graph.nodes.some(n => n.moduleName.includes('▼')));
+  assert(!intelligence.blastRadius.some(b => b.moduleName.includes('▼')));
+  assert.match(intelligence.executiveNarrative, /decorative separators/i);
+});
+
 test('aggregates repetitive deterministic findings into prioritised suggestion cards', () => {
   const repeatedBlueprint = {
     modelId: 'repeat-model',
@@ -212,14 +249,39 @@ test('scores repeated line-item findings as a grouped pattern, not raw card spam
       },
     ],
   };
-  const findings = scanDeterministicFindings(normalizeBlueprint(repeatedBlueprint));
+  const normalized = normalizeBlueprint(repeatedBlueprint);
+  const findings = scanDeterministicFindings(normalized);
   const rawPenaltyWouldBe = findings.reduce((sum, f) => sum + (f.severity === 'info' ? 1 : f.severity === 'warning' ? 2 : 4), 0);
-  const score = scoreFindings(findings);
+  const score = scoreFindings(findings, normalized);
 
   assert.equal(findings.filter(f => f.ruleId === 'BOOLEAN_NAME_WEAK').length, 50);
   assert.equal(rawPenaltyWouldBe, 50);
   assert(score.healthScore > 85);
   assert(score.dimensions.naming > 85);
+});
+
+test('calibrates high-volume low-risk findings without collapsing score to critical', () => {
+  const modules = Array.from({ length: 60 }, (_, i) => ({
+    id: `sys-${i}`,
+    name: `SYS${String(i + 1).padStart(2, '0')} Flags`,
+    lineItemCount: 20,
+    lineItems: Array.from({ length: 20 }, (_, j) => ({
+      id: `flag-${i}-${j}`,
+      name: `Flag ${j + 1}`,
+      format: 'Boolean',
+      summary: 'ANY',
+      appliesTo: ['Products'],
+    })),
+  }));
+  const normalized = normalizeBlueprint({ modelId: 'large-low-risk', modules });
+  const findings = scanDeterministicFindings(normalized);
+  const score = scoreFindings(findings, normalized);
+  const cards = summarizeFindingsForSuggestions(findings);
+
+  assert.equal(findings.length, 1200);
+  assert.equal(cards.length, 1);
+  assert(score.healthScore >= 85);
+  assert.notEqual(score.healthScore, 5);
 });
 
 test('validates AI suggestions against real modules, line items, and formula evidence', () => {
@@ -259,8 +321,9 @@ test('validates AI suggestions against real modules, line items, and formula evi
 });
 
 test('scores findings deterministically by severity and domain', () => {
-  const findings = scanDeterministicFindings(normalizeBlueprint(blueprint));
-  const score = scoreFindings(findings);
+  const normalized = normalizeBlueprint(blueprint);
+  const findings = scanDeterministicFindings(normalized);
+  const score = scoreFindings(findings, normalized);
 
   assert(score.healthScore < 80);
   assert.equal(score.verdict, 'Needs Work');
@@ -368,7 +431,7 @@ test('builds graph intelligence with blast radius and remediation order', () => 
   );
   assert.equal(intelligence.blastRadius.find(b => b.moduleName === 'DAT01 Project Master').downstreamModuleCount, 2);
   assert.equal(intelligence.regressionChecklist[0].moduleName, 'KPI01 Executive Output');
-  assert(intelligence.evidenceSummary.includes('3 modules'));
+  assert(intelligence.evidenceSummary.includes('3 functional modules'));
   assert(intelligence.remediationPlan.some(step => step.stage === 'Summary and data hygiene fixes'));
   assert.equal(intelligence.architecture.layerCounts.data, 1);
   assert(intelligence.architecture.issues.some(issue => issue.ruleId === 'ARCH_OUTPUT_READS_RAW_LAYER'));

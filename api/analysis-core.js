@@ -11,6 +11,12 @@ const DOMAIN_FOR_RULE = {
   FORMULA_DIVISION_UNGUARDED: 'Formula',
   TEXT_FORMAT_USED: 'Best Practice',
   BOOLEAN_NAME_WEAK: 'Naming',
+  ARCH_DATA_MODULE_HAS_FORMULAS: 'Structural',
+  ARCH_CALC_MODULE_STORES_INPUTS: 'Structural',
+  ARCH_OUTPUT_MODULE_NO_DERIVED_VALUES: 'Structural',
+  ARCH_MIXED_RESPONSIBILITY_MODULE: 'Structural',
+  ARCH_NAME_BEHAVIOR_MISMATCH: 'Structural',
+  ARCH_OUTPUT_READS_RAW_LAYER: 'Structural',
 };
 
 const TRIAGE_FOR_SEVERITY = {
@@ -25,6 +31,35 @@ const SCORE_WEIGHTS = {
   info: 1,
 };
 
+const RULE_SCORE_CONFIG = {
+  MODULE_NAMING_PATTERN: { scope: 'module', cap: 10, sensitivity: 1.2 },
+  MODULE_DATA_HAS_CALC: { scope: 'module', cap: 18, sensitivity: 2.2 },
+  MODULE_TOO_MANY_DIMS: { scope: 'module', cap: 24, sensitivity: 3.2 },
+  BOOLEAN_SUMMARY_INVALID: { scope: 'lineItem', cap: 14, sensitivity: 3 },
+  RATE_SUMMARY_SUM: { scope: 'lineItem', cap: 22, sensitivity: 4 },
+  FORMULA_SUM_LOOKUP: { scope: 'lineItem', cap: 18, sensitivity: 3.4 },
+  FORMULA_SELECT_HARDCODED: { scope: 'lineItem', cap: 18, sensitivity: 3.4 },
+  FORMULA_NESTED_IF: { scope: 'lineItem', cap: 12, sensitivity: 2.2 },
+  FORMULA_LONG: { scope: 'lineItem', cap: 10, sensitivity: 1.5 },
+  FORMULA_DIVISION_UNGUARDED: { scope: 'lineItem', cap: 14, sensitivity: 2.6 },
+  TEXT_FORMAT_USED: { scope: 'lineItem', cap: 4, sensitivity: 1 },
+  BOOLEAN_NAME_WEAK: { scope: 'lineItem', cap: 4, sensitivity: 1 },
+  ARCH_DATA_MODULE_HAS_FORMULAS: { scope: 'module', cap: 18, sensitivity: 2.2 },
+  ARCH_CALC_MODULE_STORES_INPUTS: { scope: 'module', cap: 12, sensitivity: 1.8 },
+  ARCH_OUTPUT_MODULE_NO_DERIVED_VALUES: { scope: 'module', cap: 3, sensitivity: 1 },
+  ARCH_MIXED_RESPONSIBILITY_MODULE: { scope: 'module', cap: 14, sensitivity: 2 },
+  ARCH_NAME_BEHAVIOR_MISMATCH: { scope: 'module', cap: 12, sensitivity: 1.8 },
+  ARCH_OUTPUT_READS_RAW_LAYER: { scope: 'module', cap: 20, sensitivity: 2.8 },
+};
+
+const DIMENSION_WEIGHTS = {
+  architecture: 0.25,
+  naming: 0.15,
+  formulas: 0.3,
+  dataHygiene: 0.2,
+  governance: 0.1,
+};
+
 const SUGGESTION_SEVERITY_ORDER = {
   critical: 0,
   warning: 1,
@@ -33,13 +68,14 @@ const SUGGESTION_SEVERITY_ORDER = {
 
 const MAX_SUGGESTION_CARDS = 20;
 const EXAMPLE_LIMIT = 6;
+const DECORATIVE_MARK_RE = /[▼▲▶◀▾▴▸◂◆◇]{2,}/;
 
 const DIMENSION_RULES = {
-  architecture: new Set(['MODULE_NAMING_PATTERN', 'MODULE_DATA_HAS_CALC', 'MODULE_TOO_MANY_DIMS']),
-  naming: new Set(['MODULE_NAMING_PATTERN']),
+  architecture: new Set(['MODULE_NAMING_PATTERN', 'MODULE_DATA_HAS_CALC', 'MODULE_TOO_MANY_DIMS', 'ARCH_DATA_MODULE_HAS_FORMULAS', 'ARCH_CALC_MODULE_STORES_INPUTS', 'ARCH_OUTPUT_MODULE_NO_DERIVED_VALUES', 'ARCH_MIXED_RESPONSIBILITY_MODULE', 'ARCH_NAME_BEHAVIOR_MISMATCH', 'ARCH_OUTPUT_READS_RAW_LAYER']),
+  naming: new Set(['MODULE_NAMING_PATTERN', 'BOOLEAN_NAME_WEAK']),
   formulas: new Set(['FORMULA_SUM_LOOKUP', 'FORMULA_SELECT_HARDCODED', 'FORMULA_NESTED_IF', 'FORMULA_LONG', 'FORMULA_DIVISION_UNGUARDED']),
   dataHygiene: new Set(['BOOLEAN_SUMMARY_INVALID', 'RATE_SUMMARY_SUM', 'TEXT_FORMAT_USED']),
-  governance: new Set(['MODULE_NAMING_PATTERN', 'MODULE_DATA_HAS_CALC', 'FORMULA_LONG']),
+  governance: new Set(['MODULE_NAMING_PATTERN', 'MODULE_DATA_HAS_CALC', 'FORMULA_LONG', 'ARCH_NAME_BEHAVIOR_MISMATCH', 'ARCH_OUTPUT_READS_RAW_LAYER']),
 };
 
 const BOOLEAN_PREFIX_RE = /^(Is|Has|Can|Should|Use|Enable|Allow|Include|Exclude|Requires?)\b/i;
@@ -50,6 +86,22 @@ function text(value) {
 
 function upper(value) {
   return text(value).toUpperCase();
+}
+
+export function isDecorativeModuleName(name) {
+  const value = text(name);
+  if (!value) return true;
+  if (DECORATIVE_MARK_RE.test(value)) return true;
+  if (/^[-=_*.\s]{3,}$/.test(value)) return true;
+  const letters = value.replace(/[^A-Za-z0-9]/g, '');
+  const symbols = value.replace(/[A-Za-z0-9\s]/g, '');
+  return value.length >= 6 && letters.length > 0 && symbols.length / value.length > 0.45;
+}
+
+function isDecorativeLineItem(li) {
+  const name = text(li?.name);
+  const style = upper(li?.style || li?.styleName || li?.itemStyle || li?.lineItemStyle);
+  return !name || style === 'HEADING1' || style === 'HEADING 1' || isDecorativeModuleName(name);
 }
 
 export function normalizeFormat(format) {
@@ -95,52 +147,72 @@ export function hasUnguardedDivision(formula) {
 
 export function normalizeBlueprint(blueprint) {
   const modules = Array.isArray(blueprint?.modules) ? blueprint.modules : [];
+  const normalizedModules = [];
+  const excludedModules = [];
+  for (const mod of modules) {
+    const moduleName = text(mod?.name);
+    if (mod?.fetchError || !Array.isArray(mod?.lineItems)) {
+      excludedModules.push({
+        id: text(mod?.id),
+        name: moduleName,
+        reason: mod?.fetchError ? 'fetch_error' : 'missing_line_items',
+      });
+      continue;
+    }
+    if (isDecorativeModuleName(moduleName)) {
+      excludedModules.push({ id: text(mod?.id), name: moduleName, reason: 'decorative_separator' });
+      continue;
+    }
+
+    const lineItems = mod.lineItems.filter(li => !isDecorativeLineItem(li)).map(li => {
+      const formula = text(li.formula);
+      const dimensions = normalizeDimensions(li.appliesTo);
+      const formatType = normalizeFormat(li.format);
+      const summaryMethod = normalizeSummary(li.summary);
+      return {
+        id: text(li.id),
+        name: text(li.name),
+        formula,
+        hasFormula: Boolean(formula),
+        formatType,
+        summaryMethod,
+        dimensions,
+        dimensionCount: dimensions.length,
+        notes: text(li.notes),
+        formulaLength: formula.length,
+        ifDepth: countIfDepth(formula),
+        hasSumLookup: hasSumLookup(formula),
+        hasHardcodedSelect: hasHardcodedSelect(formula),
+        hasUnguardedDivision: hasUnguardedDivision(formula),
+      };
+    });
+    if (!lineItems.length) {
+      excludedModules.push({ id: text(mod?.id), name: moduleName, reason: 'empty_or_header_only' });
+      continue;
+    }
+    const widestLineItem = lineItems.reduce(
+      (widest, li) => li.dimensionCount > widest.dimensionCount ? li : widest,
+      { dimensionCount: 0, dimensions: [] }
+    );
+    const moduleDims = widestLineItem.dimensions;
+    const prefix = (moduleName.match(/^([A-Z]{2,4})(?:\d{2}|\.)/) || [])[1] || '';
+    normalizedModules.push({
+      id: text(mod.id),
+      name: moduleName,
+      lineItemCount: lineItems.length,
+      prefix,
+      dimensions: moduleDims,
+      dimensionCount: widestLineItem.dimensionCount,
+      lineItems,
+    });
+  }
   return {
     modelId: blueprint?.modelId || '',
     workspaceId: blueprint?.workspaceId || '',
     partialLoad: Boolean(blueprint?.partialLoad),
-    modules: modules
-      .filter(mod => !mod.fetchError && Array.isArray(mod.lineItems))
-      .map(mod => {
-        const moduleName = text(mod.name);
-        const lineItems = mod.lineItems.map(li => {
-          const formula = text(li.formula);
-          const dimensions = normalizeDimensions(li.appliesTo);
-          const formatType = normalizeFormat(li.format);
-          const summaryMethod = normalizeSummary(li.summary);
-          return {
-            id: text(li.id),
-            name: text(li.name),
-            formula,
-            hasFormula: Boolean(formula),
-            formatType,
-            summaryMethod,
-            dimensions,
-            dimensionCount: dimensions.length,
-            notes: text(li.notes),
-            formulaLength: formula.length,
-            ifDepth: countIfDepth(formula),
-            hasSumLookup: hasSumLookup(formula),
-            hasHardcodedSelect: hasHardcodedSelect(formula),
-            hasUnguardedDivision: hasUnguardedDivision(formula),
-          };
-        });
-        const widestLineItem = lineItems.reduce(
-          (widest, li) => li.dimensionCount > widest.dimensionCount ? li : widest,
-          { dimensionCount: 0, dimensions: [] }
-        );
-        const moduleDims = widestLineItem.dimensions;
-        const prefix = (moduleName.match(/^([A-Z]{2,4})(?:\d{2}|\.)/) || [])[1] || '';
-        return {
-          id: text(mod.id),
-          name: moduleName,
-          lineItemCount: Number(mod.lineItemCount || lineItems.length),
-          prefix,
-          dimensions: moduleDims,
-          dimensionCount: widestLineItem.dimensionCount,
-          lineItems,
-        };
-      }),
+    rawModuleCount: modules.length,
+    excludedModules,
+    modules: normalizedModules,
   };
 }
 
@@ -281,10 +353,10 @@ export function scanDeterministicFindings(normalized) {
         }));
       }
 
-      if (li.formulaLength > 120) {
+      if (li.formulaLength > 500) {
         findings.push(finding({
           ruleId: 'FORMULA_LONG',
-          severity: li.formulaLength > 300 ? 'critical' : 'warning',
+          severity: li.formulaLength > 1200 ? 'critical' : 'warning',
           module,
           lineItem: li,
           title: 'Formula exceeds recommended length',
@@ -389,35 +461,70 @@ export function validateAiSuggestions(normalized, suggestions) {
   return { valid, rejected };
 }
 
-export function scoreFindings(findings) {
-  const penalties = groupedPenalty(findings);
-  const healthScore = Math.max(5, Math.round(100 - penalties));
+export function scoreFindings(findings, normalized = null) {
   const dimensions = {};
   for (const [dimension, rules] of Object.entries(DIMENSION_RULES)) {
-    const dimPenalty = groupedPenalty(findings.filter(f => rules.has(f.ruleId)));
-    dimensions[dimension] = Math.max(5, Math.round(100 - dimPenalty));
+    const dimFindings = findings.filter(f => rules.has(f.ruleId));
+    const dimPenalty = densityPenalty(dimFindings, normalized);
+    let dimScore = Math.max(25, Math.round(100 - dimPenalty));
+    if (dimFindings.length > 0) dimScore = Math.min(dimScore, 94);
+    if (dimFindings.some(f => f.severity === 'warning')) dimScore = Math.min(dimScore, 89);
+    if (dimFindings.some(f => f.severity === 'critical')) dimScore = Math.min(dimScore, 84);
+    dimensions[dimension] = dimScore;
+  }
+  let healthScore = Math.round(Object.entries(DIMENSION_WEIGHTS).reduce(
+    (sum, [dimension, weight]) => sum + (dimensions[dimension] ?? 100) * weight,
+    0
+  ));
+  if (findings.length > 0) healthScore = Math.min(healthScore, 94);
+  if (findings.some(f => f.severity === 'warning')) healthScore = Math.min(healthScore, 89);
+  const criticalRules = new Set(findings.filter(f => f.severity === 'critical').map(f => f.ruleId));
+  if (criticalRules.size > 0) healthScore = Math.min(healthScore, 84);
+  if (
+    criticalRules.has('MODULE_TOO_MANY_DIMS') ||
+    (criticalRules.has('RATE_SUMMARY_SUM') && (criticalRules.has('FORMULA_SUM_LOOKUP') || criticalRules.has('FORMULA_SELECT_HARDCODED'))
+  )) {
+    healthScore = Math.min(healthScore, 78);
   }
   return {
     healthScore,
-    verdict: healthScore >= 85 ? 'Good' : healthScore >= 60 ? 'Needs Work' : 'Critical',
+    verdict: healthScore >= 85 ? 'Good' : healthScore >= 55 ? 'Needs Work' : 'Critical',
     dimensions,
   };
 }
 
-function groupedPenalty(findings) {
+function analysisSize(normalized, findings) {
+  const moduleIds = new Set(findings.map(f => f.moduleId || f.moduleName).filter(Boolean));
+  const lineItemIds = new Set(findings.map(f => f.lineItemId || `${f.moduleId}:${f.lineItemName}`).filter(Boolean));
+  const lineItemCount = normalized?.modules?.reduce((sum, mod) => sum + (mod.lineItems?.length || 0), 0) || lineItemIds.size || findings.length || 1;
+  return {
+    moduleCount: normalized?.modules?.length || moduleIds.size || 1,
+    lineItemCount,
+  };
+}
+
+function densityPenalty(findings, normalized) {
+  if (!findings.length) return 0;
+  const { moduleCount, lineItemCount } = analysisSize(normalized, findings);
   const grouped = new Map();
   for (const finding of findings) {
-    const key = `${finding.moduleId || finding.moduleName}:${finding.ruleId}`;
+    const key = finding.ruleId;
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key).push(finding);
   }
   let penalty = 0;
   for (const group of grouped.values()) {
     const first = group[0] || {};
-    const weight = SCORE_WEIGHTS[first.severity] || 1;
-    penalty += weight * (1 + Math.log2(Math.max(1, group.length)));
+    const config = RULE_SCORE_CONFIG[first.ruleId] || { scope: first.lineItemName ? 'lineItem' : 'module', cap: 8, sensitivity: 1.5 };
+    const moduleHits = new Set(group.map(f => f.moduleId || f.moduleName).filter(Boolean)).size;
+    const lineItemHits = new Set(group.map(f => f.lineItemId || `${f.moduleId}:${f.lineItemName}`).filter(Boolean)).size || group.length;
+    const denominator = config.scope === 'module' ? moduleCount : lineItemCount;
+    const affected = config.scope === 'module' ? moduleHits : lineItemHits;
+    const density = Math.min(1, affected / Math.max(1, denominator));
+    const severityBias = first.severity === 'critical' ? 1.12 : first.severity === 'warning' ? 1 : 0.65;
+    penalty += config.cap * severityBias * (1 - Math.exp(-density * config.sensitivity));
   }
-  return penalty;
+  return Math.min(75, penalty);
 }
 
 function findModuleReferences(formula, modules) {
@@ -650,7 +757,26 @@ export function buildArchitectureClassification(normalized, graph) {
   };
 }
 
-export function buildBlastRadius(normalized, graph) {
+export function scanArchitectureFindings(normalized) {
+  const graph = buildDependencyGraph(normalized);
+  const architecture = buildArchitectureClassification(normalized, graph);
+  const moduleById = new Map(normalized.modules.map(m => [m.id, m]));
+  return architecture.issues.map(issue => {
+    const module = moduleById.get(issue.moduleId) || { id: issue.moduleId, name: issue.moduleName };
+    return finding({
+      ruleId: issue.ruleId,
+      severity: issue.severity,
+      module,
+      title: issue.title,
+      evidence: issue.relatedModuleName
+        ? `${issue.evidence} Related module: ${issue.relatedModuleName}.`
+        : issue.evidence,
+      action: issue.action,
+    });
+  });
+}
+
+export function buildBlastRadius(normalized, graph, options = {}) {
   const nodeById = new Map(graph.nodes.map(n => [n.moduleId, n]));
   return normalized.modules.map(mod => {
     const downstream = downstreamModules(graph, mod.id);
@@ -662,7 +788,7 @@ export function buildBlastRadius(normalized, graph) {
       downstreamOutputCount: downstreamOutputCount(graph, downstream),
       downstreamModules: downstreamNames,
     };
-  }).sort((a, b) =>
+  }).filter(item => options.includeZero || item.downstreamModuleCount > 0 || item.downstreamOutputCount > 0).sort((a, b) =>
     b.downstreamOutputCount - a.downstreamOutputCount ||
     b.downstreamModuleCount - a.downstreamModuleCount ||
     a.moduleName.localeCompare(b.moduleName)
@@ -766,7 +892,7 @@ export function buildRemediationPlan(prioritizedFindings) {
     },
     {
       stage: 'Structural remediation',
-      rules: new Set(['MODULE_DATA_HAS_CALC', 'MODULE_TOO_MANY_DIMS']),
+      rules: new Set(['MODULE_DATA_HAS_CALC', 'MODULE_TOO_MANY_DIMS', 'ARCH_DATA_MODULE_HAS_FORMULAS', 'ARCH_CALC_MODULE_STORES_INPUTS', 'ARCH_OUTPUT_MODULE_NO_DERIVED_VALUES', 'ARCH_MIXED_RESPONSIBILITY_MODULE', 'ARCH_NAME_BEHAVIOR_MISMATCH', 'ARCH_OUTPUT_READS_RAW_LAYER']),
       rationale: 'Highest design impact; plan with model-builder review and downstream validation.',
     },
   ];
@@ -806,25 +932,68 @@ export function buildRegressionChecklist(blastRadius) {
     }));
 }
 
-export function buildEvidenceSummary(normalized, findings, blastRadius) {
+export function buildEvidenceSummary(normalized, findings, blastRadius, displayFindings = []) {
   const topDomains = Object.entries(findings.reduce((acc, f) => {
     acc[f.domain] = (acc[f.domain] || 0) + 1;
     return acc;
   }, {})).sort((a, b) => b[1] - a[1]).slice(0, 2);
   const topImpact = blastRadius[0];
+  const separatorCount = (normalized.excludedModules || []).filter(m => m.reason === 'decorative_separator' || m.reason === 'empty_or_header_only').length;
   const domainText = topDomains.length
-    ? topDomains.map(([domain, count]) => `${count} ${domain}`).join(' and ')
+    ? topDomains.map(([domain]) => domain).join(' and ')
     : 'no deterministic';
   const impactText = topImpact && topImpact.downstreamModuleCount > 0
     ? ` Highest blast radius is ${topImpact.moduleName}, which feeds ${topImpact.downstreamModuleCount} downstream module${topImpact.downstreamModuleCount === 1 ? '' : 's'}.`
     : '';
-  return `This model contains ${normalized.modules.length} modules and ${normalized.modules.reduce((sum, m) => sum + m.lineItemCount, 0)} line items. The deterministic scan found ${findings.length} underlying findings, led by ${domainText} issue${findings.length === 1 ? '' : 's'}.${impactText}`;
+  const bucketText = displayFindings.length
+    ? `${displayFindings.length} evidence buckets`
+    : `${findings.length} deterministic finding${findings.length === 1 ? '' : 's'}`;
+  const exclusionText = separatorCount
+    ? ` ${separatorCount} separator or empty/header-only module${separatorCount === 1 ? ' was' : 's were'} excluded from scoring and diagrams.`
+    : '';
+  return `Evaluated ${normalized.modules.length} functional modules and ${normalized.modules.reduce((sum, m) => sum + m.lineItemCount, 0)} line items as ${bucketText}; strongest rule patterns are ${domainText}.${impactText}${exclusionText}`;
 }
 
-export function buildModelIntelligence(normalized, findings) {
+function buildExecutiveNarrative(normalized, findings, score, blastRadius, displayFindings, architecture) {
+  const moduleCount = normalized.modules.length;
+  const lineItemCount = normalized.modules.reduce((sum, m) => sum + m.lineItemCount, 0);
+  const excluded = normalized.excludedModules || [];
+  const decorativeCount = excluded.filter(m => m.reason === 'decorative_separator' || m.reason === 'empty_or_header_only').length;
+  const topBuckets = displayFindings.slice(0, 3).map(f =>
+    `${f.title}${f.affectedCount && f.affectedCount > 1 ? ` (${f.affectedCount} occurrences across ${f.affectedModuleCount || 1} modules)` : ''}`
+  );
+  const topBlast = blastRadius[0];
+  const issueCount = architecture?.issues?.length || 0;
+  const layerText = Object.entries(architecture?.layerCounts || {})
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([layer, count]) => `${count} ${layer}`)
+    .slice(0, 4)
+    .join(', ');
+
+  const paragraphs = [
+    `This report evaluated ${moduleCount} functional modules and ${lineItemCount} line items. ${decorativeCount ? `${decorativeCount} decorative separators or header-only modules were removed before scoring, dependency mapping, and blast-radius ranking.` : 'No decorative separator modules were included in scoring or diagrams.'}`,
+    `The calibrated model health score is ${score.healthScore}/100 (${score.verdict}). This score is based on rule density, severity, and affected surface area, not raw finding volume, so repeated low-risk naming or metadata patterns do not collapse the model to an artificial critical score.`,
+  ];
+  if (layerText || issueCount) {
+    paragraphs.push(`Architecture read: ${layerText || 'layer classification is sparse'}. The structural scan found ${issueCount} architecture issue${issueCount === 1 ? '' : 's'} that should be reviewed against model-builder intent before remediation.`);
+  }
+  if (topBlast) {
+    paragraphs.push(`Dependency read: ${topBlast.moduleName} has the highest observed blast radius, feeding ${topBlast.downstreamModuleCount} downstream module${topBlast.downstreamModuleCount === 1 ? '' : 's'}${topBlast.downstreamOutputCount ? ` including ${topBlast.downstreamOutputCount} output module${topBlast.downstreamOutputCount === 1 ? '' : 's'}` : ''}. Regression checks should start with downstream outputs rather than isolated modules.`);
+  }
+  if (topBuckets.length) {
+    paragraphs.push(`Primary evidence buckets: ${topBuckets.join('; ')}. Treat these as review workstreams, not hundreds of individual tickets.`);
+  } else {
+    paragraphs.push('No deterministic improvement buckets survived evidence filtering. If this is unexpected, re-fetch the blueprint and confirm modules and line items were returned before trusting the result.');
+  }
+  return paragraphs.join('\n\n');
+}
+
+export function buildModelIntelligence(normalized, findings, score = scoreFindings(findings, normalized), displayFindings = summarizeFindingsForSuggestions(findings)) {
   const graph = buildDependencyGraph(normalized);
   const architecture = buildArchitectureClassification(normalized, graph);
   const blastRadius = buildBlastRadius(normalized, graph);
+  const regressionImpact = buildBlastRadius(normalized, graph, { includeZero: true });
   const prioritizedFindings = prioritizeFindings(findings, blastRadius);
   return {
     graph,
@@ -832,8 +1001,9 @@ export function buildModelIntelligence(normalized, findings) {
     blastRadius: blastRadius.slice(0, 20),
     prioritizedFindings: prioritizedFindings.slice(0, 30),
     remediationPlan: buildRemediationPlan(prioritizedFindings),
-    regressionChecklist: buildRegressionChecklist(blastRadius),
-    evidenceSummary: buildEvidenceSummary(normalized, findings, blastRadius),
+    regressionChecklist: buildRegressionChecklist(regressionImpact),
+    evidenceSummary: buildEvidenceSummary(normalized, findings, blastRadius, displayFindings),
+    executiveNarrative: buildExecutiveNarrative(normalized, findings, score, blastRadius, displayFindings, architecture),
   };
 }
 
@@ -866,10 +1036,10 @@ export function buildAnalysisSnapshot(blueprint) {
     const skippedModules = Array.isArray(blueprint?.modules) ? blueprint.modules.filter(mod => mod?.fetchError).length : 0;
     throw new Error(`No usable line items were fetched from the blueprint (${sourceModules} modules, ${skippedModules} skipped). Re-fetch the blueprint before analysing.`);
   }
-  const findings = scanDeterministicFindings(normalized);
+  const findings = [...scanDeterministicFindings(normalized), ...scanArchitectureFindings(normalized)];
   const displayFindings = summarizeFindingsForSuggestions(findings);
-  const score = scoreFindings(findings);
-  const intelligence = buildModelIntelligence(normalized, findings);
+  const score = scoreFindings(findings, normalized);
+  const intelligence = buildModelIntelligence(normalized, findings, score, displayFindings);
   return {
     normalized,
     findings,

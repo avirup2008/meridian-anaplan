@@ -4490,7 +4490,9 @@ function confirmModelSelection() {
     }
 
     function renderBlastRadiusSvg(intel) {
-      const rows = Array.isArray(intel && intel.blastRadius) ? intel.blastRadius.slice(0, 8) : [];
+      const rows = Array.isArray(intel && intel.blastRadius)
+        ? intel.blastRadius.filter(r => (r.downstreamModuleCount || 0) > 0 || (r.downstreamOutputCount || 0) > 0).slice(0, 8)
+        : [];
       if (!rows.length) return '<div class="notes-empty">No blast radius data available.</div>';
       const max = Math.max(1, ...rows.map(r => (r.downstreamModuleCount || 0) + (r.downstreamOutputCount || 0) * 2));
       const W = 820, left = 230, barW = 500, rowH = 34, top = 18, H = top + rows.length * rowH + 24;
@@ -4531,7 +4533,7 @@ function confirmModelSelection() {
       const classified = Array.isArray(arch.modules) ? arch.modules : [];
       const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
       const edges = Array.isArray(graph.edges) ? graph.edges : [];
-      if (!nodes.length) return '<div class="notes-empty">No dependency graph available.</div>';
+      if (!nodes.length || !edges.length) return '<div class="notes-empty">No dependency graph available from formula references.</div>';
 
       const classById = new Map(classified.map(m => [m.moduleId, m]));
       const edgeScore = new Map();
@@ -4540,8 +4542,10 @@ function confirmModelSelection() {
         edgeScore.set(edge.toModuleId, (edgeScore.get(edge.toModuleId) || 0) + 1);
       }
       const selected = [...nodes]
+        .filter(n => (edgeScore.get(n.moduleId) || 0) > 0)
         .sort((a, b) => (edgeScore.get(b.moduleId) || 0) - (edgeScore.get(a.moduleId) || 0) || a.moduleName.localeCompare(b.moduleName))
         .slice(0, 32);
+      if (!selected.length) return '<div class="notes-empty">No connected dependency modules available from formula references.</div>';
       const selectedIds = new Set(selected.map(n => n.moduleId));
       const layers = ['data', 'system', 'calculation', 'planning', 'output', 'unknown'];
       const labels = { data:'Data', system:'System', calculation:'Calculation', planning:'Planning', output:'Output', unknown:'Other' };
@@ -4880,10 +4884,9 @@ function confirmModelSelection() {
       _anl$('anl-progress-wrap').style.display = 'none';
       _anl$('anl-hdr-status').innerHTML = 'Analysis complete';
       const _domainCount = Object.values(_anlState.suggestionsByDomain).filter(a => a.length > 0).length;
-      const underlying = c && typeof c.underlyingFindings === 'number' ? c.underlyingFindings : null;
       _anl$('anl-sub').textContent =
-        _anlState.suggestionCount + ' improvement buckets across ' + _domainCount + ' domain' + (_domainCount !== 1 ? 's' : '') +
-        (underlying && underlying > _anlState.suggestionCount ? ' from ' + underlying + ' underlying deterministic findings' : '');
+        _anlState.suggestionCount + ' evidence-backed improvement bucket' + (_anlState.suggestionCount !== 1 ? 's' : '') +
+        ' across ' + _domainCount + ' domain' + (_domainCount !== 1 ? 's' : '');
       // Phase 5: ensure tab bar is visible
       const tabBar = document.getElementById('dash-tab-bar');
       if (tabBar && tabBar.hasAttribute('hidden')) tabBar.removeAttribute('hidden');
@@ -4900,7 +4903,7 @@ function confirmModelSelection() {
       if (shareBtn) shareBtn.disabled = false;
       if (c && c.deterministicOnly && !narrativeStory) {
         const score = _anlState.score || {};
-        narrativeStory = score.summary || (_anlState.intelligence && _anlState.intelligence.evidenceSummary) || 'Deterministic model overview is available in the Verdict and Intelligence tabs.';
+        narrativeStory = (_anlState.intelligence && (_anlState.intelligence.executiveNarrative || _anlState.intelligence.evidenceSummary)) || score.summary || 'Deterministic model overview is available in the Verdict and Intelligence tabs.';
         renderNotesStory();
       } else if (!narrativeStory) {
         // Show notes placeholder — runNarrative() will fill it in via _anlOnNarrative
