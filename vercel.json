@@ -16,7 +16,7 @@
     "api/generate.js": { "maxDuration": 30 },
     "api/connect.js": { "maxDuration": 10 },
     "api/models.js": { "maxDuration": 10 },
-    "api/blueprint.js": { "maxDuration": 60 },
+    "api/model-state.js": { "maxDuration": 60 },
     "api/analyze.js": { "maxDuration": 60 },
     "api/analyze-narrative.js": { "maxDuration": 60 },
     "api/share.js": { "maxDuration": 10 },
