@@ -18,14 +18,6 @@ const FORMULA_TRUNCATE_LEN = 150; // chars
 // Matches DISCO-style prefixes: e.g. "SYS01 ", "DAT02 ", "REP10 "
 const DISCO_PREFIX_REGEX = /^[A-Z]{2,5}\d{2}\s/;
 
-// Worker pool constants — matching blueprint.js values for consistency
-const FETCH_CONCURRENCY = 8;
-const MAX_RETRIES = 1;
-const REQUEST_TIMEOUT_MS = 7_000;
-const TOTAL_BUDGET_MS = 52_000;
-const RETRY_AFTER_DEFAULT_MS = 2_000;
-const RETRY_AFTER_MAX_MS = 3_000;
-
 // ─── Security helpers ─────────────────────────────────────────────────────────
 
 const SENSITIVE_KEYS = new Set([
@@ -59,118 +51,6 @@ function safeLog(label, obj) {
   console.log(label, cleaned);
 }
 
-// ─── Budget helpers (copied from blueprint.js) ────────────────────────────────
-
-function elapsedSince(startMs) {
-  return Date.now() - startMs;
-}
-
-function budgetRemaining(startMs) {
-  return TOTAL_BUDGET_MS - elapsedSince(startMs);
-}
-
-// ─── Per-module fetch with retry (adapted from blueprint.js) ─────────────────
-
-async function fetchWithRetry(url, token, startMs) {
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    if (budgetRemaining(startMs) < 5_000) return null;
-    let r;
-    try {
-      const timeoutMs = Math.min(REQUEST_TIMEOUT_MS, Math.max(1_000, budgetRemaining(startMs) - 3_000));
-      r = await fetch(url, {
-        headers: { 'Authorization': `AnaplanAuthToken ${token}` },
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-    } catch (err) {
-      if (err.name === 'TimeoutError' || err.name === 'AbortError') return null;
-      if (attempt < MAX_RETRIES) continue;
-      return null;
-    }
-    if (r.status !== 429) return r;
-    const ra = parseInt(r.headers.get('Retry-After') ?? '10', 10);
-    const waitMs = Math.min((isNaN(ra) || ra <= 0) ? RETRY_AFTER_DEFAULT_MS : ra * 1_000, RETRY_AFTER_MAX_MS);
-    if (budgetRemaining(startMs) < waitMs + 5_000) return null;
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
-  }
-  return null;
-}
-
-async function fetchModuleLineItems(mod, wsId, mId, token, startMs) {
-  const url = `https://api.anaplan.com/2/0/workspaces/${wsId}/models/${mId}/modules/${mod.id}/lineItems?includeAll=true`;
-  const r = await fetchWithRetry(url, token, startMs);
-  if (!r || !r.ok) {
-    return {
-      id: mod.id,
-      name: mod.name,
-      lineItems: [],
-      fetchError: r ? `HTTP ${r.status}` : 'Timeout or rate limit — skipped',
-    };
-  }
-  const data = await r.json();
-  const items = data.items || [];
-  return { id: mod.id, name: mod.name, lineItems: items };
-}
-
-/**
- * Fan-out per-module line item fetches using a bounded worker pool (concurrency=8).
- * Streams no per-module progress events — only named stage events per D-08.
- */
-async function fetchAllModuleLineItems({ modules, wsId, mId, token, startMs, sendEvent }) {
-  const assembled = [];
-  let fetchedCount = 0;
-  let partialLoad = false;
-  let cursor = 0;
-
-  async function worker() {
-    while (cursor < modules.length) {
-      if (budgetRemaining(startMs) < 6_000) return;
-      const mod = modules[cursor++];
-      let result;
-      try {
-        result = await fetchModuleLineItems(mod, wsId, mId, token, startMs);
-      } catch (err) {
-        result = {
-          id: mod.id,
-          name: mod.name,
-          lineItems: [],
-          fetchError: err?.message || 'Unknown fetch error',
-        };
-      }
-
-      if (result.fetchError) {
-        partialLoad = true;
-        sendEvent({ type: 'partial-warning', moduleName: result.name, reason: result.fetchError });
-      } else {
-        fetchedCount++;
-      }
-      assembled.push(result);
-    }
-  }
-
-  const workers = Array.from(
-    { length: Math.min(FETCH_CONCURRENCY, modules.length) },
-    () => worker(),
-  );
-  await Promise.all(workers);
-
-  // If budget cut short, backfill any missing modules with fetch-error stubs
-  if (assembled.length < modules.length) {
-    partialLoad = true;
-    const fetchedIds = new Set(assembled.map((m) => m.id));
-    for (const mod of modules) {
-      if (fetchedIds.has(mod.id)) continue;
-      assembled.push({
-        id: mod.id,
-        name: mod.name,
-        lineItems: [],
-        fetchError: 'Serverless time budget reached — skipped',
-      });
-      sendEvent({ type: 'partial-warning', moduleName: mod.name, reason: 'Serverless time budget reached — skipped' });
-    }
-  }
-
-  return { assembled, fetchedCount, partialLoad };
-}
 
 // ─── Serialization ────────────────────────────────────────────────────────────
 
@@ -328,9 +208,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing credentials' });
   }
 
-  // Lowercase IDs — T-06-06: path-segment injection mitigation
-  const wsId = workspaceId.toLowerCase();
-  const mId = modelId.toLowerCase();
+  // Preserve ID casing — Anaplan API is case-sensitive on model IDs in some paths
+  const wsId = workspaceId;
+  const mId = modelId;
 
   // CRITICAL: SSE headers BEFORE first await — X-Accel-Buffering prevents proxy buffering
   res.setHeader('Content-Type', 'text/event-stream');
@@ -368,37 +248,50 @@ export default async function handler(req, res) {
     }
 
     // ── Stage 2: Load model structure ──────────────────────────────────────────
-    // D-03 fallback: model-level /lineItems endpoint does not exist (HTTP 404 confirmed in spike).
-    // Pattern: fetch /modules list first, then fan out per-module lineItems with concurrency=8.
+    // Two parallel calls: module list (workspace path) + all line items (model-only path).
+    // The model-level /lineItems endpoint is at /2/0/models/{mId}/lineItems — no workspace prefix.
+    // Confirmed via MCP spike: 2383 line items returned for 228-module model in one call.
     sendEvent({ type: 'stage', stage: 'loading', label: 'Loading model structure…' });
 
-    const baseUrl = `https://api.anaplan.com/2/0/workspaces/${wsId}/models/${mId}`;
     const authHeader = { 'Authorization': `AnaplanAuthToken ${token}` };
 
-    const modRes = await fetch(`${baseUrl}/modules`, { headers: authHeader });
+    const [modRes, liRes] = await Promise.all([
+      fetch(`https://api.anaplan.com/2/0/workspaces/${wsId}/models/${mId}/modules`, { headers: authHeader }),
+      fetch(`https://api.anaplan.com/2/0/models/${mId}/lineItems?includeAll=true`, { headers: authHeader }),
+    ]);
+
     if (!modRes.ok) {
       sendEvent({ type: 'error', message: `Failed to list modules: HTTP ${modRes.status}` });
       return;
     }
-    const modData = await modRes.json();
+    if (!liRes.ok) {
+      sendEvent({ type: 'error', message: `Failed to fetch line items: HTTP ${liRes.status}` });
+      return;
+    }
+
+    const [modData, liData] = await Promise.all([modRes.json(), liRes.json()]);
     const modules = modData.modules || [];
+    const allLineItems = liData.items || liData.lineItems || [];
 
-    safeLog('[model-state] modules listed', { count: modules.length, wsId, mId });
+    safeLog('[model-state] fetch complete', { modules: modules.length, lineItems: allLineItems.length });
 
-    // Fan out per-module lineItems with bounded worker pool (concurrency=8, D-03 fallback)
-    const { assembled, fetchedCount, partialLoad } = await fetchAllModuleLineItems({
-      modules,
-      wsId,
-      mId,
-      token,
-      startMs,
-      sendEvent,
-    });
+    // Group line items by module name (the model-level endpoint returns moduleName as a string)
+    const lisByModule = new Map();
+    for (const li of allLineItems) {
+      const modName = li.moduleName || li.module || '';
+      if (!lisByModule.has(modName)) lisByModule.set(modName, []);
+      lisByModule.get(modName).push(li);
+    }
 
-    // Build set of successfully-fetched module IDs for fetchCompleteness gate
-    const fetchedModuleIds = new Set(
-      assembled.filter((m) => !m.fetchError).map((m) => m.id),
-    );
+    // Merge with module list to preserve module IDs
+    const assembled = modules.map((mod) => ({
+      id: mod.id,
+      name: mod.name,
+      lineItems: lisByModule.get(mod.name) || [],
+    }));
+
+    // All modules fetched in one call — fetchedModuleIds covers the full set
+    const fetchedModuleIds = new Set(assembled.map((m) => m.id));
 
     // ── Stage 3: Serialize + filter decorators + compute evidence pack ─────────
     sendEvent({ type: 'stage', stage: 'serializing', label: 'Serializing state…' });
@@ -413,8 +306,7 @@ export default async function handler(req, res) {
       functionalModules: functional.length,
       decoratorModules: decorators.length,
       stateBytes: stateText.length,
-      fetchedCount,
-      partialLoad,
+      lineItems: allLineItems.length,
     });
 
     // ── Stage 4: Write to Blob ─────────────────────────────────────────────────
