@@ -18,6 +18,7 @@
     "api/models.js": { "maxDuration": 10 },
     "api/model-state.js": { "maxDuration": 60 },
     "api/analyze.js": { "maxDuration": 60 },
+    "api/analyze-v3.js": { "maxDuration": 60 },
     "api/analyze-narrative.js": { "maxDuration": 60 },
     "api/share.js": { "maxDuration": 10 },
     "api/cleanup.js": { "maxDuration": 10 }
