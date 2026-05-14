@@ -764,8 +764,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
         <div class="hero-verdict">
           <div class="hero-verdict-icon">⚠</div>
           <div>
-            <div class="hero-verdict-title">Two reports generated</div>
-            <div class="hero-verdict-sub">Intelligence · Documentation + diagrams</div>
+            <div class="hero-verdict-title">One report generated</div>
+            <div class="hero-verdict-sub">Verdict · intelligence · improvement buckets</div>
           </div>
         </div>
       </div>
@@ -775,7 +775,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     <div class="intro-content">
       <div class="intro-inner">
         <h1 class="intro-h1">Your Anaplan model,<br><em>fully understood.</em></h1>
-        <p class="intro-sub">Upload Anaplan blueprint CSVs. Get a complete Planual compliance scorecard with prioritised fixes, plus a comprehensive model user guide with workflow diagrams — in under two minutes.</p>
+        <p class="intro-sub">Upload Anaplan blueprint CSVs. Get a complete Planual compliance scorecard with deterministic intelligence, grouped improvement buckets, dependency diagrams, and a remediation sequence — in under two minutes.</p>
         <div class="intro-stats">
           <div class="intro-stat"><div class="intro-stat-val">47</div><div class="intro-stat-lbl">Planual rules checked</div></div>
           <div class="intro-stat"><div class="intro-stat-val">60s</div><div class="intro-stat-lbl">Model health scored</div></div>
@@ -794,11 +794,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
           <div class="intro-path" onclick="go('s-upload')">
             <div class="intro-path-icon">📂</div>
             <div><div class="intro-path-lbl">Upload blueprint CSV</div><div class="intro-path-desc">Analyse a model from exported blueprint files</div></div>
-            <div class="intro-path-arr">→</div>
-          </div>
-          <div class="intro-path" onclick="go('s-hub')">
-            <div class="intro-path-icon" style="background:var(--neg-pale);font-size:14px;">⚡</div>
-            <div><div class="intro-path-lbl">Intelligence Report</div><div class="intro-path-desc">Compliance · violations · fix roadmap</div></div>
             <div class="intro-path-arr">→</div>
           </div>
         </div>
@@ -903,7 +898,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     <div class="dash-tab-bar" id="dash-tab-bar" hidden>
       <button class="dash-tab on" data-tab="verdict" onclick="switchTab('verdict')">Verdict</button>
       <button class="dash-tab" data-tab="intelligence" onclick="switchTab('intelligence')">Intelligence <span class="dash-tab-badge" id="dash-badge-intelligence">0</span></button>
-      <button class="dash-tab" data-tab="suggestions" onclick="switchTab('suggestions')">Suggestions <span class="dash-tab-badge" id="dash-badge-suggestions">0</span></button>
+      <button class="dash-tab" data-tab="suggestions" onclick="switchTab('suggestions')">Improvement Buckets <span class="dash-tab-badge" id="dash-badge-suggestions">0</span></button>
       <button class="dash-tab" data-tab="notes" onclick="switchTab('notes')">Notes</button>
       <button class="dash-tab" data-tab="export" onclick="switchTab('export')">Export</button>
     </div>
@@ -966,7 +961,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
         <p class="export-help">Compose a PDF report and download it locally.</p>
         <div class="export-options">
           <label><input type="checkbox" id="pdf-opt-verdict" checked> Verdict (score + dimensions + summary)</label>
-          <label><input type="checkbox" id="pdf-opt-suggestions" checked> Suggestions (filtered by current pills)</label>
+          <label><input type="checkbox" id="pdf-opt-suggestions" checked> Improvement buckets (filtered by current pills)</label>
           <label><input type="checkbox" id="pdf-opt-notes" checked> Notes (model overview)</label>
         </div>
         <button class="btn" id="pdf-download-btn" onclick="exportAnalysisPDF()" disabled>Generate PDF</button>
@@ -1421,7 +1416,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
       </div>
     </div>
 
-    <h3 class="anl-section-h" id="shr-sugg-heading" hidden>Improvement Suggestions <span class="anl-count" id="shr-sugg-count">0</span></h3>
+    <h3 class="anl-section-h" id="shr-sugg-heading" hidden>Improvement Buckets <span class="anl-count" id="shr-sugg-count">0</span></h3>
     <div id="shr-suggestions-list"></div>
 
     <h3 class="anl-section-h" id="shr-intel-heading" hidden>Model Intelligence</h3>
@@ -1437,6 +1432,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 // NAVIGATION
 // ═══════════════════════════════════════════════════════════════
 function go(id){
+  if (['s-generating', 's-hub', 's-intel', 's-docs', 's-guide'].includes(id)) {
+    id = (_anlState && _anlState.score) || analysisResult ? 's-analysis' : 's-intro';
+  }
   const screen = document.getElementById(id);
   if (!screen) return;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -2101,11 +2099,37 @@ function localViolationToSuggestion(v, severity) {
 }
 
 function localSuggestionsFromRules(ar) {
-  return [
+  const raw = [
     ...(ar.violations?.critical || []).map(v => localViolationToSuggestion(v, 'critical')),
     ...(ar.violations?.warning || []).map(v => localViolationToSuggestion(v, 'warning')),
     ...(ar.violations?.info || []).map(v => localViolationToSuggestion(v, 'info')),
   ];
+  const grouped = new Map();
+  for (const item of raw) {
+    const key = `${item.domain}:${item.ruleId || item.text}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(item);
+  }
+  return [...grouped.values()].map(items => {
+    const first = items[0];
+    if (items.length === 1) return { ...first, affectedCount: 1, affectedModuleCount: 1, examples: [] };
+    const modules = [...new Set(items.map(s => s.moduleName).filter(Boolean))];
+    const examples = items.map(s => s.lineItemName ? `${s.moduleName}: ${s.lineItemName}` : s.moduleName).filter(Boolean).slice(0, 6);
+    return {
+      ...first,
+      moduleId: '',
+      moduleName: `${modules.length} module${modules.length === 1 ? '' : 's'}`,
+      lineItemName: '',
+      reasoning: `${items.length} occurrences share this deterministic rule pattern across the uploaded blueprint.`,
+      builderNote: `${items.length} underlying findings across ${modules.length} module${modules.length === 1 ? '' : 's'}.`,
+      affectedCount: items.length,
+      affectedModuleCount: modules.length,
+      examples,
+    };
+  }).sort((a, b) => {
+    const triageRank = { 'Fix Now': 0, Consider: 1, Monitor: 2 };
+    return (triageRank[a.triage] ?? 9) - (triageRank[b.triage] ?? 9) || (b.affectedCount || 1) - (a.affectedCount || 1);
+  }).slice(0, 20);
 }
 
 function buildLocalDependencyGraph(modules) {
@@ -2245,7 +2269,7 @@ function buildLocalModelIntelligence(modules, ar, suggestions) {
       reason: b.downstreamOutputCount > 0 ? `Validate ${b.downstreamOutputCount} downstream output module${b.downstreamOutputCount === 1 ? '' : 's'}.` : 'Business-facing output module; verify displayed values after remediation.',
       downstreamModules: b.downstreamModules,
     })),
-    evidenceSummary: `This model contains ${modules.length} modules and ${ar.totalLI} line items. The deterministic scan found ${suggestions.length} findings across ${new Set(suggestions.map(s => s.domain)).size} domains.`,
+    evidenceSummary: `This model contains ${modules.length} modules and ${ar.totalLI} line items. The deterministic scan produced ${suggestions.length} improvement buckets across ${new Set(suggestions.map(s => s.domain)).size} domains.`,
   };
 }
 
@@ -2261,7 +2285,7 @@ function buildAnalysisScreen(){
     verdict: verdictFromBand(ar.band),
     summary: ar.violations.critical[0]
       ? `${ar.violations.critical[0].title} ${ar.violations.critical[0].body}`
-      : `This model scores ${ar.mii}/100 with ${localSuggestions.length} deterministic findings across ${new Set(localSuggestions.map(s => s.domain)).size} domains.`,
+      : `This model scores ${ar.mii}/100 with ${localSuggestions.length} improvement buckets across ${new Set(localSuggestions.map(s => s.domain)).size} domains.`,
     dimensions: {
       architecture: ar.archScore,
       naming: ar.namingScore,
@@ -2300,7 +2324,7 @@ function buildAnalysisScreen(){
 
   // Update sub
   document.getElementById('anl-sub').textContent =
-    `${localSuggestions.length} suggestions across ${new Set(localSuggestions.map(s => s.domain)).size} domains`;
+    `${localSuggestions.length} improvement buckets across ${new Set(localSuggestions.map(s => s.domain)).size} domains`;
 
   _anlOnScore(localScore);
   applySuggFilter();
@@ -2317,16 +2341,8 @@ function buildAnalysisScreen(){
 // GEMINI DOCUMENTATION GENERATION
 // ═══════════════════════════════════════════════════════════════
 async function startDocGeneration(){
-  go('s-generating');
-  buildGeneratingScreen();
-  await generateAllNarratives();
-  buildReports();
-  go('s-hub');
-  updateHub();
-  // Pre-generate user guide in background (non-blocking)
-  if(parsedModules.length > 0) {
-    generateUserGuide().catch(e=>console.warn('Background guide gen:', e));
-  }
+  buildAnalysisScreen();
+  go('s-analysis');
 }
 
 function buildGeneratingScreen(){
@@ -4685,7 +4701,7 @@ function confirmModelSelection() {
       if (options.suggestions) {
         // PDF always exports ALL suggestions — ignore active filter pills
         const filtered = suggData;
-        content.push({ text: 'Improvement Suggestions (' + filtered.length + ')', style: 'section' });
+        content.push({ text: 'Improvement Buckets (' + filtered.length + ')', style: 'section' });
         const order = ['Structural', 'Formula', 'Best Practice', 'Naming'];
         for (const dom of order) {
           const items = filtered.filter(s => s.domain === dom);
@@ -4861,7 +4877,7 @@ function confirmModelSelection() {
       const _domainCount = Object.values(_anlState.suggestionsByDomain).filter(a => a.length > 0).length;
       const underlying = c && typeof c.underlyingFindings === 'number' ? c.underlyingFindings : null;
       _anl$('anl-sub').textContent =
-        _anlState.suggestionCount + ' prioritised suggestions across ' + _domainCount + ' domain' + (_domainCount !== 1 ? 's' : '') +
+        _anlState.suggestionCount + ' improvement buckets across ' + _domainCount + ' domain' + (_domainCount !== 1 ? 's' : '') +
         (underlying && underlying > _anlState.suggestionCount ? ' from ' + underlying + ' underlying deterministic findings' : '');
       // Phase 5: ensure tab bar is visible
       const tabBar = document.getElementById('dash-tab-bar');
@@ -5142,7 +5158,7 @@ function confirmModelSelection() {
         }
       }
 
-      // Suggestions (read-only — no filter pills)
+      // Improvement buckets (read-only — no filter pills)
       const suggs = Array.isArray(p.suggestions) ? p.suggestions : [];
       if (suggs.length > 0) {
         document.getElementById('shr-sugg-heading').hidden = false;
@@ -5163,11 +5179,16 @@ function confirmModelSelection() {
               + '<div class="domain-hd"><span class="domain-name">' + _anlEsc(d) + '</span><span class="domain-count">' + items.length + '</span></div>'
               + '<div class="domain-body">' + items.map(s => {
                   const triageClass = s.triage === 'Fix Now' ? 'fix' : s.triage === 'Consider' ? 'consider' : 'monitor';
+                  const affected = Number(s.affectedCount || 0);
+                  const modules = Number(s.affectedModuleCount || 0);
+                  const examples = Array.isArray(s.examples) ? s.examples.slice(0, 4) : [];
                   return '<div class="sugg-card">'
                     + '<span class="sugg-triage ' + triageClass + '">' + _anlEsc(s.triage || '') + '</span>'
                     + '<span class="sugg-module">' + _anlEsc(s.moduleName || '') + '</span>'
+                    + (affected > 1 ? '<span class="sugg-module">' + affected + ' findings' + (modules > 1 ? ' · ' + modules + ' modules' : '') + '</span>' : '')
                     + '<div class="sugg-title">' + _anlEsc(s.text || '') + '</div>'
                     + (s.reasoning ? '<div class="sugg-reasoning">' + _anlEsc(s.reasoning) + '</div>' : '')
+                    + (examples.length ? '<div class="sugg-reasoning"><strong>Examples:</strong> ' + _anlEsc(examples.join('; ')) + '</div>' : '')
                     + (s.action ? '<div class="sugg-action">' + _anlEsc(s.action) + '</div>' : '')
                   + '</div>';
                 }).join('')
