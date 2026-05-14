@@ -1,0 +1,56 @@
+[spike] Phase 6 API Spike — Model-Level lineItems Endpoint
+[spike] Workspace ID: 402882f72f81c3de012feb7878991c0e
+[spike] Model ID:     245e5d2fc8c241d4bd14fc910181f383
+[spike] Starting authentication...
+[spike] Auth response status: 201
+[spike] Authentication successful. Token obtained (not logged).
+
+[spike] Firing parallel requests...
+[spike]   → https://api.anaplan.com/2/0/workspaces/402882f72f81c3de012feb7878991c0e/models/245e5d2fc8c241d4bd14fc910181f383/modules
+[spike]   → https://api.anaplan.com/2/0/workspaces/402882f72f81c3de012feb7878991c0e/models/245e5d2fc8c241d4bd14fc910181f383/lineItems?includeAll=true
+
+─────────────────────────────────────────────────────────────────
+ENDPOINT 1: /modules
+─────────────────────────────────────────────────────────────────
+status: 404 Not Found
+response headers (selected):
+  content-type:    application/json
+  link:            (none)
+  x-pagination-*:  (none)
+[spike] /modules request failed: HTTP 404
+{
+  "status" : {
+    "code" : 404,
+    "message" : "Not Found"
+  },
+  "path" : "/2/0/workspaces/402882f72f81c3de012feb7878991c0e/models/245e5d2fc8c241d4bd14fc910181f383/modules",
+  "timestamp" : "2026-05-14T17:39:09.943874662Z"
+}
+
+─────────────────────────────────────────────────────────────────
+ENDPOINT 2: /lineItems?includeAll=true
+─────────────────────────────────────────────────────────────────
+status: 404 Not Found
+response headers (selected):
+  content-type:    application/json
+  link:            (none)
+  pagination headers found: (none)
+[spike] /lineItems request failed: HTTP 404
+{
+  "status" : {
+    "code" : 404,
+    "message" : "Not Found"
+  },
+  "path" : "/2/0/workspaces/402882f72f81c3de012feb7878991c0e/models/245e5d2fc8c241d4bd14fc910181f383/lineItems",
+  "timestamp" : "2026-05-14T17:39:09.989343060Z"
+}
+
+─────────────────────────────────────────────────────────────────
+SPIKE COMPLETE — review output above and fill in 06-SPIKE-RESULT.md
+─────────────────────────────────────────────────────────────────
+Key questions to answer from this output:
+  1. endpointExists: Did /lineItems return 200? (check "status:" line above)
+  2. topLevelItemsField: Was it "items", "lineItems", or "data"?
+  3. moduleIdField: Which field name links each line item to its module?
+  4. formulaFieldPresent: Was formula non-null on any line item?
+  5. paginationPresent: Were any pagination-related fields found?
