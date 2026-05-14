@@ -895,11 +895,25 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     </div>
 
     <div class="dash-tab-bar" id="dash-tab-bar" hidden>
+      <button class="dash-tab" data-tab="model" id="tab-btn-model" onclick="switchTab('model')">Model</button>
       <button class="dash-tab on" data-tab="verdict" onclick="switchTab('verdict')">Assessment</button>
       <button class="dash-tab" data-tab="suggestions" onclick="switchTab('suggestions')">Workstreams <span class="dash-tab-badge" id="dash-badge-suggestions">0</span></button>
       <button class="dash-tab" data-tab="intelligence" onclick="switchTab('intelligence')">Evidence <span class="dash-tab-badge" id="dash-badge-intelligence">0</span></button>
       <button class="dash-tab" data-tab="notes" onclick="switchTab('notes')">Notes</button>
       <button class="dash-tab" data-tab="export" onclick="switchTab('export')">Export</button>
+    </div>
+
+    <div id="evidence-limit-warning" role="alert" hidden class="evidence-warning">
+      <strong>Evidence Limits</strong>
+      <p>This fetch is incomplete. The following conclusions are blocked:</p>
+      <ul id="blocked-conclusions-list"></ul>
+    </div>
+
+    <div class="dash-panel" id="dash-panel-model" data-alias="tab-panel-model">
+      <div class="model-stub">
+        <h2>Model</h2>
+        <p>Module classification, dependency graph, and DISCO architecture map ship in the next update.</p>
+      </div>
     </div>
 
     <div class="dash-panel active" id="dash-panel-verdict">
@@ -4058,7 +4072,7 @@ function confirmModelSelection() {
 
       let res;
       try {
-        res = await fetch('/api/blueprint', {
+        res = await fetch('/api/model-state', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -4095,41 +4109,45 @@ function confirmModelSelection() {
           let evt;
           try { evt = JSON.parse(chunk.slice(6)); } catch { continue; }
 
-          if (evt.type === 'progress') {
-            doneEl.textContent = String(evt.modulesDone);
-            totalEl.textContent = String(evt.modulesTotal);
-            totalLineItems += (evt.lineItemCount || 0);
-            liEl.textContent = String(totalLineItems);
-            currentEl.textContent = evt.moduleName ? ('Fetched: ' + evt.moduleName) : 'Listing modules…';
-            const pct = evt.modulesTotal ? (evt.modulesDone / evt.modulesTotal) * 100 : 0;
-            fillEl.style.width = pct + '%';
-          } else if (evt.type === 'partial-warning') {
-            fetchWarn.style.display = 'block';
-            const li = document.createElement('li');
-            li.textContent = evt.moduleName + ' — ' + evt.reason;
-            fetchWarnList.appendChild(li);
-          } else if (evt.type === 'schema-preview') {
-            renderSchemaPreview(evt.schema, schemaDl);
-            schemaPanel.style.display = 'block';
+          if (evt.type === 'stage') {
+            const labelEl = document.getElementById('fetch-current') || document.querySelector('#s-fetch .fetch-status');
+            if (labelEl) labelEl.textContent = evt.label || '';
+            const fillEl2 = document.getElementById('fetch-progress-fill') || document.querySelector('#s-fetch .progress-fill');
+            const stageMap = { auth: 15, loading: 40, serializing: 75, writing: 90 };
+            if (fillEl2) fillEl2.style.width = (stageMap[evt.stage] || 10) + '%';
           } else if (evt.type === 'complete') {
-            if (!evt.totalLineItems || evt.totalLineItems <= 0) {
-              fetchErr.style.display = 'block';
-              fetchErr.textContent = 'No line items were fetched from Anaplan. Re-fetch the blueprint before analysis.';
-              return;
-            }
-            localStorage.setItem('meridian.blueprintBlobUrl', evt.blobUrl || '');
-            localStorage.setItem('meridian.blueprintMeta', JSON.stringify({
-              moduleCount: evt.moduleCount,
-              totalLineItems: evt.totalLineItems,
-              partialLoad: evt.partialLoad,
-              fetchedAt: new Date().toISOString(),
-            }));
-            currentEl.textContent = 'Complete.';
-            fillEl.style.width = '100%';
+            const fillEl2 = document.getElementById('fetch-progress-fill') || document.querySelector('#s-fetch .progress-fill');
+            if (fillEl2) fillEl2.style.width = '100%';
+            try { localStorage.setItem('meridian.stateUrl', evt.stateUrl || ''); } catch (e) {}
+            try { sessionStorage.setItem('meridian.evidencePack', JSON.stringify(evt.evidencePack || {})); } catch (e) {}
+            try {
+              localStorage.setItem('meridian.stateMeta', JSON.stringify({
+                moduleCount: evt.moduleCount,
+                lineItemCount: evt.lineItemCount,
+                excludedCount: evt.excludedCount,
+                tokenEstimate: evt.tokenEstimate,
+                fetchedAt: new Date().toISOString(),
+              }));
+            } catch (e) {}
+            // Clear stale v2.0 key so no code path picks it up
+            try { localStorage.removeItem('meridian.blueprintBlobUrl'); } catch (e) {}
             go('s-analysis');
-            setTimeout(runAnalysis, 0);
+            if (typeof activateTab === 'function') {
+              activateTab('model');  // D-09
+            } else {
+              // Fallback: set a known global so the dashboard init picks Model
+              window.__meridianInitialTab = 'model';
+            }
+            // MSF-05: render evidence-limit warning if any conclusions are blocked
+            if (typeof renderEvidenceLimits === 'function') {
+              renderEvidenceLimits(evt.evidencePack);
+            }
           } else if (evt.type === 'error') {
-            fetchErr.style.display = 'block'; fetchErr.textContent = evt.message || 'Unknown error';
+            const errEl2 = document.getElementById('fetch-error') || document.querySelector('#s-fetch .fetch-error');
+            if (errEl2) {
+              errEl2.style.display = 'block';
+              errEl2.textContent = evt.message || 'Unknown error';
+            }
           }
         }
       }
@@ -4316,6 +4334,37 @@ function confirmModelSelection() {
       if (tabBtn) tabBtn.classList.add('on');
       activeTab = name;
       if (incoming && noteScrollPos[name]) incoming.scrollTop = noteScrollPos[name];
+    }
+
+    // Alias used by the fetch complete handler (D-09) so the SSE handler can
+    // request the Model tab without knowing about the dash-panel internals.
+    function activateTab(name) {
+      // Show the tab bar first (it is hidden until analysis data arrives, but
+      // on the v3.0 path the user lands here directly from fetch, not analysis).
+      const tabBar = document.getElementById('dash-tab-bar');
+      if (tabBar) tabBar.removeAttribute('hidden');
+      // switchTab guards against same-tab no-ops; force activeTab so the guard
+      // doesn't skip the switch when the dashboard was just reset to 'verdict'.
+      activeTab = activeTab === name ? name + '_' : activeTab;
+      switchTab(name);
+    }
+
+    function renderEvidenceLimits(evidencePack) {
+      const panel = document.getElementById('evidence-limit-warning');
+      const list = document.getElementById('blocked-conclusions-list');
+      if (!panel || !list) return;
+      const blocked = (evidencePack && Array.isArray(evidencePack.blockedConclusions)) ? evidencePack.blockedConclusions : [];
+      if (!blocked.length) {
+        panel.hidden = true;
+        list.innerHTML = '';
+        return;
+      }
+      // Escape user-derived strings (defence in depth — these come from our own server but still)
+      list.innerHTML = blocked.map(c => {
+        const esc = String(c).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return '<li>' + esc + '</li>';
+      }).join('');
+      panel.hidden = false;
     }
 
     function setSuggPill(group, val) {
@@ -5025,9 +5074,20 @@ function confirmModelSelection() {
       if (_anlAbortCtrl) { _anlAbortCtrl.abort(); _anlAbortCtrl = null; }
       _anlReset(); // hides banner, resets all state
 
-      const blobUrl = localStorage.getItem('meridian.blueprintBlobUrl');
+      // v3.0 dashboard init: restore evidencePack warning and handle initial tab override
+      try {
+        const ep = JSON.parse(sessionStorage.getItem('meridian.evidencePack') || 'null');
+        if (ep) renderEvidenceLimits(ep);
+      } catch (e) {}
+      if (window.__meridianInitialTab && typeof activateTab === 'function') {
+        activateTab(window.__meridianInitialTab);
+        window.__meridianInitialTab = null;
+      }
+
+      // v3.0 path uses meridian.stateUrl; v2.0 path uses meridian.blueprintBlobUrl
+      const blobUrl = localStorage.getItem('meridian.stateUrl') || localStorage.getItem('meridian.blueprintBlobUrl');
       if (!blobUrl) {
-        _anlShowError('No blueprint loaded. Please re-fetch your blueprint first.', true);
+        _anlShowError('No model state loaded. Please re-fetch your model first.', true);
         return;
       }
 
