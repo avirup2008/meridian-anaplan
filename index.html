@@ -2101,47 +2101,248 @@ function readFile(f){
 }
 function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
+function verdictFromBand(band) {
+  if (band === 'Critical') return 'Critical';
+  if (band === 'At Risk') return 'Needs Work';
+  return 'Good';
+}
+
+function domainFromRule(rule) {
+  const r = String(rule || '').toUpperCase();
+  if (['R01','R02','R14','R16','R17'].includes(r)) return 'Structural';
+  if (['R05','R06','R07','R08','R09','R10','R11','R12','R15'].includes(r)) return 'Formula';
+  if (['R03','R04','R13'].includes(r)) return 'Best Practice';
+  return 'Naming';
+}
+
+function localViolationToSuggestion(v, severity) {
+  return {
+    moduleId: v.module || '',
+    moduleName: v.module || '',
+    lineItemName: v.lineItem || '',
+    domain: domainFromRule(v.rule),
+    triage: severity === 'critical' ? 'Fix Now' : 'Consider',
+    text: v.title || '',
+    reasoning: v.body || '',
+    action: v.resolve || '',
+    builderNote: v.source || '',
+    evidence: v.body || '',
+    source: 'deterministic',
+    ruleId: v.rule || '',
+  };
+}
+
+function localSuggestionsFromRules(ar) {
+  return [
+    ...(ar.violations?.critical || []).map(v => localViolationToSuggestion(v, 'critical')),
+    ...(ar.violations?.warning || []).map(v => localViolationToSuggestion(v, 'warning')),
+    ...(ar.violations?.info || []).map(v => localViolationToSuggestion(v, 'info')),
+  ];
+}
+
+function buildLocalDependencyGraph(modules) {
+  const nodes = modules.map(m => ({
+    moduleId: m.moduleName,
+    moduleName: m.moduleName,
+    prefix: m.discoPrefix || m.inferredDisco || '',
+    lineItemCount: m.lineItems.length,
+    dimensionCount: (m.appliesTo || '').split(',').filter(d => d.trim()).length,
+  }));
+  const edgeMap = new Map();
+  for (const target of modules) {
+    for (const sourceName of target.allCrossRefs || []) {
+      if (sourceName === target.moduleName) continue;
+      const key = sourceName + '->' + target.moduleName;
+      if (!edgeMap.has(key)) {
+        edgeMap.set(key, {
+          fromModuleId: sourceName,
+          fromModuleName: sourceName,
+          toModuleId: target.moduleName,
+          toModuleName: target.moduleName,
+          lineItems: [],
+        });
+      }
+      edgeMap.get(key).lineItems.push(...target.lineItems.filter(li => (li.crossRefs || []).includes(sourceName)).map(li => li.name));
+    }
+  }
+  return { nodes, edges: [...edgeMap.values()] };
+}
+
+function localDownstream(graph, moduleName) {
+  const adjacency = new Map();
+  for (const edge of graph.edges) {
+    if (!adjacency.has(edge.fromModuleName)) adjacency.set(edge.fromModuleName, []);
+    adjacency.get(edge.fromModuleName).push(edge.toModuleName);
+  }
+  const seen = new Set();
+  const queue = [...(adjacency.get(moduleName) || [])];
+  while (queue.length) {
+    const next = queue.shift();
+    if (seen.has(next)) continue;
+    seen.add(next);
+    queue.push(...(adjacency.get(next) || []));
+  }
+  return [...seen];
+}
+
+function buildLocalArchitecture(modules, graph) {
+  const issues = [];
+  const layerCounts = {};
+  const moduleByName = new Map(modules.map(m => [m.moduleName, m]));
+  const classifications = modules.map(m => {
+    const declaredLayer = (m.discoPrefix || m.inferredDisco || 'UNKNOWN').toLowerCase();
+    layerCounts[declaredLayer] = (layerCounts[declaredLayer] || 0) + 1;
+    const formulaRatio = m.lineItems.length ? m.formulaCount / m.lineItems.length : 0;
+    const inferredBehavior = formulaRatio > 0.65 ? 'calculation' : formulaRatio > 0.15 ? 'mixed' : 'input/data';
+    return {
+      moduleId: m.moduleName,
+      moduleName: m.moduleName,
+      declaredLayer,
+      inferredBehavior,
+      formulaCount: m.formulaCount,
+      inputCount: m.noFormulaCount,
+      formulaRatio: Number(formulaRatio.toFixed(2)),
+      responsibilityCount: [m.noFormulaCount > 0, m.formulaCount > 0, (m.dtypes || []).includes('BOOLEAN'), (m.appliesTo || '').split(',').filter(d => d.trim()).length > 3].filter(Boolean).length,
+      responsibilities: [
+        m.noFormulaCount > 0 ? 'input storage' : '',
+        m.formulaCount > 0 ? 'calculation' : '',
+        (m.dtypes || []).includes('BOOLEAN') ? 'mapping/status logic' : '',
+      ].filter(Boolean),
+    };
+  });
+  for (const m of modules) {
+    const declared = (m.discoPrefix || m.inferredDisco || '').toUpperCase();
+    if (declared === 'DAT' && m.formulaCount > 0) {
+      issues.push({ ruleId:'ARCH_DATA_MODULE_HAS_FORMULAS', severity:'critical', moduleName:m.moduleName, title:'Data module contains formulas', evidence:`${m.formulaCount} calculated line item${m.formulaCount === 1 ? '' : 's'} detected.`, action:'Move calculations into a calculation module.' });
+    }
+    if (m.lineItems.length >= 8) {
+      const ratio = m.formulaCount / Math.max(m.lineItems.length, 1);
+      if (ratio > 0.15 && ratio < 0.85) {
+        issues.push({ ruleId:'ARCH_MIXED_RESPONSIBILITY_MODULE', severity:'warning', moduleName:m.moduleName, title:'Module mixes input and calculation responsibilities', evidence:`${Math.round(ratio * 100)}% of line items are formula-driven.`, action:'Split manual input and calculation line items into separate modules.' });
+      }
+    }
+  }
+  for (const edge of graph.edges) {
+    const source = moduleByName.get(edge.fromModuleName);
+    const target = moduleByName.get(edge.toModuleName);
+    const sourceLayer = (source?.discoPrefix || source?.inferredDisco || '').toUpperCase();
+    const targetLayer = (target?.discoPrefix || target?.inferredDisco || '').toUpperCase();
+    if (['REP','KPI','SOP','IBP'].includes(targetLayer) && ['DAT','INP'].includes(sourceLayer)) {
+      issues.push({ ruleId:'ARCH_OUTPUT_READS_RAW_LAYER', severity:'critical', moduleName:target.moduleName, relatedModuleName:source.moduleName, title:'Output module reads directly from raw layer', evidence:`${target.moduleName} reads ${source.moduleName}.`, action:'Route raw inputs through a calculation or system mapping layer first.' });
+    }
+  }
+  return { modules: classifications, layerCounts, issues };
+}
+
+function buildLocalModelIntelligence(modules, ar, suggestions) {
+  const graph = buildLocalDependencyGraph(modules);
+  const architecture = buildLocalArchitecture(modules, graph);
+  const blastRadius = modules.map(m => {
+    const downstreamModules = localDownstream(graph, m.moduleName);
+    const downstreamOutputCount = downstreamModules.filter(name => /^(REP|OUT|KPI|SOP|IBP)/.test(name)).length;
+    return {
+      moduleId: m.moduleName,
+      moduleName: m.moduleName,
+      downstreamModuleCount: downstreamModules.length,
+      downstreamOutputCount,
+      downstreamModules,
+    };
+  }).sort((a,b) => b.downstreamOutputCount - a.downstreamOutputCount || b.downstreamModuleCount - a.downstreamModuleCount);
+  const blastByName = new Map(blastRadius.map(b => [b.moduleName, b]));
+  const prioritizedFindings = suggestions.map(s => {
+    const blast = blastByName.get(s.moduleName) || { downstreamModuleCount: 0, downstreamOutputCount: 0 };
+    const sev = s.triage === 'Fix Now' ? 4 : 2;
+    return {
+      ...s,
+      title: s.text,
+      impactScore: sev * (1 + blast.downstreamModuleCount) + blast.downstreamOutputCount * 3,
+      downstreamModuleCount: blast.downstreamModuleCount,
+      downstreamOutputCount: blast.downstreamOutputCount,
+    };
+  }).sort((a,b) => b.impactScore - a.impactScore);
+  return {
+    graph,
+    architecture,
+    blastRadius,
+    prioritizedFindings,
+    remediationPlan: [
+      { stage:'Metadata and naming fixes', rationale:'Low formula risk; improves readability and governance first.', findingCount:suggestions.filter(s => s.domain === 'Naming').length },
+      { stage:'Summary and data hygiene fixes', rationale:'Can change reported totals, so fix before deeper formula refactors.', findingCount:suggestions.filter(s => s.domain === 'Best Practice').length },
+      { stage:'Formula refactors', rationale:'Requires regression checks because formulas can affect downstream outputs.', findingCount:suggestions.filter(s => s.domain === 'Formula').length },
+      { stage:'Structural remediation', rationale:'Highest design impact; plan with model-builder review and downstream validation.', findingCount:suggestions.filter(s => s.domain === 'Structural').length },
+    ].filter(s => s.findingCount > 0),
+    regressionChecklist: blastRadius.filter(b => b.downstreamOutputCount > 0 || /^(REP|OUT|KPI|SOP|IBP)/.test(b.moduleName)).slice(0, 12).map(b => ({
+      moduleId: b.moduleId,
+      moduleName: b.moduleName,
+      reason: b.downstreamOutputCount > 0 ? `Validate ${b.downstreamOutputCount} downstream output module${b.downstreamOutputCount === 1 ? '' : 's'}.` : 'Business-facing output module; verify displayed values after remediation.',
+      downstreamModules: b.downstreamModules,
+    })),
+    evidenceSummary: `This model contains ${modules.length} modules and ${ar.totalLI} line items. The deterministic scan found ${suggestions.length} findings across ${new Set(suggestions.map(s => s.domain)).size} domains.`,
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════
 // BUILD ANALYSIS SCREEN
 // ═══════════════════════════════════════════════════════════════
 function buildAnalysisScreen(){
   if(!analysisResult) return;
   const ar = analysisResult;
+  const localSuggestions = localSuggestionsFromRules(ar);
+  const localScore = {
+    healthScore: ar.mii,
+    verdict: verdictFromBand(ar.band),
+    summary: ar.violations.critical[0]
+      ? `${ar.violations.critical[0].title} ${ar.violations.critical[0].body}`
+      : `This model scores ${ar.mii}/100 with ${localSuggestions.length} deterministic findings across ${new Set(localSuggestions.map(s => s.domain)).size} domains.`,
+    dimensions: {
+      architecture: ar.archScore,
+      naming: ar.namingScore,
+      formulas: ar.formulaScore,
+      dataHygiene: ar.hygieneScore,
+      governance: ar.govScore,
+    },
+  };
+  const localIntelligence = buildLocalModelIntelligence(parsedModules, ar, localSuggestions);
+
+  _anlState = {
+    suggestionsByDomain: { 'Structural': [], 'Formula': [], 'Best Practice': [], 'Naming': [] },
+    suggestionCount: localSuggestions.length,
+    modules: [],
+    score: localScore,
+    intelligence: localIntelligence,
+    partial: null,
+    modelName: 'Uploaded blueprint',
+    workspaceName: 'CSV upload',
+  };
+  suggData = localSuggestions;
+  narrativeStory = '';
+  suggFilter = { triage: 'All', domain: 'All' };
+  activeTab = 'verdict';
+  noteScrollPos = { verdict: 0, intelligence: 0, suggestions: 0, notes: 0, export: 0 };
+  document.querySelectorAll('#s-analysis .dash-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('dash-panel-verdict')?.classList.add('active');
+  document.querySelectorAll('#s-analysis .dash-tab').forEach(t => t.classList.toggle('on', t.getAttribute('data-tab') === 'verdict'));
+  document.getElementById('dash-tab-bar')?.removeAttribute('hidden');
+  document.getElementById('anl-progress-wrap').style.display = 'none';
+  document.getElementById('anl-hdr-status').innerHTML = 'Analysis complete';
+  document.getElementById('dash-badge-suggestions').textContent = String(localSuggestions.length);
+  document.querySelectorAll('#s-analysis .pill').forEach(p => {
+    p.classList.toggle('on', p.getAttribute('data-val') === 'All');
+  });
 
   // Update sub
   document.getElementById('anl-sub').textContent =
-    `${parsedModules.length} modules · ${ar.totalLI} line items · ${ar.totalF} formula-driven`;
+    `${localSuggestions.length} suggestions across ${new Set(localSuggestions.map(s => s.domain)).size} domains`;
 
-  // MII number + colour — B-04: guard against missing elements (these IDs were
-  // removed when s-analysis was redesigned for the live-API path)
-  const miiColor = ar.mii<40?'var(--neg)':ar.mii<65?'var(--gold)':'var(--pos)';
-  const miiNumEl = document.getElementById('anl-mii-num');
-  if(miiNumEl) miiNumEl.innerHTML = `<span style="color:${miiColor}">${ar.mii}</span><span>/100</span>`;
-  const arc = document.getElementById('anl-arc');
-  if(arc) {
-    const dash = Math.round((ar.mii/100)*264);
-    arc.setAttribute('stroke-dasharray',`${dash} 264`);
-    arc.setAttribute('stroke', ar.mii<40?'#B82E2E':ar.mii<65?'#BF801E':'#217348');
-  }
-  const numTxtEl = document.getElementById('anl-num-txt');
-  if(numTxtEl) numTxtEl.textContent = ar.mii;
-  const miiBarEl = document.getElementById('anl-mii-bar');
-  if(miiBarEl) {
-    miiBarEl.style.width = ar.mii+'%';
-    miiBarEl.style.background = ar.mii<40?'var(--neg)':ar.mii<65?'var(--gold)':'var(--pos)';
-  }
-
-  const chip = document.getElementById('anl-band-chip'); // B-04: may be null in live-API path
-  const chipColors = {
-    Critical:{bg:'var(--neg-pale)',color:'var(--neg)',bd:'var(--neg-bd)'},
-    'At Risk':{bg:'var(--gold-pale)',color:'var(--gold)',bd:'var(--gold-bd)'},
-    Compliant:{bg:'var(--pos-pale)',color:'var(--pos)',bd:'var(--pos-bd)'},
-    Optimised:{bg:'var(--pos-pale)',color:'var(--pos)',bd:'var(--pos-bd)'},
-  }[ar.band]||{};
-  if(chip) {
-    chip.style.cssText=`background:${chipColors.bg};color:${chipColors.color};border:1px solid ${chipColors.bd}`;
-    chip.innerHTML=`<span style="width:5px;height:5px;border-radius:50%;background:${chipColors.color};display:inline-block;"></span>${escHtml(ar.band)}`;
-  }
+  _anlOnScore(localScore);
+  applySuggFilter();
+  renderIntelligencePanel();
+  renderIntelligencePreview();
+  renderNotesStory();
+  const pdfBtn = document.getElementById('pdf-download-btn');
+  const shareBtn = document.getElementById('share-create-btn');
+  if (pdfBtn) pdfBtn.disabled = false;
+  if (shareBtn) shareBtn.disabled = false;
 
   // Dimension cards
   const dims = [
@@ -2176,7 +2377,8 @@ function buildAnalysisScreen(){
      ]},
   ];
 
-  document.getElementById('anl-dims').innerHTML = dims.map(d=>{
+  const legacyDimsRoot = document.getElementById('anl-legacy-dims');
+  if (legacyDimsRoot) legacyDimsRoot.innerHTML = dims.map(d=>{
     const scColor = d.score<40?'var(--neg)':d.score<65?'var(--gold)':'var(--pos)';
     const barColor = d.score<40?'var(--neg)':d.score<65?'var(--gold)':d.score<85?'var(--accent)':'var(--pos)';
     const ragCls = d.score<40?'rc-bad':d.score<65?'rc-risk':'rc-ok';
