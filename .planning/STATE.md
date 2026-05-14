@@ -1,85 +1,87 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.0
-milestone_name: milestone
+milestone_name: Roadmap
 status: executing
-last_updated: "2026-05-12T23:49:02.276Z"
-last_activity: 2026-05-12 -- Phase 5 planning complete
+last_updated: "2026-05-14T17:26:25.456Z"
+last_activity: 2026-05-14 -- Phase 06 planning complete
 progress:
-  total_phases: 5
+  total_phases: 9
   completed_phases: 3
-  total_plans: 11
+  total_plans: 15
   completed_plans: 10
-  percent: 91
+  percent: 67
 ---
 
 # Meridian — State
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-05-10)
+See: `.planning/PROJECT.md` (updated 2026-05-14)
 
-**Core value:** Anaplan model builders get instant, AI-powered analysis of their entire model without leaving the browser.
-**Current focus:** Phase 04 — analysis
+**Core value:** Anaplan builders and consultants get instant, deep model understanding and AI-powered build guidance — comprehension, health diagnostics, and spec generation — without leaving the browser.
+**Current focus:** Not started — roadmap defined
 
 ## Current Position
 
-Phase: 04 (analysis) — EXECUTING
-Plan: 1 of 3
+Phase: Not started — roadmap defined
+Plan: —
 Status: Ready to execute
-Last activity: 2026-05-12 -- Phase 5 planning complete
+Last activity: 2026-05-14 -- Phase 06 planning complete
 
-Progress: `[✅][ ][ ][ ][ ]` 1/5 phases complete
-
-## Performance Metrics
-
-Plans executed: 2
-Requirements covered: 4/24 (INFRA-01, INFRA-02, INFRA-03, INFRA-04)
-Phases complete: 1/5
-
-## Phase 1 Completion Evidence
-
-| Requirement | Success Criterion | Status |
-|-------------|-----------------|--------|
-| INFRA-01 | index.html has 8 SECTION boundary comments (CONNECT, MODEL-PICKER, FETCH, DASHBOARD) | ✅ |
-| INFRA-02 | package.json declares @anthropic-ai/sdk@0.95.1, @vercel/blob@2.3.3, pdfmake@0.3.7 at pinned versions; npm install succeeds | ✅ |
-| INFRA-03 | vercel.json has functions{} block with 6 endpoints at correct maxDuration values | ✅ |
-| INFRA-04 | api/generate.js uses Claude Haiku via @anthropic-ai/sdk; zero Gemini references | ✅ |
+```
+v3.0 Progress [          ] 0% — Phase 6 of 9 (0/4 phases complete)
+```
 
 ## Accumulated Context
 
-### Decisions
+### v2.0 Completion Summary
 
-- Full brainstorm completed 2026-05-10 — all screen decisions locked
-- Complete design spec at `docs/specs/2026-05-10-meridian-v2-design.md`
-- Blueprint must be fetched server-to-server and written to Vercel Blob — 4.5 MB body limit enforced by Vercel
+All 5 phases of v2.0 shipped:
+
+- Phase 1: Infrastructure (package.json, vercel.json, Claude migration)
+- Phase 2: Connection (Basic Auth, workspace + model picker)
+- Phase 3: Blueprint (SSE fetch, Vercel Blob storage, retry logic)
+- Phase 4: Analysis (Haiku suggestions, Sonnet synthesis, 4-tab dashboard)
+- Phase 5: Export, Share & UI (PDF export, shareable links, cron cleanup, narrative endpoint)
+
+### Decisions (carried forward)
+
 - Zero Anaplan API calls in client-side JS — CORS block is absolute
 - Credentials stored in sessionStorage only — raw password never persists beyond browser close
-- Two-model strategy: Haiku 4.5 for per-module extraction, Sonnet 4.6 for final synthesis
-- Extraction pre-pass required before every Claude call — 200K token limit on Haiku
-- Blob cleanup cron ships in same phase as blob creation (Phase 5) — non-negotiable
 - SSE via `fetch()` + `ReadableStream` (not native EventSource) — POST endpoints require this
 - `res.flushHeaders()` before first `await` in every SSE handler — prevents silent buffering
-- api/generate.js maxDuration set to 30s (not 10s) — Claude Haiku calls take 10-25s
+- Vercel Hobby plan: 60s max function duration — all long-running endpoints must SSE-stream
+- ANTHROPIC_API_KEY, BLOB_READ_WRITE_TOKEN, CRON_SECRET all set in Vercel dashboard ✓
 
-### Key Files
+### Key Decisions (v3.0)
 
-- `index.html` — 3030-line file with 8 v2 section boundary comments inserted (Phase 1 complete)
-- `api/generate.js` — Claude Haiku proxy (migrated from Gemini in Phase 1)
-- `vercel.json` — has `functions{}` block with per-endpoint maxDuration (Phase 1 complete)
-- `package.json` — created with @anthropic-ai/sdk, @vercel/blob, pdfmake (Phase 1 complete)
+- Replace per-module blueprint batching with single model-level lineItems API call
+- Compact model state serialization — ~45K tokens for 228-module model
+- Evidence admissibility gates — no claims beyond what data supports
+- Framework knowledge in /framework/ directory in Vercel project (general Anaplan)
+- Haiku for comprehension pattern detection; Sonnet for chat responses + build specs
+- Prompt caching on model state to reduce per-session API cost to ~$0.80
 
-### Research Flags
+### Key Files (v2.0 baseline)
 
-- Phase 2: Anaplan auth response field names (`tokenInfo.tokenValue`, `expiresAt`) need live validation
-- Phase 3: Blueprint payload size spike needed against real customer model before Blob-passthrough path confirmed as Day 1 requirement
-- Phase 4: Triage tag calibration (Fix Now / Consider / Monitor) needs review with Anaplan builder before Phase 4 ships
-- Phase 5: Blob access control — confirm no compliance requirements around public report URLs before starting Phase 5
+- `index.html` — ~4700 lines, vanilla JS SPA
+- `api/blueprint.js` — SSE endpoint, per-module fetching (to be replaced in Phase 6)
+- `api/analyze.js` — Haiku bulk + Sonnet synthesis, cache v14
+- `api/analyze-narrative.js` — narrative SSE endpoint
+- `api/share.js` — Blob share link create/retrieve
+- `api/cleanup.js` — cron cleanup for all Blob prefixes
+- `api/generate.js` — legacy CSV analysis (Haiku)
+- `vercel.json` — functions{} + crons block
+- `package.json` — @anthropic-ai/sdk, @vercel/blob, pdfmake
 
-### Todos
+### New Files Expected (v3.0)
 
-- [ ] Set `ANTHROPIC_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `CRON_SECRET` in Vercel dashboard before Phase 2
-- [ ] Validate Anaplan auth response field names against live account in Phase 2
+- `api/model-state.js` — single model-level lineItems fetch + compact serialization (Phase 6)
+- `api/analyze-v3.js` — comprehension + health analysis engine (Phase 7)
+- `api/chat.js` — SSE chat endpoint with model state + framework context (Phase 8)
+- `api/build.js` — build spec generation (Phase 9, may merge into chat.js)
+- `/framework/` — embedded Anaplan framework knowledge directory (Phase 8)
 
 ### Blockers
 
@@ -87,4 +89,4 @@ None.
 
 ## Session Continuity
 
-Next action: Run `/gsd-plan-phase 2` to plan the Connection phase.
+Next action: Run `/gsd-plan-phase 6` to plan the Model State Foundation phase.
