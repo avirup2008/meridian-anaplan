@@ -4561,7 +4561,7 @@ function confirmModelSelection() {
         + '<div class="intel-kpi"><div class="intel-kpi-val">' + (Array.isArray(intel.remediationPlan) ? intel.remediationPlan.length : 0) + '</div><div class="intel-kpi-lbl">Fix stages</div></div>'
         + '</div>'
         + (archIssues.length ? '<ul class="intel-list"><li><strong>' + _anlEsc(archIssues[0].moduleName || '') + '</strong>: ' + _anlEsc(archIssues[0].title || '') + '<span class="intel-meta">' + _anlEsc(archIssues[0].evidence || '') + '</span></li></ul>' : '')
-        + '<button class="btn btn-ghost btn-sm" type="button" onclick="switchTab(\\'intelligence\\')">Open full intelligence view</button>';
+        + '<button class="btn btn-ghost btn-sm" type="button" onclick="switchTab(&quot;intelligence&quot;)">Open full intelligence view</button>';
     }
 
     // ════ Phase 5: PDF Export ════
