@@ -68,6 +68,8 @@ const SUGGESTION_SEVERITY_ORDER = {
 
 const MAX_SUGGESTION_CARDS = 20;
 const EXAMPLE_LIMIT = 6;
+const MAX_WORKSTREAMS = 6;
+const WORKSTREAM_EVIDENCE_LIMIT = 8;
 const DECORATIVE_MARK_RE = /[▼▲▶◀▾▴▸◂◆◇]{2,}/;
 
 const DIMENSION_RULES = {
@@ -973,7 +975,7 @@ function buildExecutiveNarrative(normalized, findings, score, blastRadius, displ
 
   const paragraphs = [
     `This report evaluated ${moduleCount} functional modules and ${lineItemCount} line items. ${decorativeCount ? `${decorativeCount} decorative separators or header-only modules were removed before scoring, dependency mapping, and blast-radius ranking.` : 'No decorative separator modules were included in scoring or diagrams.'}`,
-    `The calibrated model health score is ${score.healthScore}/100 (${score.verdict}). This score is based on rule density, severity, and affected surface area, not raw finding volume, so repeated low-risk naming or metadata patterns do not collapse the model to an artificial critical score.`,
+    `Legacy numeric scoring is not used as the product assessment. Findings are treated as evidence signals that must be grouped into review workstreams before remediation.`,
   ];
   if (layerText || issueCount) {
     paragraphs.push(`Architecture read: ${layerText || 'layer classification is sparse'}. The structural scan found ${issueCount} architecture issue${issueCount === 1 ? '' : 's'} that should be reviewed against model-builder intent before remediation.`);
@@ -984,7 +986,7 @@ function buildExecutiveNarrative(normalized, findings, score, blastRadius, displ
   if (topBuckets.length) {
     paragraphs.push(`Primary evidence buckets: ${topBuckets.join('; ')}. Treat these as review workstreams, not hundreds of individual tickets.`);
   } else {
-    paragraphs.push('No deterministic improvement buckets survived evidence filtering. If this is unexpected, re-fetch the blueprint and confirm modules and line items were returned before trusting the result.');
+    paragraphs.push('No evidence-backed review workstreams survived filtering. If this is unexpected, re-fetch the blueprint and confirm modules and line items were returned before trusting the result.');
   }
   return paragraphs.join('\n\n');
 }
@@ -1028,6 +1030,315 @@ export function findingToSuggestion(finding) {
   };
 }
 
+function moduleFootprint(normalized) {
+  const lineItemCount = normalized.modules.reduce((sum, mod) => sum + mod.lineItems.length, 0);
+  const formulaCount = normalized.modules.reduce((sum, mod) => sum + mod.lineItems.filter(li => li.hasFormula).length, 0);
+  const inputCount = lineItemCount - formulaCount;
+  const excludedDecorative = (normalized.excludedModules || []).filter(m => m.reason === 'decorative_separator' || m.reason === 'empty_or_header_only').length;
+  return {
+    rawModuleCount: normalized.rawModuleCount || normalized.modules.length,
+    functionalModuleCount: normalized.modules.length,
+    lineItemCount,
+    formulaCount,
+    inputCount,
+    excludedDecorative,
+  };
+}
+
+function findingToEvidence(finding, graphImpact = null) {
+  return {
+    ruleId: finding.ruleId,
+    severity: finding.severity,
+    domain: finding.domain,
+    moduleId: finding.moduleId,
+    moduleName: finding.moduleName,
+    lineItemId: finding.lineItemId || '',
+    lineItemName: finding.lineItemName || '',
+    observation: finding.title,
+    evidence: finding.evidence,
+    action: finding.action,
+    downstreamModuleCount: graphImpact?.downstreamModuleCount || 0,
+    downstreamOutputCount: graphImpact?.downstreamOutputCount || 0,
+  };
+}
+
+function buildEvidenceItems(findings, blastRadius) {
+  const blastByModule = new Map(blastRadius.map(b => [b.moduleId, b]));
+  return findings.map(f => findingToEvidence(f, blastByModule.get(f.moduleId)));
+}
+
+function evidenceForRules(evidenceItems, rules) {
+  const ruleSet = new Set(rules);
+  return evidenceItems
+    .filter(item => ruleSet.has(item.ruleId))
+    .sort((a, b) =>
+      severityWeight(b.severity) - severityWeight(a.severity) ||
+      b.downstreamOutputCount - a.downstreamOutputCount ||
+      b.downstreamModuleCount - a.downstreamModuleCount ||
+      a.moduleName.localeCompare(b.moduleName)
+    );
+}
+
+function summarizeEvidenceList(items) {
+  const moduleCount = new Set(items.map(item => item.moduleId || item.moduleName).filter(Boolean)).size;
+  const lineItemCount = items.filter(item => item.lineItemName).length;
+  return {
+    evidenceCount: items.length,
+    affectedModuleCount: moduleCount,
+    affectedLineItemCount: lineItemCount,
+    examples: items
+      .map(item => item.lineItemName ? `${item.moduleName}: ${item.lineItemName}` : item.moduleName)
+      .filter(Boolean)
+      .slice(0, EXAMPLE_LIMIT),
+  };
+}
+
+function workstreamPriority(items) {
+  if (items.some(item => item.severity === 'critical' && item.downstreamOutputCount > 0)) return 'Critical';
+  if (items.some(item => item.severity === 'critical')) return 'High';
+  if (items.some(item => item.severity === 'warning')) return 'Medium';
+  return 'Watch';
+}
+
+function workstreamTriage(priority) {
+  if (priority === 'Critical' || priority === 'High') return 'Fix Now';
+  if (priority === 'Medium') return 'Consider';
+  return 'Monitor';
+}
+
+function makeWorkstream({ id, title, domain, evidence, whyItMatters, reviewQuestion, action, regressionChecks }) {
+  if (!evidence.length) return null;
+  const summary = summarizeEvidenceList(evidence);
+  const priority = workstreamPriority(evidence);
+  const topEvidence = evidence.slice(0, WORKSTREAM_EVIDENCE_LIMIT);
+  return {
+    id,
+    title,
+    domain,
+    priority,
+    triage: workstreamTriage(priority),
+    confidence: 'High',
+    whyItMatters,
+    reviewQuestion,
+    action,
+    regressionChecks,
+    evidence: topEvidence,
+    evidenceCount: summary.evidenceCount,
+    affectedModuleCount: summary.affectedModuleCount,
+    affectedLineItemCount: summary.affectedLineItemCount,
+    examples: summary.examples,
+  };
+}
+
+export function buildEvidenceWorkstreams(normalized, evidenceItems, intelligence) {
+  const workstreams = [
+    makeWorkstream({
+      id: 'architecture-flow',
+      title: 'Validate architecture flow before remediation',
+      domain: 'Structural',
+      evidence: evidenceForRules(evidenceItems, [
+        'ARCH_OUTPUT_READS_RAW_LAYER',
+        'ARCH_DATA_MODULE_HAS_FORMULAS',
+        'MODULE_DATA_HAS_CALC',
+        'ARCH_NAME_BEHAVIOR_MISMATCH',
+        'ARCH_MIXED_RESPONSIBILITY_MODULE',
+        'ARCH_CALC_MODULE_STORES_INPUTS',
+      ]),
+      whyItMatters: 'These observations point to layer boundaries or data-flow assumptions that affect model ownership and regression scope.',
+      reviewQuestion: 'Do the named modules intentionally cross DISCO/Data Hub boundaries, or are they carrying logic in the wrong layer?',
+      action: 'Review the affected modules with the model owner, confirm intended layer ownership, then move logic or rename modules only where the evidence matches the design intent.',
+      regressionChecks: (intelligence.regressionChecklist || []).slice(0, 5),
+    }),
+    makeWorkstream({
+      id: 'formula-correctness',
+      title: 'Review formula correctness and maintainability',
+      domain: 'Formula',
+      evidence: evidenceForRules(evidenceItems, [
+        'FORMULA_SUM_LOOKUP',
+        'FORMULA_SELECT_HARDCODED',
+        'FORMULA_NESTED_IF',
+        'FORMULA_DIVISION_UNGUARDED',
+        'FORMULA_LONG',
+      ]),
+      whyItMatters: 'These are formula patterns with direct calculation or maintainability risk and concrete line-item evidence.',
+      reviewQuestion: 'Which flagged formulas are business-approved exceptions, and which should be decomposed into auditable intermediate line items?',
+      action: 'Prioritize formulas that feed output modules or shared calculation modules; split complex expressions into named intermediates and validate downstream values.',
+      regressionChecks: (intelligence.regressionChecklist || []).slice(0, 5),
+    }),
+    makeWorkstream({
+      id: 'aggregation-accuracy',
+      title: 'Check aggregation and reporting accuracy',
+      domain: 'Best Practice',
+      evidence: evidenceForRules(evidenceItems, [
+        'RATE_SUMMARY_SUM',
+        'BOOLEAN_SUMMARY_INVALID',
+      ]),
+      whyItMatters: 'Wrong summaries can make a model look structurally fine while reporting incorrect totals, rates, or flags.',
+      reviewQuestion: 'Are these summary methods intentional, or do they change rolled-up reporting values?',
+      action: 'For each affected line item, confirm the intended rollup; rates should usually be recalculated from numerator and denominator, not summed.',
+      regressionChecks: (intelligence.regressionChecklist || []).slice(0, 5),
+    }),
+    makeWorkstream({
+      id: 'metadata-governance',
+      title: 'Clean governance metadata without turning it into a refactor',
+      domain: 'Naming',
+      evidence: evidenceForRules(evidenceItems, [
+        'MODULE_NAMING_PATTERN',
+        'BOOLEAN_NAME_WEAK',
+        'TEXT_FORMAT_USED',
+      ]),
+      whyItMatters: 'Naming and metadata issues affect maintainability, but they should not dominate remediation unless they block ownership or handover.',
+      reviewQuestion: 'Which naming or format changes materially improve ownership, onboarding, or model-builder handover?',
+      action: 'Batch low-risk metadata cleanup separately from formula and architecture changes; avoid mixing rename work with calculation remediation.',
+      regressionChecks: [],
+    }),
+    makeWorkstream({
+      id: 'dimensionality-review',
+      title: 'Confirm dimensionality hotspots',
+      domain: 'Structural',
+      evidence: evidenceForRules(evidenceItems, [
+        'MODULE_TOO_MANY_DIMS',
+      ]),
+      whyItMatters: 'High-dimensional modules can indicate performance and maintainability risk, but the fix depends on business dimensionality requirements.',
+      reviewQuestion: 'Can any dimensions be moved to system mappings, staging modules, or lower-granularity calculations?',
+      action: 'Validate dimensional necessity before splitting modules; if split, define regression checks around totals and intersections.',
+      regressionChecks: (intelligence.regressionChecklist || []).slice(0, 5),
+    }),
+  ].filter(Boolean);
+
+  return workstreams
+    .sort((a, b) => {
+      const rank = { Critical: 0, High: 1, Medium: 2, Watch: 3 };
+      return rank[a.priority] - rank[b.priority] || b.evidenceCount - a.evidenceCount || a.title.localeCompare(b.title);
+    })
+    .slice(0, MAX_WORKSTREAMS);
+}
+
+function buildAssessment(workstreams) {
+  const critical = workstreams.filter(w => w.priority === 'Critical').length;
+  const high = workstreams.filter(w => w.priority === 'High').length;
+  const medium = workstreams.filter(w => w.priority === 'Medium').length;
+  let verdict = 'Stable';
+  if (critical > 0) verdict = 'Executive Review';
+  else if (high > 0) verdict = 'Focused Review';
+  else if (medium > 0) verdict = 'Builder Review';
+  return {
+    healthScore: null,
+    verdict,
+    summary: critical > 0
+      ? 'Evidence indicates at least one high-impact workstream that should be reviewed before this model is positioned as clean or production-grade.'
+      : high > 0
+        ? 'Evidence indicates focused model-builder review is warranted; no synthetic precision score is assigned.'
+        : medium > 0
+          ? 'Evidence indicates targeted cleanup workstreams; no synthetic precision score is assigned.'
+          : 'No material evidence-backed workstreams were generated from the fetched blueprint.',
+    dimensions: null,
+    posture: verdict,
+    confidence: workstreams.length ? 'Evidence-backed' : 'Low evidence',
+  };
+}
+
+function buildIntelligenceSummary(normalized, workstreams, intelligence) {
+  const footprint = moduleFootprint(normalized);
+  const top = workstreams[0];
+  const dependencyText = intelligence.graph.edges.length
+    ? `${intelligence.graph.edges.length} formula dependency edge${intelligence.graph.edges.length === 1 ? '' : 's'}`
+    : 'no formula dependency edges';
+  const separatorText = footprint.excludedDecorative
+    ? `${footprint.excludedDecorative} separator/header module${footprint.excludedDecorative === 1 ? '' : 's'} excluded`
+    : 'no separator modules included';
+  return top
+    ? `Evaluated ${footprint.functionalModuleCount} functional modules and ${footprint.lineItemCount} line items; ${dependencyText}; ${separatorText}. Top review workstream: ${top.title}.`
+    : `Evaluated ${footprint.functionalModuleCount} functional modules and ${footprint.lineItemCount} line items; ${dependencyText}; ${separatorText}. No evidence-backed review workstream was generated.`;
+}
+
+function buildExecutiveBrief(normalized, workstreams, intelligence, assessment) {
+  const footprint = moduleFootprint(normalized);
+  const lines = [
+    `Scope reviewed: ${footprint.functionalModuleCount} functional modules, ${footprint.lineItemCount} line items, ${footprint.formulaCount} formula-bearing line items. ${footprint.excludedDecorative} separator/header-only modules were excluded from analysis.`,
+    `Assessment posture: ${assessment.verdict}. Meridian is no longer assigning a fake 0-100 precision score here; this report is organized around evidence-backed review workstreams.`,
+  ];
+  if (workstreams.length) {
+    lines.push(`Primary workstreams: ${workstreams.slice(0, 3).map(w => `${w.title} (${w.priority})`).join('; ')}.`);
+  } else {
+    lines.push('No material workstream was generated from the available blueprint evidence. If that seems wrong, re-fetch the blueprint and verify line-item formulas and formats were returned.');
+  }
+  if (intelligence.graph.edges.length) {
+    const topBlast = intelligence.blastRadius[0];
+    lines.push(topBlast
+      ? `Dependency evidence is available from formula references. Highest observed fan-out is ${topBlast.moduleName}, feeding ${topBlast.downstreamModuleCount} downstream module${topBlast.downstreamModuleCount === 1 ? '' : 's'}.`
+      : 'Dependency evidence is available from formula references, but no module has material downstream fan-out.');
+  } else {
+    lines.push('No dependency diagram is inferred because the fetched formulas did not expose cross-module references.');
+  }
+  lines.push('Recommended use: treat this as a senior review agenda, not an auto-generated task list. Each workstream requires owner confirmation before model changes.');
+  return lines.join('\n\n');
+}
+
+export function buildEvidenceBackedIntelligence(normalized, findings) {
+  const graph = buildDependencyGraph(normalized);
+  const architecture = buildArchitectureClassification(normalized, graph);
+  const blastRadius = buildBlastRadius(normalized, graph);
+  const regressionImpact = buildBlastRadius(normalized, graph, { includeZero: true });
+  const baseIntelligence = {
+    graph,
+    architecture,
+    blastRadius: blastRadius.slice(0, 20),
+    regressionChecklist: buildRegressionChecklist(regressionImpact),
+  };
+  const evidenceItems = buildEvidenceItems(findings, blastRadius);
+  const workstreams = buildEvidenceWorkstreams(normalized, evidenceItems, baseIntelligence);
+  const assessment = buildAssessment(workstreams);
+  return {
+    ...baseIntelligence,
+    evidenceItems,
+    workstreams,
+    remediationPlan: workstreams.map(w => ({
+      stage: w.title,
+      rationale: w.whyItMatters,
+      findingCount: w.evidenceCount,
+      items: w.evidence.map(e => ({
+        ruleId: e.ruleId,
+        moduleName: e.moduleName,
+        lineItemName: e.lineItemName,
+        action: e.action,
+      })),
+    })),
+    prioritizedFindings: evidenceItems.slice(0, 30),
+    evidenceSummary: buildIntelligenceSummary(normalized, workstreams, baseIntelligence),
+    executiveNarrative: buildExecutiveBrief(normalized, workstreams, baseIntelligence, assessment),
+    assessment,
+    footprint: moduleFootprint(normalized),
+  };
+}
+
+export function workstreamToSuggestion(workstream) {
+  const firstEvidence = workstream.evidence[0] || {};
+  return {
+    moduleId: firstEvidence.moduleId || '',
+    moduleName: workstream.affectedModuleCount > 1
+      ? `${workstream.affectedModuleCount} modules`
+      : (firstEvidence.moduleName || 'Model-wide'),
+    lineItemId: firstEvidence.lineItemId || '',
+    lineItemName: firstEvidence.lineItemName || '',
+    domain: workstream.domain,
+    triage: workstream.triage,
+    text: workstream.title,
+    reasoning: `${workstream.whyItMatters} Review question: ${workstream.reviewQuestion}`,
+    action: workstream.action,
+    builderNote: `${workstream.confidence} confidence from ${workstream.evidenceCount} evidence item${workstream.evidenceCount === 1 ? '' : 's'}.`,
+    evidence: workstream.evidence.map(e => e.evidence).filter(Boolean).join(' | '),
+    source: 'evidence-workstream',
+    ruleId: workstream.id,
+    priority: workstream.priority,
+    confidence: workstream.confidence,
+    affectedCount: workstream.evidenceCount,
+    affectedModuleCount: workstream.affectedModuleCount,
+    examples: workstream.examples,
+    workstream,
+  };
+}
+
 export function buildAnalysisSnapshot(blueprint) {
   const normalized = normalizeBlueprint(blueprint);
   const totalLineItems = normalized.modules.reduce((sum, mod) => sum + mod.lineItems.length, 0);
@@ -1037,14 +1348,16 @@ export function buildAnalysisSnapshot(blueprint) {
     throw new Error(`No usable line items were fetched from the blueprint (${sourceModules} modules, ${skippedModules} skipped). Re-fetch the blueprint before analysing.`);
   }
   const findings = [...scanDeterministicFindings(normalized), ...scanArchitectureFindings(normalized)];
-  const displayFindings = summarizeFindingsForSuggestions(findings);
-  const score = scoreFindings(findings, normalized);
-  const intelligence = buildModelIntelligence(normalized, findings, score, displayFindings);
+  const intelligence = buildEvidenceBackedIntelligence(normalized, findings);
+  const displayFindings = intelligence.workstreams;
+  const score = intelligence.assessment;
   return {
     normalized,
     findings,
+    evidenceItems: intelligence.evidenceItems,
+    workstreams: intelligence.workstreams,
     displayFindings,
-    deterministicSuggestions: displayFindings.map(findingToSuggestion),
+    deterministicSuggestions: intelligence.workstreams.map(workstreamToSuggestion),
     score,
     intelligence,
   };

@@ -13,7 +13,7 @@ import {
   buildDependencyGraph,
   isDecorativeModuleName,
 } from '../api/analysis-core.js';
-import { guardTokens, normalizeSynthesis } from '../api/analyze.js';
+import { guardTokens } from '../api/analyze.js';
 
 const blueprint = {
   modelId: 'model-1',
@@ -332,37 +332,6 @@ test('scores findings deterministically by severity and domain', () => {
   assert(score.dimensions.architecture < 100);
 });
 
-test('anchors synthesis score and keeps verdict consistent with final score', () => {
-  const normalized = normalizeSynthesis(
-    {
-      healthScore: 99,
-      verdict: 'Good',
-      dimensions: {
-        architecture: 100,
-        naming: 100,
-        formulas: 100,
-        dataHygiene: 100,
-        governance: 100,
-      },
-    },
-    {
-      healthScore: 65,
-      verdict: 'Needs Work',
-      dimensions: {
-        architecture: 60,
-        naming: 70,
-        formulas: 50,
-        dataHygiene: 80,
-        governance: 90,
-      },
-    }
-  );
-
-  assert.equal(normalized.healthScore, 75);
-  assert.equal(normalized.verdict, 'Needs Work');
-  assert.equal(normalized.dimensions.formulas, 60);
-});
-
 test('rejects prompts that exceed the token budget before model calls', async () => {
   const client = {
     messages: {
@@ -482,4 +451,39 @@ test('classifies architecture layers and flags non-slop structural issues', () =
   assert(architecture.issues.some(issue => issue.ruleId === 'ARCH_DATA_MODULE_HAS_FORMULAS'));
   assert(architecture.issues.some(issue => issue.ruleId === 'ARCH_MIXED_RESPONSIBILITY_MODULE'));
   assert(architecture.issues.some(issue => issue.ruleId === 'ARCH_OUTPUT_READS_RAW_LAYER'));
+});
+
+test('builds evidence-backed workstreams instead of fake precision scoring', () => {
+  const snapshot = buildAnalysisSnapshot(blueprint);
+
+  assert.equal(snapshot.score.healthScore, null);
+  assert.match(snapshot.score.verdict, /Review/);
+  assert(snapshot.workstreams.length > 0);
+  assert(snapshot.workstreams.length <= 6);
+  assert.equal(snapshot.deterministicSuggestions.length, snapshot.workstreams.length);
+  assert(snapshot.deterministicSuggestions.every(s => s.source === 'evidence-workstream'));
+  assert(snapshot.deterministicSuggestions.every(s => s.workstream && Array.isArray(s.workstream.evidence)));
+  assert(snapshot.intelligence.executiveNarrative.includes('no longer assigning a fake 0-100 precision score'));
+});
+
+test('workstreams consolidate high-volume low-risk metadata into one review agenda item', () => {
+  const modules = Array.from({ length: 40 }, (_, i) => ({
+    id: `sys-${i}`,
+    name: `SYS${String(i + 1).padStart(2, '0')} Flags`,
+    lineItemCount: 10,
+    lineItems: Array.from({ length: 10 }, (_, j) => ({
+      id: `flag-${i}-${j}`,
+      name: `Flag ${j + 1}`,
+      format: 'Boolean',
+      summary: 'ANY',
+      appliesTo: ['Products'],
+    })),
+  }));
+  const snapshot = buildAnalysisSnapshot({ modelId: 'metadata-heavy', modules });
+
+  assert.equal(snapshot.findings.length, 400);
+  assert.equal(snapshot.workstreams.length, 1);
+  assert.equal(snapshot.workstreams[0].id, 'metadata-governance');
+  assert.equal(snapshot.workstreams[0].evidenceCount, 400);
+  assert.equal(snapshot.deterministicSuggestions.length, 1);
 });
