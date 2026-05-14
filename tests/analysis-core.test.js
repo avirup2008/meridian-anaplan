@@ -127,6 +127,19 @@ test('scans all line items for deterministic Anaplan findings', () => {
   assert.match(datCalc.evidence, /FIN02 Cost Aggregation/);
 });
 
+test('refuses to score an empty or fully skipped blueprint as healthy', () => {
+  assert.throws(
+    () => buildAnalysisSnapshot({
+      modelId: 'empty-model',
+      modules: [
+        { id: 'm1', name: 'FIN01 Empty', lineItemCount: 0, lineItems: [], fetchError: 'Timeout' },
+        { id: 'm2', name: 'SYS01 Empty', lineItemCount: 0, lineItems: [], fetchError: 'Timeout' },
+      ],
+    }),
+    /No usable line items/
+  );
+});
+
 test('aggregates repetitive deterministic findings into prioritised suggestion cards', () => {
   const repeatedBlueprint = {
     modelId: 'repeat-model',

@@ -860,6 +860,12 @@ export function findingToSuggestion(finding) {
 
 export function buildAnalysisSnapshot(blueprint) {
   const normalized = normalizeBlueprint(blueprint);
+  const totalLineItems = normalized.modules.reduce((sum, mod) => sum + mod.lineItems.length, 0);
+  if (normalized.modules.length === 0 || totalLineItems === 0) {
+    const sourceModules = Array.isArray(blueprint?.modules) ? blueprint.modules.length : 0;
+    const skippedModules = Array.isArray(blueprint?.modules) ? blueprint.modules.filter(mod => mod?.fetchError).length : 0;
+    throw new Error(`No usable line items were fetched from the blueprint (${sourceModules} modules, ${skippedModules} skipped). Re-fetch the blueprint before analysing.`);
+  }
   const findings = scanDeterministicFindings(normalized);
   const displayFindings = summarizeFindingsForSuggestions(findings);
   const score = scoreFindings(findings);

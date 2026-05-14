@@ -216,6 +216,14 @@ export default async function handler(req, res) {
       sendEvent,
     });
 
+    if (modules.length > 0 && totalLineItems === 0) {
+      sendEvent({
+        type: 'error',
+        message: 'No line items were fetched from Anaplan. The blueprint is incomplete; please re-fetch the model or try a smaller model/export.',
+      });
+      return;
+    }
+
     // Build BlueprintDocument
     const blueprint = {
       modelId,

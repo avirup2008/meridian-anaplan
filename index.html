@@ -4117,6 +4117,11 @@ function confirmModelSelection() {
             renderSchemaPreview(evt.schema, schemaDl);
             schemaPanel.style.display = 'block';
           } else if (evt.type === 'complete') {
+            if (!evt.totalLineItems || evt.totalLineItems <= 0) {
+              fetchErr.style.display = 'block';
+              fetchErr.textContent = 'No line items were fetched from Anaplan. Re-fetch the blueprint before analysis.';
+              return;
+            }
             localStorage.setItem('meridian.blueprintBlobUrl', evt.blobUrl || '');
             localStorage.setItem('meridian.blueprintMeta', JSON.stringify({
               moduleCount: evt.moduleCount,

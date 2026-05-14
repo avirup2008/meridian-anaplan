@@ -20,7 +20,7 @@ const ENABLE_AI_ANALYSIS = process.env.MERIDIAN_ENABLE_AI_ANALYSIS === '1';
 
 // Caching
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const CACHE_PREFIX = 'analysis-cache-v17/'; // v17: report-sized model-wide suggestion buckets
+const CACHE_PREFIX = 'analysis-cache-v18/'; // v18: empty-blueprint guard prevents false 100/0 reports
 
 // CA-04: Hash only stable fields — exclude fetchedAt which changes on every blueprint fetch
 export function blueprintHash(blueprint) {
