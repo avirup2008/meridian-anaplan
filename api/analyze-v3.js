@@ -5,6 +5,14 @@ import {
   hasSumLookup,
   hasHardcodedSelect,
   hasUnguardedDivision,
+  buildDependencyGraph,
+  buildArchitectureClassification,
+  buildEvidenceDiagnostics,
+  scanDeterministicFindings,
+  scanArchitectureFindings,
+  detectDeadLogic,
+  detectCircularDependencies,
+  detectDaisyChains,
 } from './analysis-core.js';
 
 // parseStateBlob: converts the compact tab-separated state blob (from model-state.js
@@ -84,6 +92,28 @@ function toNormalized(modules) {
   };
 }
 
+// Derives confidence score for module classification per RESEARCH.md methodology
+function moduleConfidence(mod, declaredLayer) {
+  if (declaredLayer === 'unknown') {
+    return { score: 0.40, label: 'Low', reason: 'No DISCO prefix recognised' };
+  }
+  // Check if behavior inferred from line item ratios matches declared layer
+  const formulaRatio = mod.lineItems && mod.lineItems.length > 0
+    ? mod.lineItems.filter(li => li.hasFormula).length / mod.lineItems.length
+    : 0;
+  let inferred = 'data';
+  if (formulaRatio >= 0.65) inferred = 'calculation';
+  else if (formulaRatio > 0.15) inferred = 'mixed';
+  if (inferred !== 'mixed' && inferred !== declaredLayer) {
+    return { score: 0.60, label: 'Medium', reason: 'Prefix and behaviour disagree' };
+  }
+  return { score: 0.90, label: 'High', reason: 'Prefix matches observed behaviour' };
+}
+
+const DISCO_LABEL = {
+  data: 'DAT', system: 'SYS', calculation: 'CAL', planning: 'INP', output: 'REP', unknown: 'UNKNOWN',
+};
+
 export default async function handler(req, res) {
   applyCors(req, res);
 
@@ -128,18 +158,72 @@ export default async function handler(req, res) {
 
     const normalized = toNormalized(modules);
 
+    // Build dependency graph
     sendEvent({ type: 'stage', stage: 'graph', label: 'Building dependency graph…' });
+    const graph = buildDependencyGraph(normalized);
 
-    // Plans 02 and 03 will fill in the analysis calls here
-    // (buildDependencyGraph, scanDeterministicFindings, etc.)
+    // Build architecture classification
+    sendEvent({ type: 'stage', stage: 'classifying', label: 'Classifying modules…' });
+    const architecture = buildArchitectureClassification(normalized, graph);
+    const diagnostics = buildEvidenceDiagnostics(normalized, graph, architecture);
+
+    // Build module classification payload with DISCO labels and confidence
+    const classifiedModules = architecture.modules.map(archMod => {
+      const rawMod = normalized.modules.find(m => m.id === archMod.moduleId) || {};
+      const discoLabel = DISCO_LABEL[archMod.declaredLayer] || 'UNKNOWN';
+      const conf = moduleConfidence(rawMod, archMod.declaredLayer);
+      return {
+        moduleId: archMod.moduleId,
+        moduleName: archMod.moduleName,
+        prefix: rawMod.prefix || '',
+        discoLabel,
+        confidence: conf.score,
+        confidenceLabel: conf.label,
+        confidenceReason: conf.reason,
+        formulaCount: archMod.formulaCount,
+        inputCount: archMod.inputCount,
+      };
+    });
+
+    // Build DISCO prefix count map
+    const discoMap = { SYS: 0, DAT: 0, CAL: 0, REP: 0, INP: 0, UNKNOWN: 0 };
+    for (const m of classifiedModules) {
+      discoMap[m.discoLabel] = (discoMap[m.discoLabel] || 0) + 1;
+    }
+
+    // Dead logic detection
+    sendEvent({ type: 'stage', stage: 'dead-logic', label: 'Detecting dead logic…' });
+    const deadLogic = detectDeadLogic(normalized.modules, graph);
+    const cycles = detectCircularDependencies(graph);
+    const daisyChains = detectDaisyChains(graph);
+
+    // Limitation cards from diagnostics blocked conclusions
+    const limitationCards = diagnostics.blockedClaims || [];
+
+    // Emit model-comprehension event
+    sendEvent({
+      type: 'model-comprehension',
+      modules: classifiedModules,
+      graph,
+      deadLogic,
+      deadLogicConfidence: 'Medium',
+      cycles,
+      daisyChains,
+      discoMap,
+      limitationCards,
+    });
+
+    // PLAN-03: health-workstreams event goes here
 
     const lineItemCount = normalized.modules.reduce((s, m) => s + m.lineItemCount, 0);
     sendEvent({
       type: 'complete',
       version: 'v3',
-      moduleCount: modules.length,
+      moduleCount: normalized.modules.length,
       lineItemCount,
-      evidencePack: evidencePack ? true : null, // signal to caller that pack was received
+      workstreamCount: 0,      // Plan 03 fills this
+      deadLogicCount: deadLogic.length,
+      cycleCount: cycles.length,
     });
   } catch (err) {
     console.error('analyze-v3 error:', err.message);
