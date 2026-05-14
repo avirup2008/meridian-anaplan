@@ -344,12 +344,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .st-input:focus{border-color:var(--accent)}
 .st-select{border:1px solid var(--border2);border-radius:var(--r);padding:7px 10px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;background:var(--bg);color:var(--text);outline:none;cursor:pointer}
 
-/* ─── SCREEN NAV ─────────────────────────────────────── */
-.snav{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(28,33,41,.93);backdrop-filter:blur(14px);border-radius:40px;padding:8px 18px;display:flex;align-items:center;gap:5px;z-index:1000;box-shadow:0 8px 32px rgba(28,33,41,.28);border:1px solid rgba(255,255,255,.06)}
-.snav button{background:none;border:none;color:rgba(255,255,255,.42);font-size:11px;font-family:'IBM Plex Sans',system-ui,sans-serif;cursor:pointer;padding:4px 9px;border-radius:20px;transition:all .14s;white-space:nowrap}
-.snav button.on{background:rgba(255,255,255,.12);color:#fff;font-weight:600}
-.snav button:hover:not(.on){color:rgba(255,255,255,.72)}
-.snav-d{width:.5px;height:15px;background:rgba(255,255,255,.12)}
 .form-chip{display:inline-flex;padding:2px 7px;border-radius:4px;font-size:9.5px;font-weight:600;font-family:'IBM Plex Mono',monospace}
 .fc-hi{background:var(--neg-pale);color:var(--neg)}
 .fc-mid{background:var(--gold-pale);color:var(--gold)}
@@ -1438,41 +1432,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
   </div>
 </div>
 
-<!-- SCREEN NAV -->
-<div class="snav">
-  <button onclick="go('s-intro')" id="n-s-intro">Home</button>
-  <div class="snav-d"></div>
-  <button onclick="go('s-upload')" id="n-s-upload">Upload</button>
-  <div class="snav-d"></div>
-  <button onclick="go('s-processing')" id="n-s-processing">Parsing</button>
-  <div class="snav-d"></div>
-  <button onclick="go('s-analysis')" id="n-s-analysis">Analysis</button>
-  <div class="snav-d"></div>
-  <button onclick="go('s-generating')" id="n-s-generating">Generating</button>
-  <div class="snav-d"></div>
-  <button onclick="go('s-hub')" id="n-s-hub">Hub</button>
-  <div class="snav-d"></div>
-  <button onclick="go('s-intel')" id="n-s-intel">Intelligence</button>
-  <div class="snav-d"></div>
-  <button onclick="go('s-docs')" id="n-s-docs">Documentation</button>
-  <div class="snav-d"></div>
-  <button onclick="go('s-guide')" id="n-s-guide">User Guide</button>
-  <div class="snav-d"></div>
-  <button onclick="go('s-settings')" id="n-s-settings">Settings</button>
-  <div class="snav-d"></div>
-  <button onclick="go('s-shared')" id="n-s-shared">Shared</button>
-</div>
-
 <script>
 // ═══════════════════════════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════════════════════════
 function go(id){
+  const screen = document.getElementById(id);
+  if (!screen) return;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.snav button').forEach(b=>b.classList.remove('on'));
-  document.getElementById(id).classList.add('active');
-  const nb=document.getElementById('n-'+id);
-  if(nb)nb.classList.add('on');
+  screen.classList.add('active');
   window.scrollTo(0,0);
 }
 // NOTE: boot navigation is handled by _phase5BootRouter IIFE at the end of this script.
@@ -2343,59 +2311,6 @@ function buildAnalysisScreen(){
   const shareBtn = document.getElementById('share-create-btn');
   if (pdfBtn) pdfBtn.disabled = false;
   if (shareBtn) shareBtn.disabled = false;
-
-  // Dimension cards
-  const dims = [
-    {name:'Module Architecture', weight:'25%', score:ar.archScore, color:'#175AA6',
-     findings:[
-       {rag:ar.archScore>80?'g':'r', text:`${ar.discoCount} of ${parsedModules.length} modules correctly DISCO-prefixed`},
-       ...parsedModules.filter(m=>!m.hasDisco).map(m=>({rag:'r',text:`"${m.moduleName}" — no prefix, inferred type: ${m.inferredDisco}`}))
-     ]},
-    {name:'Naming Conventions', weight:'20%', score:ar.namingScore, color:'#1A7F8A',
-     findings:[
-       {rag:'r', text:`${ar.titleCaseViolations} of ${ar.totalLI} line items use sentence case (model-wide pattern)`},
-       {rag:ar.namingScore>60?'g':'a', text:`BOM Master is the only module using Title Case consistently`},
-       {rag:'a', text:`Typo detected: "Panned order release month" in MRP Net Requirements`},
-     ]},
-    {name:'Formula Quality', weight:'25%', score:ar.formulaScore, color:'#C8733A',
-     findings:[
-       {rag:ar.complexF>0?'a':'g', text:`${ar.complexF} formulas exceed ${getCfg().complexity}-char complexity threshold`},
-       {rag:ar.deepIF>0?'r':'g', text:`${ar.deepIF} formulas with IF depth >${getCfg().ifDepth} — Planning Workflow has IF depth ~12`},
-       {rag:'a', text:`"Status" formula in Planning Workflow Visualization = 1,736 chars`},
-     ]},
-    {name:'Data Hygiene', weight:'20%', score:ar.hygieneScore, color:ar.hygieneScore<50?'#B82E2E':'#BF801E',
-     findings:[
-       {rag:'r', text:`${ar.boolViol} of ${ar.totalBool} Boolean line items have incompatible Summary method (NONE)`},
-       {rag:'r', text:`6 violations concentrated in Planning Workflow Visualization module`},
-       {rag:'g', text:`No Text/SUM summary mismatches detected`},
-     ]},
-    {name:'Governance & Documentation', weight:'10%', score:ar.govScore, color:'#7047A3',
-     findings:[
-       {rag:'g', text:`BOM Master is clean — all Title Case, minimal violations`},
-       {rag:'a', text:`3 line items with non-descriptive names across MRP module`},
-       {rag:'g', text:`No circular dependency chains detected`},
-     ]},
-  ];
-
-  const legacyDimsRoot = document.getElementById('anl-legacy-dims');
-  if (legacyDimsRoot) legacyDimsRoot.innerHTML = dims.map(d=>{
-    const scColor = d.score<40?'var(--neg)':d.score<65?'var(--gold)':'var(--pos)';
-    const barColor = d.score<40?'var(--neg)':d.score<65?'var(--gold)':d.score<85?'var(--accent)':'var(--pos)';
-    const ragCls = d.score<40?'rc-bad':d.score<65?'rc-risk':'rc-ok';
-    const ragLabel = d.score<40?'Critical':d.score<65?'At Risk':d.score<85?'Compliant':'Optimised';
-    return `<div class="dim-card" style="border-left-color:${d.color}${d.score<40?';background:var(--neg-pale)':''}">
-      <div>
-        <div class="dim-name">${d.name}</div>
-        <div class="dim-weight">Weight ${d.weight} · <span class="badge ${ragCls}">${ragLabel}</span></div>
-        <div class="prog" style="margin-bottom:10px;"><div class="prog-f" style="width:${d.score}%;background:${barColor};"></div></div>
-        <div class="findings-list">${d.findings.map(f=>`<div class="finding-row"><div class="find-dot" style="background:${f.rag==='g'?'var(--pos)':f.rag==='a'?'var(--gold)':'var(--neg)'}"></div>${f.text}</div>`).join('')}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div class="dim-score-num" style="color:${scColor}">${d.score}</div>
-        <span class="badge ${ragCls}">${ragLabel}</span>
-      </div>
-    </div>`;
-  }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4195,8 +4110,8 @@ function confirmModelSelection() {
             }));
             currentEl.textContent = 'Complete.';
             fillEl.style.width = '100%';
-            // Auto-advance to analysis — go() hook triggers runAnalysis via setTimeout
             go('s-analysis');
+            setTimeout(runAnalysis, 0);
           } else if (evt.type === 'error') {
             fetchErr.style.display = 'block'; fetchErr.textContent = evt.message || 'Unknown error';
           }
@@ -4942,14 +4857,13 @@ function confirmModelSelection() {
       }
     }
 
-    // Single go() override handling both s-analysis and s-shared triggers
-    // (two separate overrides caused loadSharedReport to fire twice)
+    // Shared links load their report on navigation. Analysis now starts only
+    // from explicit user/import flows so navigation cannot burn API budget.
     (function _installGoOverrides() {
       const _origGo = window.go;
       if (typeof _origGo !== 'function') return;
       window.go = function (screenId) {
         const r = _origGo.apply(this, arguments);
-        if (screenId === 's-analysis') { setTimeout(runAnalysis, 0); }
         if (screenId === 's-shared')   { setTimeout(loadSharedReport, 0); }
         return r;
       };
