@@ -5197,7 +5197,9 @@ function confirmModelSelection() {
       if (wsSection && wsList && evt.workstreams && evt.workstreams.length) {
         // Executive brief
         if (execBrief && evt.executiveBrief) {
-          execBrief.textContent = evt.executiveBrief.split('\n\n')[0]; // first paragraph only for summary
+          // Strip markdown headers, take first non-empty prose paragraph
+          const _briefParas = (evt.executiveBrief || '').split(/\n{2,}/).map(p => p.replace(/^#+\s*/, '').trim()).filter(Boolean);
+          execBrief.textContent = _briefParas[0] || '';
         }
 
         wsList.innerHTML = '';
@@ -5447,7 +5449,7 @@ function confirmModelSelection() {
                 case 'partial-analysis': _anlOnPartial(evt.reason, evt.modulesAnalysed, evt.modulesSkipped); break;
                 case 'score': _anlOnScore(evt); break;
                 case 'narrative': _anlOnNarrative(evt); break;
-                case 'complete': _anlOnComplete(evt); _anl$('anl-sub').dataset.cached = evt.fromCache ? '1' : ''; if (!isV3 && !evt.deterministicOnly) runNarrative(blobUrl, myGen); break;
+                case 'complete': _anlOnComplete(evt); _anl$('anl-sub').dataset.cached = evt.fromCache ? '1' : ''; if (isV3 && evt.workstreamCount != null) { _anl$('anl-sub').textContent = evt.workstreamCount + ' evidence workstream' + (evt.workstreamCount !== 1 ? 's' : '') + ' · ' + (evt.moduleCount || '') + ' modules'; } if (!isV3 && !evt.deterministicOnly) runNarrative(blobUrl, myGen); break;
                 case 'error': _anlShowError(evt.message); break;
               }
             } catch (handlerErr) {
