@@ -231,6 +231,12 @@ export default async function handler(req, res) {
     // on module count and completes in well under 1 second for 228-module models.
     const intelligence = buildEvidenceBackedIntelligence(normalized, findings);
 
+    // Diagnostic log — remove after debugging
+    const ruleBreakdown = {};
+    for (const f of findings) { ruleBreakdown[f.ruleId] = (ruleBreakdown[f.ruleId] || 0) + 1; }
+    console.log('[analyze-v3] findings:', findings.length, JSON.stringify(ruleBreakdown));
+    console.log('[analyze-v3] workstreams:', intelligence.workstreams.length, intelligence.workstreams.map(w => `${w.id}(${w.kind},${w.evidenceCount})`).join(', '));
+
     // ── Executive brief: Haiku with deterministic fallback ───────────────────────
     let executiveBrief = intelligence.executiveNarrative; // deterministic fallback
     try {
