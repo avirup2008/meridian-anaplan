@@ -10,6 +10,7 @@ import {
   buildEvidenceDiagnostics,
   scanDeterministicFindings,
   scanArchitectureFindings,
+  buildEvidenceBackedIntelligence,
   detectDeadLogic,
   detectCircularDependencies,
   detectDaisyChains,
@@ -213,7 +214,66 @@ export default async function handler(req, res) {
       limitationCards,
     });
 
-    // PLAN-03: health-workstreams event goes here
+    // ── Health engine ────────────────────────────────────────────────────────────
+    sendEvent({ type: 'stage', stage: 'health', label: 'Building health workstreams…' });
+
+    // Run deterministic findings (reuses graph + architecture already computed above)
+    const findings = [
+      ...scanDeterministicFindings(normalized),
+      ...scanArchitectureFindings(normalized),
+    ];
+
+    // buildEvidenceBackedIntelligence is the top-level orchestrator in analysis-core.js.
+    // It internally calls buildDependencyGraph, buildArchitectureClassification,
+    // buildEvidenceDiagnostics, buildEvidenceWorkstreams, buildAssessment, and
+    // buildExecutiveBrief. We pass it the normalized object and deterministic findings.
+    // NOTE: This re-runs the graph build internally; that is acceptable — it is O(n*m)
+    // on module count and completes in well under 1 second for 228-module models.
+    const intelligence = buildEvidenceBackedIntelligence(normalized, findings);
+
+    // ── Executive brief: Haiku with deterministic fallback ───────────────────────
+    let executiveBrief = intelligence.executiveNarrative; // deterministic fallback
+    try {
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      const aiClient = new Anthropic();
+      const briefPrompt = `You are a senior Anaplan architect writing an executive summary for a model health report.
+Evidence pack (4 gates): fetchCompleteness=${evidencePack?.fetchCompleteness?.toFixed(2)}, formulaCoverage=${evidencePack?.formulaCoverage?.toFixed(2)}, graphDensity=${evidencePack?.graphDensity?.toFixed(2)}, namingCoverage=${evidencePack?.namingCoverage?.toFixed(2)}.
+Verdict: ${intelligence.assessment.verdict}. Confidence: ${intelligence.assessment.confidence}.
+Workstreams (${intelligence.workstreams.length}): ${intelligence.workstreams.slice(0,6).map(w => `${w.priority} – ${w.title}`).join('; ')}.
+Write 2–3 sentences. Cite only what the evidence supports. No invented findings. No score out of 10.`;
+
+      const briefRes = await Promise.race([
+        aiClient.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 200,
+          messages: [{ role: 'user', content: briefPrompt }],
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000)),
+      ]);
+      if (briefRes.content?.[0]?.text) {
+        executiveBrief = briefRes.content[0].text.trim();
+      }
+    } catch (e) {
+      // Haiku unavailable or timed out — fall back to deterministic brief (already set above)
+      console.log('[analyze-v3] Haiku brief skipped, using deterministic fallback:', e.message);
+    }
+
+    // Emit health-workstreams event
+    sendEvent({
+      type: 'health-workstreams',
+      workstreams: intelligence.workstreams,
+      assessment: {
+        verdict: intelligence.assessment.verdict,
+        summary: intelligence.assessment.summary,
+        confidence: intelligence.assessment.confidence,
+        posture: intelligence.assessment.posture,
+      },
+      evidenceLimits: {
+        canSay: intelligence.feasibility.supportedNow,
+        cannotSay: intelligence.feasibility.notKnowableYet,
+      },
+      executiveBrief,
+    });
 
     const lineItemCount = normalized.modules.reduce((s, m) => s + m.lineItemCount, 0);
     sendEvent({
@@ -221,7 +281,7 @@ export default async function handler(req, res) {
       version: 'v3',
       moduleCount: normalized.modules.length,
       lineItemCount,
-      workstreamCount: 0,      // Plan 03 fills this
+      workstreamCount: intelligence.workstreams.length,
       deadLogicCount: deadLogic.length,
       cycleCount: cycles.length,
     });
