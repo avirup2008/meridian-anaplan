@@ -31,8 +31,8 @@ const SUGGESTION_SEVERITY_ORDER = {
   info: 2,
 };
 
-const MAX_SUGGESTION_CARDS = 120;
-const AGGREGATE_AFTER = 3;
+const MAX_SUGGESTION_CARDS = 20;
+const EXAMPLE_LIMIT = 6;
 
 const DIMENSION_RULES = {
   architecture: new Set(['MODULE_NAMING_PATTERN', 'MODULE_DATA_HAS_CALC', 'MODULE_TOO_MANY_DIMS']),
@@ -679,6 +679,7 @@ function severityRank(severity) {
 
 function sortFindingsForDisplay(a, b) {
   return severityRank(a.severity) - severityRank(b.severity) ||
+    (b.affectedCount || 1) - (a.affectedCount || 1) ||
     a.domain.localeCompare(b.domain) ||
     a.moduleName.localeCompare(b.moduleName) ||
     a.title.localeCompare(b.title);
@@ -686,28 +687,35 @@ function sortFindingsForDisplay(a, b) {
 
 function aggregateFindingGroup(items) {
   const first = items[0];
-  if (!first || items.length <= AGGREGATE_AFTER) return items;
+  if (!first) return [];
+  if (items.length === 1) return items;
+  const moduleNames = [...new Set(items.map(f => f.moduleName).filter(Boolean))];
   const examples = items
-    .map(f => f.lineItemName)
+    .map(f => f.lineItemName ? `${f.moduleName}: ${f.lineItemName}` : f.moduleName)
     .filter(Boolean)
-    .slice(0, 5);
-  const exampleText = examples.length ? ` Examples: ${examples.join(', ')}${items.length > examples.length ? ', ...' : ''}.` : '';
+    .slice(0, EXAMPLE_LIMIT);
+  const exampleText = examples.length ? ` Examples: ${examples.join('; ')}${items.length > examples.length ? '; ...' : ''}.` : '';
   return [{
     ...first,
+    moduleId: '',
+    moduleName: `${moduleNames.length} module${moduleNames.length === 1 ? '' : 's'}`,
     lineItemId: '',
     lineItemName: '',
-    title: `${items.length} ${first.title.toLowerCase()} findings`,
-    text: `${items.length} ${first.title.toLowerCase()} findings`,
-    evidence: `${items.length} line items in ${first.moduleName} triggered ${first.ruleId}.${exampleText}`,
-    reasoning: `${items.length} line items in this module share the same deterministic rule violation.`,
+    title: first.title,
+    text: first.title,
+    evidence: `${items.length} underlying findings across ${moduleNames.length} module${moduleNames.length === 1 ? '' : 's'} triggered ${first.ruleId}.${exampleText}`,
+    reasoning: `${items.length} occurrences share the same deterministic rule pattern across the model.`,
     action: first.action,
+    affectedCount: items.length,
+    affectedModuleCount: moduleNames.length,
+    examples,
   }];
 }
 
 export function summarizeFindingsForSuggestions(findings, maxCards = MAX_SUGGESTION_CARDS) {
   const grouped = new Map();
   for (const item of findings) {
-    const key = `${item.moduleId || item.moduleName}:${item.ruleId}`;
+    const key = `${item.domain}:${item.ruleId}`;
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key).push(item);
   }
@@ -844,6 +852,9 @@ export function findingToSuggestion(finding) {
     evidence: finding.evidence,
     source: 'deterministic',
     ruleId: finding.ruleId,
+    affectedCount: finding.affectedCount || 1,
+    affectedModuleCount: finding.affectedModuleCount || 1,
+    examples: finding.examples || [],
   };
 }
 

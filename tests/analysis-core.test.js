@@ -152,8 +152,33 @@ test('aggregates repetitive deterministic findings into prioritised suggestion c
 
   assert.equal(booleanNameFindings.length, 6);
   assert.equal(booleanNameCards.length, 1);
-  assert.match(booleanNameCards[0].title, /6 boolean line item name lacks verb prefix findings/i);
-  assert.match(booleanNameCards[0].evidence, /Examples: Active, Closed, Locked/);
+  assert.equal(booleanNameCards[0].affectedCount, 6);
+  assert.equal(booleanNameCards[0].affectedModuleCount, 1);
+  assert.match(booleanNameCards[0].title, /Boolean line item name lacks verb prefix/i);
+  assert.match(booleanNameCards[0].evidence, /Examples: SYS01 Flags: Active; SYS01 Flags: Closed/);
+});
+
+test('suggestion summary groups model-wide rule patterns into report-sized buckets', () => {
+  const modules = Array.from({ length: 30 }, (_, i) => ({
+    id: `m-${i}`,
+    name: `SYS${String(i + 1).padStart(2, '0')} Flags`,
+    lineItemCount: 4,
+    lineItems: Array.from({ length: 4 }, (_, j) => ({
+      id: `flag-${i}-${j}`,
+      name: `Flag ${j + 1}`,
+      format: 'Boolean',
+      summary: 'ANY',
+      appliesTo: ['Projects'],
+    })),
+  }));
+  const findings = scanDeterministicFindings(normalizeBlueprint({ modelId: 'grouped-model', modules }));
+  const cards = summarizeFindingsForSuggestions(findings);
+  const booleanNameCard = cards.find(f => f.ruleId === 'BOOLEAN_NAME_WEAK');
+
+  assert(cards.length <= 20);
+  assert.equal(booleanNameCard.affectedCount, 120);
+  assert.equal(booleanNameCard.affectedModuleCount, 30);
+  assert.match(booleanNameCard.moduleName, /30 modules/);
 });
 
 test('scores repeated line-item findings as a grouped pattern, not raw card spam', () => {

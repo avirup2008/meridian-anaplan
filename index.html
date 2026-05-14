@@ -4358,11 +4358,16 @@ function confirmModelSelection() {
 
     function renderSuggCard(s) {
       const triageClass = s.triage === 'Fix Now' ? 'fix' : s.triage === 'Consider' ? 'consider' : 'monitor';
+      const affected = Number(s.affectedCount || 0);
+      const modules = Number(s.affectedModuleCount || 0);
+      const examples = Array.isArray(s.examples) ? s.examples.slice(0, 4) : [];
       return '<div class="sugg-card">'
         + '<span class="sugg-triage ' + triageClass + '">' + _anlEsc(s.triage || '') + '</span>'
         + '<span class="sugg-module">' + _anlEsc(s.moduleName || '') + '</span>'
+        + (affected > 1 ? '<span class="sugg-module">' + affected + ' findings' + (modules > 1 ? ' · ' + modules + ' modules' : '') + '</span>' : '')
         + '<div class="sugg-title">' + _anlEsc(s.text || '') + '</div>'
         + (s.reasoning ? '<div class="sugg-reasoning">' + _anlEsc(s.reasoning) + '</div>' : '')
+        + (examples.length ? '<div class="sugg-reasoning"><strong>Examples:</strong> ' + _anlEsc(examples.join('; ')) + '</div>' : '')
         + (s.action ? '<div class="sugg-action">' + _anlEsc(s.action) + '</div>' : '')
         + (s.builderNote ? '<div class="sugg-builder">' + _anlEsc(s.builderNote) + '</div>' : '')
       + '</div>';
