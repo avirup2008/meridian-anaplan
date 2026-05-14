@@ -4404,6 +4404,106 @@ function confirmModelSelection() {
       return '<ul class="intel-list">' + items.map(renderItem).join('') + '</ul>';
     }
 
+    function _svgText(s, max) {
+      const t = String(s == null ? '' : s);
+      return _anlEsc(max && t.length > max ? t.slice(0, max - 3) + '...' : t);
+    }
+
+    function renderScoreRadarSvg(score) {
+      const dims = score && score.dimensions ? score.dimensions : {};
+      const labels = [
+        ['architecture', 'Architecture'],
+        ['naming', 'Naming'],
+        ['formulas', 'Formulas'],
+        ['dataHygiene', 'Data Hygiene'],
+        ['governance', 'Governance'],
+      ];
+      const vals = labels.map(([k]) => typeof dims[k] === 'number' ? dims[k] : 50);
+      const cx = 210, cy = 170, r = 112, n = vals.length;
+      const angles = vals.map((_, i) => (i * 2 * Math.PI / n) - Math.PI / 2);
+      const point = (a, pct) => [cx + r * pct / 100 * Math.cos(a), cy + r * pct / 100 * Math.sin(a)];
+      const grid = [25, 50, 75, 100].map(pct => {
+        const pts = angles.map(a => point(a, pct).join(',')).join(' ');
+        return '<polygon points="' + pts + '" fill="none" stroke="#DED9CF" stroke-width="' + (pct === 100 ? '1' : '0.6') + '"/>';
+      }).join('');
+      const axes = angles.map(a => {
+        const [x, y] = point(a, 100);
+        return '<line x1="' + cx + '" y1="' + cy + '" x2="' + x + '" y2="' + y + '" stroke="#DED9CF" stroke-width="0.6"/>';
+      }).join('');
+      const dataPts = angles.map((a, i) => point(a, vals[i]).join(',')).join(' ');
+      const dots = angles.map((a, i) => {
+        const [x, y] = point(a, vals[i]);
+        const col = vals[i] < 40 ? '#B82E2E' : vals[i] < 65 ? '#BF801E' : '#175AA6';
+        return '<circle cx="' + x + '" cy="' + y + '" r="4" fill="' + col + '" stroke="#FFFDF8" stroke-width="2"/><text x="' + x + '" y="' + (y - 8) + '" text-anchor="middle" font-size="10" font-weight="700" fill="' + col + '" font-family="IBM Plex Mono, monospace">' + vals[i] + '</text>';
+      }).join('');
+      const lbls = angles.map((a, i) => {
+        const [x, y] = point(a, 122);
+        return '<text x="' + x + '" y="' + y + '" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="#595E6B" font-weight="600">' + labels[i][1] + '</text>';
+      }).join('');
+      return '<svg width="100%" viewBox="0 0 420 340" role="img" aria-label="Health score radar" font-family="IBM Plex Sans, sans-serif">' + grid + axes + '<polygon points="' + dataPts + '" fill="rgba(23,90,166,0.12)" stroke="#175AA6" stroke-width="1.6"/>' + dots + lbls + '</svg>';
+    }
+
+    function renderLayerDistributionSvg(intel) {
+      const counts = ((intel && intel.architecture) || {}).layerCounts || {};
+      const layers = [
+        ['data', 'Data', '#1A7F8A'],
+        ['system', 'System', '#7047A3'],
+        ['calculation', 'Calc', '#C8733A'],
+        ['planning', 'Planning', '#175AA6'],
+        ['output', 'Output', '#217348'],
+        ['unknown', 'Other', '#9EA1AB'],
+      ];
+      const max = Math.max(1, ...layers.map(([k]) => counts[k] || 0));
+      const W = 760, left = 112, barW = 560, rowH = 36, top = 22, H = top + layers.length * rowH + 22;
+      let svg = '<svg width="100%" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Architecture layer distribution" font-family="IBM Plex Sans, sans-serif">';
+      layers.forEach(([key, label, color], i) => {
+        const v = counts[key] || 0;
+        const y = top + i * rowH;
+        const w = Math.round(barW * v / max);
+        svg += '<text x="' + (left - 10) + '" y="' + (y + 18) + '" text-anchor="end" font-size="11" fill="#595E6B" font-weight="600">' + label + '</text>';
+        svg += '<rect x="' + left + '" y="' + (y + 4) + '" width="' + barW + '" height="20" rx="5" fill="#F5F2EA"/>';
+        svg += '<rect x="' + left + '" y="' + (y + 4) + '" width="' + w + '" height="20" rx="5" fill="' + color + '" opacity="0.78"/>';
+        svg += '<text x="' + (left + w + 8) + '" y="' + (y + 18) + '" font-size="11" fill="' + color + '" font-weight="700" font-family="IBM Plex Mono, monospace">' + v + '</text>';
+      });
+      return svg + '</svg>';
+    }
+
+    function renderBlastRadiusSvg(intel) {
+      const rows = Array.isArray(intel && intel.blastRadius) ? intel.blastRadius.slice(0, 8) : [];
+      if (!rows.length) return '<div class="notes-empty">No blast radius data available.</div>';
+      const max = Math.max(1, ...rows.map(r => (r.downstreamModuleCount || 0) + (r.downstreamOutputCount || 0) * 2));
+      const W = 820, left = 230, barW = 500, rowH = 34, top = 18, H = top + rows.length * rowH + 24;
+      let svg = '<svg width="100%" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Blast radius ranking" font-family="IBM Plex Sans, sans-serif">';
+      rows.forEach((row, i) => {
+        const score = (row.downstreamModuleCount || 0) + (row.downstreamOutputCount || 0) * 2;
+        const y = top + i * rowH;
+        const w = Math.round(barW * score / max);
+        const color = row.downstreamOutputCount > 0 ? '#B82E2E' : '#175AA6';
+        svg += '<text x="' + (left - 8) + '" y="' + (y + 18) + '" text-anchor="end" font-size="10.5" fill="#1C2129" font-weight="600">' + _svgText(row.moduleName, 28) + '</text>';
+        svg += '<rect x="' + left + '" y="' + (y + 5) + '" width="' + barW + '" height="18" rx="5" fill="#F5F2EA"/>';
+        svg += '<rect x="' + left + '" y="' + (y + 5) + '" width="' + w + '" height="18" rx="5" fill="' + color + '" opacity="0.76"/>';
+        svg += '<text x="' + (left + w + 8) + '" y="' + (y + 18) + '" font-size="10" fill="' + color + '" font-weight="700" font-family="IBM Plex Mono, monospace">' + (row.downstreamModuleCount || 0) + ' down / ' + (row.downstreamOutputCount || 0) + ' out</text>';
+      });
+      return svg + '</svg>';
+    }
+
+    function renderRemediationSequenceSvg(intel) {
+      const plan = Array.isArray(intel && intel.remediationPlan) ? intel.remediationPlan : [];
+      if (!plan.length) return '<div class="notes-empty">No remediation sequence needed.</div>';
+      const W = 920, H = 150, gap = 20, boxW = Math.floor((W - 56 - gap * (plan.length - 1)) / plan.length), y = 45;
+      let svg = '<svg width="100%" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Remediation sequence" font-family="IBM Plex Sans, sans-serif"><defs><marker id="seq-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1L8 5L1 9" fill="none" stroke="#9EA1AB" stroke-width="1.4" stroke-linecap="round"/></marker></defs>';
+      plan.forEach((step, i) => {
+        const x = 28 + i * (boxW + gap);
+        const color = i === 0 ? '#B82E2E' : i === plan.length - 1 ? '#217348' : '#175AA6';
+        if (i < plan.length - 1) svg += '<line x1="' + (x + boxW) + '" y1="' + (y + 28) + '" x2="' + (x + boxW + gap - 4) + '" y2="' + (y + 28) + '" stroke="#9EA1AB" stroke-width="1" marker-end="url(#seq-arrow)"/>';
+        svg += '<rect x="' + x + '" y="' + y + '" width="' + boxW + '" height="64" rx="7" fill="' + color + '12" stroke="' + color + '" stroke-width="1.2"/>';
+        svg += '<text x="' + (x + 12) + '" y="' + (y + 19) + '" font-size="9" fill="' + color + '" font-weight="700" font-family="IBM Plex Mono, monospace">STEP ' + (i + 1) + ' · ' + (step.findingCount || 0) + '</text>';
+        svg += '<text x="' + (x + 12) + '" y="' + (y + 41) + '" font-size="11" fill="#1C2129" font-weight="700">' + _svgText(step.stage, 24) + '</text>';
+      });
+      svg += '<text x="28" y="132" font-size="9" fill="#9EA1AB" font-family="IBM Plex Mono, monospace">Sequence is derived from rule risk: metadata, summaries, formulas, then structural changes.</text>';
+      return svg + '</svg>';
+    }
+
     function renderDependencyMapSvg(intel) {
       const graph = (intel && intel.graph) || {};
       const arch = (intel && intel.architecture) || {};
@@ -4500,7 +4600,11 @@ function confirmModelSelection() {
         + '<div class="intel-kpi"><div class="intel-kpi-val">' + regression.length + '</div><div class="intel-kpi-lbl">Regression checks</div></div>'
         + '</div>'
         + '<div class="intel-grid">'
+        + '<div class="intel-card"><h3>Health Radar</h3><div class="diagram-wrap">' + renderScoreRadarSvg(_anlState && _anlState.score) + '</div></div>'
+        + '<div class="intel-card"><h3>Architecture Mix</h3><div class="diagram-wrap">' + renderLayerDistributionSvg(intel) + '</div></div>'
         + '<div class="intel-card wide"><h3>Dependency Map</h3><div class="diagram-wrap">' + renderDependencyMapSvg(intel) + '</div></div>'
+        + '<div class="intel-card wide"><h3>Blast Radius Ranking</h3><div class="diagram-wrap">' + renderBlastRadiusSvg(intel) + '</div></div>'
+        + '<div class="intel-card wide"><h3>Remediation Sequence</h3><div class="diagram-wrap">' + renderRemediationSequenceSvg(intel) + '</div></div>'
         + '<div class="intel-card"><h3>Architecture Classification</h3>'
         + renderIntelList(Object.entries(layerCounts), ([layer, count]) => '<li><span class="intel-pill">' + _anlEsc(layer) + '</span>' + count + ' module' + (count === 1 ? '' : 's') + '</li>', 'No layer classification available.')
         + '</div>'
@@ -4513,7 +4617,7 @@ function confirmModelSelection() {
         + '<div class="intel-card"><h3>Top Impact Findings</h3>'
         + renderIntelList(findings.slice(0, 6), f => '<li><strong>' + _anlEsc(f.moduleName || '') + '</strong>: ' + _anlEsc(f.title || f.text || '') + '<span class="intel-meta">Impact ' + (f.impactScore || 0) + ' · ' + _anlEsc(f.triage || '') + '</span></li>', 'No prioritized findings detected.')
         + '</div>'
-        + '<div class="intel-card wide"><h3>Remediation Sequence</h3>'
+        + '<div class="intel-card wide"><h3>Remediation Details</h3>'
         + renderIntelList(plan, step => '<li><strong>' + _anlEsc(step.stage || '') + '</strong><span class="intel-meta">' + _anlEsc(step.rationale || '') + '</span></li>', 'No remediation sequence needed.')
         + '</div>'
         + '<div class="intel-card wide"><h3>Regression Checklist</h3>'
