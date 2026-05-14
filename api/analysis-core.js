@@ -25,6 +25,15 @@ const SCORE_WEIGHTS = {
   info: 1,
 };
 
+const SUGGESTION_SEVERITY_ORDER = {
+  critical: 0,
+  warning: 1,
+  info: 2,
+};
+
+const MAX_SUGGESTION_CARDS = 120;
+const AGGREGATE_AFTER = 3;
+
 const DIMENSION_RULES = {
   architecture: new Set(['MODULE_NAMING_PATTERN', 'MODULE_DATA_HAS_CALC', 'MODULE_TOO_MANY_DIMS']),
   naming: new Set(['MODULE_NAMING_PATTERN']),
@@ -650,6 +659,56 @@ function severityWeight(severity) {
   return SCORE_WEIGHTS[severity] || 1;
 }
 
+function severityRank(severity) {
+  return SUGGESTION_SEVERITY_ORDER[severity] ?? 9;
+}
+
+function sortFindingsForDisplay(a, b) {
+  return severityRank(a.severity) - severityRank(b.severity) ||
+    a.domain.localeCompare(b.domain) ||
+    a.moduleName.localeCompare(b.moduleName) ||
+    a.title.localeCompare(b.title);
+}
+
+function aggregateFindingGroup(items) {
+  const first = items[0];
+  if (!first || items.length <= AGGREGATE_AFTER) return items;
+  const examples = items
+    .map(f => f.lineItemName)
+    .filter(Boolean)
+    .slice(0, 5);
+  const exampleText = examples.length ? ` Examples: ${examples.join(', ')}${items.length > examples.length ? ', ...' : ''}.` : '';
+  return [{
+    ...first,
+    lineItemId: '',
+    lineItemName: '',
+    title: `${items.length} ${first.title.toLowerCase()} findings`,
+    text: `${items.length} ${first.title.toLowerCase()} findings`,
+    evidence: `${items.length} line items in ${first.moduleName} triggered ${first.ruleId}.${exampleText}`,
+    reasoning: `${items.length} line items in this module share the same deterministic rule violation.`,
+    action: first.action,
+  }];
+}
+
+export function summarizeFindingsForSuggestions(findings, maxCards = MAX_SUGGESTION_CARDS) {
+  const grouped = new Map();
+  for (const item of findings) {
+    const key = `${item.moduleId || item.moduleName}:${item.ruleId}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(item);
+  }
+
+  const cards = [];
+  for (const group of grouped.values()) {
+    group.sort(sortFindingsForDisplay);
+    cards.push(...aggregateFindingGroup(group));
+  }
+
+  return cards
+    .sort(sortFindingsForDisplay)
+    .slice(0, maxCards);
+}
+
 export function prioritizeFindings(findings, blastRadius) {
   const blastByModule = new Map(blastRadius.map(b => [b.moduleId, b]));
   return findings
@@ -737,7 +796,7 @@ export function buildEvidenceSummary(normalized, findings, blastRadius) {
   const impactText = topImpact && topImpact.downstreamModuleCount > 0
     ? ` Highest blast radius is ${topImpact.moduleName}, which feeds ${topImpact.downstreamModuleCount} downstream module${topImpact.downstreamModuleCount === 1 ? '' : 's'}.`
     : '';
-  return `This model contains ${normalized.modules.length} modules and ${normalized.modules.reduce((sum, m) => sum + m.lineItemCount, 0)} line items. The deterministic scan found ${findings.length} findings, led by ${domainText} issue${findings.length === 1 ? '' : 's'}.${impactText}`;
+  return `This model contains ${normalized.modules.length} modules and ${normalized.modules.reduce((sum, m) => sum + m.lineItemCount, 0)} line items. The deterministic scan found ${findings.length} underlying findings, led by ${domainText} issue${findings.length === 1 ? '' : 's'}.${impactText}`;
 }
 
 export function buildModelIntelligence(normalized, findings) {
@@ -777,12 +836,14 @@ export function findingToSuggestion(finding) {
 export function buildAnalysisSnapshot(blueprint) {
   const normalized = normalizeBlueprint(blueprint);
   const findings = scanDeterministicFindings(normalized);
+  const displayFindings = summarizeFindingsForSuggestions(findings);
   const score = scoreFindings(findings);
   const intelligence = buildModelIntelligence(normalized, findings);
   return {
     normalized,
     findings,
-    deterministicSuggestions: findings.map(findingToSuggestion),
+    displayFindings,
+    deterministicSuggestions: displayFindings.map(findingToSuggestion),
     score,
     intelligence,
   };

@@ -16,10 +16,11 @@ const FORMULA_MAX_CHARS = 200;     // allow longer formula previews
 const FORMULA_MAX_PER_MODULE = 12; // show more calculated line items per module
 const INPUT_MAX_PER_MODULE = 25;   // max input line items shown per module
 const MAX_INPUT_TOKENS = 180_000;
+const ENABLE_AI_ANALYSIS = process.env.MERIDIAN_ENABLE_AI_ANALYSIS === '1';
 
 // Caching
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const CACHE_PREFIX = 'analysis-cache-v15/'; // v15: deterministic graph and architecture intelligence included in cached event logs
+const CACHE_PREFIX = 'analysis-cache-v16/'; // v16: deterministic-first bounded analysis with aggregated suggestion cards
 
 // CA-04: Hash only stable fields — exclude fetchedAt which changes on every blueprint fetch
 export function blueprintHash(blueprint) {
@@ -555,7 +556,7 @@ export default async function handler(req, res) {
   if (!blobUrl) return res.status(400).json({ error: 'Missing blobUrl' });
   // SEC-01: Reject non-Vercel-Blob URLs before any network call (SSRF guard)
   if (!isAllowedBlobUrl(blobUrl)) return res.status(400).json({ error: 'Invalid blobUrl — must be a Vercel Blob URL' });
-  if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+  if (ENABLE_AI_ANALYSIS && !process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
 
   // SSE headers BEFORE first await
   res.setHeader('Content-Type', 'text/event-stream');
@@ -573,7 +574,7 @@ export default async function handler(req, res) {
   }
 
   const startMs = Date.now();
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const client = ENABLE_AI_ANALYSIS ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
   // Declared outside try so finally can always clearInterval it regardless of where error occurs
   let tickInterval = null;
 
@@ -632,6 +633,27 @@ export default async function handler(req, res) {
       type: 'intelligence',
       intelligence: snapshot.intelligence,
     });
+
+    if (!ENABLE_AI_ANALYSIS) {
+      sendEvent({ type: 'progress', stage: 'scoring', pct: 90 });
+      sendEvent({
+        type: 'score',
+        healthScore: snapshot.score.healthScore,
+        verdict: snapshot.score.verdict,
+        summary: snapshot.intelligence.evidenceSummary,
+        dimensions: snapshot.score.dimensions,
+      });
+      sendEvent({
+        type: 'complete',
+        healthScore: snapshot.score.healthScore,
+        totalSuggestions: snapshot.deterministicSuggestions.length,
+        underlyingFindings: snapshot.findings.length,
+        analysisId: blueprint.modelId,
+        deterministicOnly: true,
+      });
+      await setCachedEvents(hash, eventLog);
+      return;
+    }
 
     // Stage 3: Single Haiku bulk call — all modules, full reasoning (ANLZ-02)
     sendEvent({ type: 'progress', stage: 'suggestions', pct: 25 });

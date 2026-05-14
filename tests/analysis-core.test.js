@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   normalizeBlueprint,
   scanDeterministicFindings,
+  summarizeFindingsForSuggestions,
   validateAiSuggestions,
   scoreFindings,
   buildAnalysisSnapshot,
@@ -124,6 +125,35 @@ test('scans all line items for deterministic Anaplan findings', () => {
   assert.equal(datCalc.moduleName, 'DAT01 Project Master');
   assert.equal(datCalc.lineItemName, 'Calculated Cost');
   assert.match(datCalc.evidence, /FIN02 Cost Aggregation/);
+});
+
+test('aggregates repetitive deterministic findings into prioritised suggestion cards', () => {
+  const repeatedBlueprint = {
+    modelId: 'repeat-model',
+    modules: [
+      {
+        id: 'sys',
+        name: 'SYS01 Flags',
+        lineItemCount: 6,
+        lineItems: ['Active', 'Closed', 'Locked', 'Manual', 'Ready', 'Valid'].map((name, i) => ({
+          id: `flag-${i}`,
+          name,
+          format: 'Boolean',
+          summary: 'ANY',
+          appliesTo: ['Projects'],
+        })),
+      },
+    ],
+  };
+  const findings = scanDeterministicFindings(normalizeBlueprint(repeatedBlueprint));
+  const booleanNameFindings = findings.filter(f => f.ruleId === 'BOOLEAN_NAME_WEAK');
+  const cards = summarizeFindingsForSuggestions(findings);
+  const booleanNameCards = cards.filter(f => f.ruleId === 'BOOLEAN_NAME_WEAK');
+
+  assert.equal(booleanNameFindings.length, 6);
+  assert.equal(booleanNameCards.length, 1);
+  assert.match(booleanNameCards[0].title, /6 boolean line item name lacks verb prefix findings/i);
+  assert.match(booleanNameCards[0].evidence, /Examples: Active, Closed, Locked/);
 });
 
 test('validates AI suggestions against real modules, line items, and formula evidence', () => {
