@@ -9,7 +9,7 @@
 
 ## Phases
 
-- [ ] **Phase 6: Model State Foundation** — Replace per-module blueprint batching with a single model-level lineItems API call; compact serialization; evidence pack with admissibility gates
+- [x] **Phase 6: Model State Foundation** — Replace per-module blueprint batching with a single model-level lineItems API call; compact serialization; evidence pack with admissibility gates
 - [ ] **Phase 7: Comprehension & Health Rebuild** — New Model tab with module classification, dependency graph, and DISCO architecture map; rebuilt Health tab with evidence-backed workstreams and confidence limits
 - [ ] **Phase 8: Chat Interface** — Persistent conversational panel grounded in loaded model state and embedded Anaplan framework knowledge; mode-aware responses
 - [ ] **Phase 9: Build Workflow** — Natural-language build spec generation; structured Markdown output accounting for the existing model
@@ -28,8 +28,8 @@
   3. Decorator and separator modules are excluded from analysis automatically — they do not appear in comprehension output, health workstreams, or chat context
   4. When fetch completeness falls below the admissibility threshold, the UI renders a visible evidence-limit warning listing exactly which conclusions are blocked and why
 **Plans**: 4 plans
-- [ ] 06-01-PLAN.md — API spike: confirm Anaplan model-level lineItems endpoint shape (wave 1, blocking gate)
-- [ ] 06-02-PLAN.md — api/model-state.js: parallel fetch, compact serializer, evidence pack, Blob write (wave 2)
+- [x] 06-01-PLAN.md — API spike: confirm Anaplan model-level lineItems endpoint shape (wave 1, blocking gate)
+- [x] 06-02-PLAN.md — api/model-state.js: parallel fetch, compact serializer, evidence pack, Blob write (wave 2)
 - [ ] 06-03-PLAN.md — Infra swap: cleanup.js PREFIXES, delete blueprint.js, vercel.json (wave 3)
 - [ ] 06-04-PLAN.md — index.html: SSE handler, Model tab stub, evidence-limit warning UI (wave 3)
 
