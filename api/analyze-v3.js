@@ -447,6 +447,7 @@ export default async function handler(req, res) {
         const KINDS = new Set(['remediation','evidence-limit']);
         const valid = wsResult.value.workstreams.filter(w =>
           w && typeof w.title === 'string' && w.title.length > 3
+          && !w.title.includes('ModuleName') && !w.whyItMatters?.includes('ModuleName')
           && PRIORITIES.has(w.priority) && CONFIDENCES.has(w.confidence)
           && KINDS.has(w.kind)
           && typeof w.whyItMatters === 'string' && w.whyItMatters.length > 5
@@ -500,7 +501,7 @@ export default async function handler(req, res) {
       workstreams,
       assessment: {
         verdict: assessmentObj.verdict,
-        summary: architectureStory || assessmentObj.summary,
+        summary: assessmentObj.summary || architectureStory,
         confidence: assessmentObj.confidence,
         posture: assessmentObj.posture,
       },

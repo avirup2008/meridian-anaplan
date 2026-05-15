@@ -1575,6 +1575,7 @@ function go(id){
 function startOver() {
   try { localStorage.removeItem('meridian.stateUrl'); } catch(e) {}
   try { localStorage.removeItem('meridian.stateMeta'); } catch(e) {}
+  try { localStorage.removeItem('meridian.blueprintBlobUrl'); } catch(e) {}
   try { sessionStorage.removeItem('meridian.evidencePack'); } catch(e) {}
   // Use location.replace so back button doesn't loop back to cached state
   window.location.replace(window.location.pathname);
@@ -5316,10 +5317,36 @@ function confirmModelSelection() {
         slot.hidden = false;
       }
 
-      // ── Update Workstreams tab badge from health workstreams count ─────────────
+      // ── Populate _anlState.score so export / share / Workstreams tab work ───────
+      if (evt.assessment) {
+        _anlState.score = {
+          verdict:    evt.assessment.verdict    || '',
+          summary:    evt.assessment.summary    || '',
+          confidence: evt.assessment.confidence || 'Qualified evidence',
+          posture:    evt.assessment.posture    || 'review',
+          healthScore: evt.healthScore,
+        };
+      }
+
+      // ── Update Workstreams tab badge and render Workstreams list ──────────────
       const wsBadge = document.getElementById('dash-badge-suggestions');
-      if (wsBadge && Array.isArray(evt.workstreams) && evt.workstreams.length) {
-        wsBadge.textContent = String(evt.workstreams.length);
+      if (Array.isArray(evt.workstreams) && evt.workstreams.length) {
+        if (wsBadge) wsBadge.textContent = String(evt.workstreams.length);
+
+        // Convert v3 workstream shape → legacy renderSuggCard shape
+        const suggItems = evt.workstreams.map(w => ({
+          text:         w.title,
+          triage:       w.priority === 'Critical' || w.priority === 'High' ? 'Fix Now'
+                        : w.priority === 'Medium' ? 'Consider' : 'Monitor',
+          kind:         w.kind,
+          priority:     w.priority,
+          confidence:   w.confidence,
+          reasoning:    w.whyItMatters + (w.reviewQuestion ? ' ' + w.reviewQuestion : ''),
+          examples:     Array.isArray(w.examples) ? w.examples : [],
+          affectedCount: w.evidenceCount,
+          domain:       w.kind === 'evidence-limit' ? 'Best Practice' : 'Structural',
+        }));
+        renderSuggestionsList(suggItems);
       }
     }
 
