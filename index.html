@@ -870,9 +870,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 <!-- SECTION: ANALYSIS -->
 <div id="s-analysis" class="screen">
   <div class="hdr"><div class="hdr-inner">
-    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-logo" onclick="startOver()"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
     <div class="hdr-sp"></div>
     <div class="hdr-status" id="anl-hdr-status"><span class="spinner"></span>Preparing analysis…</div>
+    <button class="btn btn-ghost btn-sm" onclick="startOver()" style="margin-left:12px;">New model</button>
   </div></div>
 
   <div class="anl-shell">
@@ -1571,6 +1572,14 @@ function go(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   screen.classList.add('active');
   window.scrollTo(0,0);
+}
+
+function startOver() {
+  try { localStorage.removeItem('meridian.stateUrl'); } catch(e) {}
+  try { localStorage.removeItem('meridian.stateMeta'); } catch(e) {}
+  try { sessionStorage.removeItem('meridian.evidencePack'); } catch(e) {}
+  // Use location.replace so back button doesn't loop back to cached state
+  window.location.replace(window.location.pathname);
 }
 // NOTE: boot navigation is handled by _phase5BootRouter IIFE at the end of this script.
 // It calls go('s-shared') if ?id= is present, otherwise go('s-intro').
@@ -5261,7 +5270,7 @@ function confirmModelSelection() {
       const domainBody = _anl$('model-domain-map-body');
       if (domainSection && domainBody && Array.isArray(evt.domainMap) && evt.domainMap.length) {
         domainBody.innerHTML = evt.domainMap.map(d => {
-          const count = Array.isArray(d.moduleIds) ? d.moduleIds.length : 0;
+          const count = Number.isFinite(d.moduleCount) ? d.moduleCount : (Array.isArray(d.moduleIds) ? d.moduleIds.length : 0);
           return '<div style="padding:10px 14px;border-left:3px solid var(--accent);background:var(--accent-pale,#EEF4FB);border-radius:0 var(--r-md) var(--r-md) 0;margin-bottom:6px;">'
             + '<strong style="font-size:13px;">' + escapeHtml(d.domainName || 'Unnamed domain') + '</strong>'
             + ' <span style="font-size:11px;color:var(--text3);">(' + count + ' modules)</span>'
@@ -5297,14 +5306,8 @@ function confirmModelSelection() {
       if (verdictCard) {
         const verdictText = _anl$('health-verdict-text');
         const scoreNum = _anl$('health-score-num');
-        const scoreSplit = _anl$('health-score-split');
-        const scoreReasoning = _anl$('health-score-reasoning');
         if (verdictText && evt.architectureVerdict) verdictText.textContent = evt.architectureVerdict;
         if (scoreNum && Number.isFinite(evt.healthScore)) scoreNum.textContent = String(evt.healthScore);
-        if (scoreSplit && Number.isFinite(evt.healthScoreDeterministic) && Number.isFinite(evt.healthScoreSonnet)) {
-          scoreSplit.textContent = 'rules: ' + evt.healthScoreDeterministic + ' · review: ' + evt.healthScoreSonnet;
-        }
-        if (scoreReasoning && evt.healthScoreReasoning) scoreReasoning.textContent = evt.healthScoreReasoning;
         verdictCard.hidden = false;
       }
 
@@ -5799,6 +5802,11 @@ function confirmModelSelection() {
         const params = new URLSearchParams(window.location.search);
         if (params.has('id')) {
           go('s-shared'); // go() override handles loadSharedReport
+          return;
+        }
+        // ?reset clears all cached state and goes to intro
+        if (params.has('reset')) {
+          startOver();
           return;
         }
       } catch (e) {}
