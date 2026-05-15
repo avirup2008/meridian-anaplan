@@ -5172,7 +5172,8 @@ function confirmModelSelection() {
     function _anlOnScore(s) {
       _anlState.score = s;
       const hasNumericScore = typeof s.healthScore === 'number';
-      _anl$('anl-score-num').innerHTML = hasNumericScore
+      const scoreNumEl = _anl$('anl-score-num');
+      if (scoreNumEl) scoreNumEl.innerHTML = hasNumericScore
         ? s.healthScore + '<span>/100</span>'
         : _anlEsc(s.posture || s.verdict || 'Review');
       const chip = _anl$('anl-verdict-chip');
@@ -5345,7 +5346,7 @@ function confirmModelSelection() {
           const sub = evt.architectureVerdict.replace(/^[^,]+\s*\([^)]+\),?\s*/, '');
           detailEl.textContent = (evt.moduleCount ? evt.moduleCount + ' modules · ' : '') + sub;
         }
-        if (scoreNum && Number.isFinite(evt.healthScore)) scoreNum.textContent = String(evt.healthScore);
+        if (scoreNum && Number.isFinite(evt.healthScore)) scoreNum.innerHTML = String(evt.healthScore) + '<span class="anl-score-denom">/100</span>';
         verdictCard.hidden = false;
       }
 
