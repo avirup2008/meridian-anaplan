@@ -5316,6 +5316,11 @@ function confirmModelSelection() {
         slot.hidden = false;
       }
 
+      // ── Update Workstreams tab badge from health workstreams count ─────────────
+      const wsBadge = document.getElementById('dash-badge-suggestions');
+      if (wsBadge && Array.isArray(evt.workstreams) && evt.workstreams.length) {
+        wsBadge.textContent = String(evt.workstreams.length);
+      }
     }
 
     function _renderHealthFormat(evt) {
@@ -5798,13 +5803,13 @@ function confirmModelSelection() {
     (function _phase5BootRouter() {
       try {
         const params = new URLSearchParams(window.location.search);
-        if (params.has('id')) {
-          go('s-shared'); // go() override handles loadSharedReport
-          return;
-        }
-        // ?reset clears all cached state and goes to intro
+        // ?reset must be checked before ?id so ?reset always wins
         if (params.has('reset')) {
           startOver();
+          return;
+        }
+        if (params.has('id')) {
+          go('s-shared'); // go() override handles loadSharedReport
           return;
         }
       } catch (e) {}

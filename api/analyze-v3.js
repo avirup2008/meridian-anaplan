@@ -138,7 +138,7 @@ function computeDeterministicHealthScore(findings, blastRadiusById, moduleCount)
     penalty += w * (1 + blast * 0.25);
   }
   const score = Math.max(0, 100 - (penalty / Math.max(moduleCount, 1)) * 8);
-  return Math.round(Math.min(95, score));
+  return Math.round(Math.min(95, score)); // 95 cap: perfect models still show 95 — signals Meridian cannot verify all dimensions
 }
 
 // Deterministic architecture verdict — computed from DISCO coverage + blast radius + finding counts.
@@ -187,8 +187,12 @@ ${blastLines}
 FINDINGS:
 ${findingSummary}
 
-Return exactly 3 workstream objects in this shape:
-{"workstreams":[{"id":"ws-1","title":"<6 words citing a real module name>","priority":"Critical|High|Medium|Watch","confidence":"High|Medium|Low","kind":"remediation|evidence-limit","whyItMatters":"<1 sentence naming specific modules>","reviewQuestion":"<1 specific question>","evidenceCount":<int>,"examples":["<ModuleName> — <issue>"]},{"id":"ws-2",...},{"id":"ws-3",...}]}
+Return exactly 3 workstream objects. Output valid JSON only:
+{"workstreams":[
+{"id":"ws-1","title":"Fix formulas in ModuleName","priority":"High","confidence":"High","kind":"remediation","whyItMatters":"ModuleName has 23 SUM-IF issues.","reviewQuestion":"Are these formulas intentional?","evidenceCount":23,"examples":["ModuleName — nested SUM-IF"]},
+{"id":"ws-2","title":"Review rollup errors in ModuleName","priority":"Medium","confidence":"Medium","kind":"remediation","whyItMatters":"ModuleName uses invalid rate rollups.","reviewQuestion":"Should these rates be summed?","evidenceCount":8,"examples":["ModuleName — rate sum"]},
+{"id":"ws-3","title":"Naming gaps limit architecture review","priority":"Watch","confidence":"Low","kind":"evidence-limit","whyItMatters":"ModuleName lacks DISCO prefix.","reviewQuestion":"Is naming intentional?","evidenceCount":40,"examples":["ModuleName — no prefix"]}
+]}
 
 RULES: every title and whyItMatters MUST name a real module from the list above. No generic phrases. Trace every claim to FINDINGS.`;
 
@@ -437,7 +441,20 @@ export default async function handler(req, res) {
       ]);
 
       if (wsResult.status === 'fulfilled' && Array.isArray(wsResult.value?.workstreams) && wsResult.value.workstreams.length) {
-        workstreams = wsResult.value.workstreams;
+        // Validate schema — reject malformed AI output rather than replacing good deterministic fallback
+        const PRIORITIES = new Set(['Critical','High','Medium','Watch']);
+        const CONFIDENCES = new Set(['High','Medium','Low']);
+        const KINDS = new Set(['remediation','evidence-limit']);
+        const valid = wsResult.value.workstreams.filter(w =>
+          w && typeof w.title === 'string' && w.title.length > 3
+          && PRIORITIES.has(w.priority) && CONFIDENCES.has(w.confidence)
+          && KINDS.has(w.kind)
+          && typeof w.whyItMatters === 'string' && w.whyItMatters.length > 5
+        );
+        if (valid.length === 0) {
+          console.error('[analyze-v3] workstreams failed schema validation — keeping deterministic fallback');
+        } else {
+          workstreams = valid;
         const critical = workstreams.filter(w => w.priority === 'Critical').length;
         const high = workstreams.filter(w => w.priority === 'High').length;
         assessmentObj = {
@@ -446,6 +463,7 @@ export default async function handler(req, res) {
           confidence: 'Qualified evidence',
           posture: 'review',
         };
+        }
       } else if (wsResult.status === 'rejected') {
         const we = wsResult.reason;
         console.error('[analyze-v3] workstreams failed:', we?.constructor?.name, we?.message, 'status:', we?.status, 'errType:', we?.error?.type, 'errBody:', JSON.stringify(we?.error || {}).slice(0, 300));
