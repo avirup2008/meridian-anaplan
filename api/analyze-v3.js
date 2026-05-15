@@ -176,7 +176,7 @@ async function callWorkstreams({ aiClient, modules, findingSummary, blastRadiusT
     .map(b => `  ${b.moduleName}: ${b.downstreamCount} downstream modules`)
     .join('\n');
 
-  const prompt = `You are a senior Anaplan model reviewer. JSON only — no markdown fences, no explanation.
+  const prompt = `You are a senior Anaplan model reviewer. Your response MUST begin with { and end with }. No markdown fences. No preamble. No trailing text. Raw JSON only.
 
 MODULE NAMES (cite by exact name):
 ${moduleNames}
@@ -187,10 +187,10 @@ ${blastLines}
 FINDINGS:
 ${findingSummary}
 
-Return exactly this JSON — exactly 3 workstream objects, no more, no less:
+Return exactly 3 workstream objects in this shape:
 {"workstreams":[{"id":"ws-1","title":"<6 words citing a real module name>","priority":"Critical|High|Medium|Watch","confidence":"High|Medium|Low","kind":"remediation|evidence-limit","whyItMatters":"<1 sentence naming specific modules>","reviewQuestion":"<1 specific question>","evidenceCount":<int>,"examples":["<ModuleName> — <issue>"]},{"id":"ws-2",...},{"id":"ws-3",...}]}
 
-RULES: every title and whyItMatters must name a real module above. No generic phrases. Trace every claim to FINDINGS.`;
+RULES: every title and whyItMatters MUST name a real module from the list above. No generic phrases. Trace every claim to FINDINGS.`;
 
   const response = await Promise.race([
     aiClient.messages.create({
@@ -217,7 +217,7 @@ async function callArchitecture({ aiClient, modules }) {
   const moduleNames = modules.slice(0, 60).map(m => m.name).join('\n')
     + (modules.length > 60 ? `\n… and ${modules.length - 60} more` : '');
 
-  const prompt = `You are an Anaplan architect. Respond with VALID JSON only — no markdown, no explanation.
+  const prompt = `You are an Anaplan architect. Your response MUST begin with { and end with }. No markdown fences. No preamble. Raw JSON only.
 
 MODULE NAMES IN THIS MODEL:
 ${moduleNames}
