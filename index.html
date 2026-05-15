@@ -966,31 +966,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
         <div id="model-limitation-cards"></div>
       </div>
 
-      <!-- Dependency graph table -->
-      <div id="model-graph-section" hidden style="margin-top:24px;">
-        <h3 class="step-label">Cross-Module Dependencies</h3>
-        <p class="anl-summary" id="model-graph-subtitle"></p>
-        <div style="overflow-x:auto;margin-top:12px;">
-          <table id="model-graph-table" class="data-table" style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-              <tr>
-                <th style="text-align:left;padding:6px 10px;">From</th>
-                <th style="text-align:left;padding:6px 10px;">To</th>
-                <th style="text-align:right;padding:6px 10px;">Line Items</th>
-              </tr>
-            </thead>
-            <tbody id="model-graph-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Dead logic and patterns -->
-      <div id="model-patterns-section" hidden style="margin-top:24px;">
-        <h3 class="step-label">Formula Patterns</h3>
-        <div id="model-dead-logic-wrap"></div>
-        <div id="model-cycles-wrap" style="margin-top:12px;"></div>
-        <div id="model-daisy-chains-wrap" style="margin-top:12px;"></div>
-      </div>
     </div>
 
     <div class="dash-panel active" id="dash-panel-verdict">
@@ -5121,83 +5096,6 @@ function confirmModelSelection() {
         limSection.hidden = false;
       }
 
-      // ── Dependency graph table ────────────────────────────────────────────────
-      const graphSection = _anl$('model-graph-section');
-      const graphBody = _anl$('model-graph-body');
-      const graphSubtitle = _anl$('model-graph-subtitle');
-      if (graphSection && graphBody && evt.graph && evt.graph.edges && evt.graph.edges.length) {
-        const edges = evt.graph.edges.slice().sort((a, b) => b.lineItems.length - a.lineItems.length);
-        graphSubtitle.textContent = `${edges.length} cross-module reference edge${edges.length === 1 ? '' : 's'} detected`;
-        graphBody.innerHTML = '';
-        for (const edge of edges.slice(0, 100)) { // cap at 100 rows for rendering performance
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;">${escapeHtml(edge.fromModuleName)}</td>
-            <td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:12px;">${escapeHtml(edge.toModuleName)}</td>
-            <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;font-size:12px;">${edge.lineItems.length}</td>
-          `;
-          graphBody.appendChild(tr);
-        }
-        graphSection.hidden = false;
-      } else if (graphSection && evt.limitationCards && evt.limitationCards.length) {
-        // Gates failed — graph already suppressed via limitationCards, don't show empty table
-        graphSection.hidden = true;
-      }
-
-      // ── Dead logic, cycles, daisy chains ─────────────────────────────────────
-      const patternsSection = _anl$('model-patterns-section');
-      const deadLogicWrap = _anl$('model-dead-logic-wrap');
-      const cyclesWrap = _anl$('model-cycles-wrap');
-      const daisyWrap = _anl$('model-daisy-chains-wrap');
-      let hasPatterns = false;
-
-      if (deadLogicWrap && evt.deadLogic && evt.deadLogic.length) {
-        hasPatterns = true;
-        deadLogicWrap.innerHTML = `
-          <details>
-            <summary style="cursor:pointer;font-weight:600;font-size:13px;">
-              Dead Logic — ${evt.deadLogic.length} unreferenced CALC item${evt.deadLogic.length === 1 ? '' : 's'}
-              <span style="font-size:11px;font-weight:400;color:#888;margin-left:8px;">(Medium confidence — truncated formulas excluded)</span>
-            </summary>
-            <ul style="margin:8px 0 0 18px;font-size:12px;">
-              ${evt.deadLogic.map(d => `<li><strong>${escapeHtml(d.moduleName)}</strong> / ${escapeHtml(d.lineItemName)}</li>`).join('')}
-            </ul>
-          </details>
-        `;
-      }
-
-      if (cyclesWrap && evt.cycles && evt.cycles.length) {
-        hasPatterns = true;
-        const nodeById = new Map((evt.graph.nodes || []).map(n => [n.moduleId, n.moduleName]));
-        cyclesWrap.innerHTML = `
-          <details>
-            <summary style="cursor:pointer;font-weight:600;font-size:13px;color:#c0392b;">
-              Circular Dependencies — ${evt.cycles.length} cycle${evt.cycles.length === 1 ? '' : 's'} detected
-            </summary>
-            <ul style="margin:8px 0 0 18px;font-size:12px;">
-              ${evt.cycles.map(c => `<li>${c.map(id => escapeHtml(nodeById.get(id) || id)).join(' → ')}</li>`).join('')}
-            </ul>
-          </details>
-        `;
-      }
-
-      if (daisyWrap && evt.daisyChains && evt.daisyChains.length) {
-        hasPatterns = true;
-        const nodeById = new Map((evt.graph.nodes || []).map(n => [n.moduleId, n.moduleName]));
-        daisyWrap.innerHTML = `
-          <details>
-            <summary style="cursor:pointer;font-weight:600;font-size:13px;">
-              Single-Path Passthrough Modules — ${evt.daisyChains.length} candidate${evt.daisyChains.length === 1 ? '' : 's'}
-              <span style="font-size:11px;font-weight:400;color:#888;margin-left:8px;">(review intent with model owner)</span>
-            </summary>
-            <ul style="margin:8px 0 0 18px;font-size:12px;">
-              ${evt.daisyChains.map(id => `<li>${escapeHtml(nodeById.get(id) || id)}</li>`).join('')}
-            </ul>
-          </details>
-        `;
-      }
-
-      if (patternsSection) patternsSection.hidden = !hasPatterns;
     }
 
     function _anlOnModelComprehensionEnriched(evt) {
