@@ -637,6 +637,8 @@ export default async function handler(req, res) {
       format: HEALTH_FORMAT,
       healthScore,
       architectureVerdict,
+      domain,
+      moduleCount: normalized.modules.length,
       workstreams,
       assessment: {
         verdict: assessmentObj.verdict,

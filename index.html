@@ -989,8 +989,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
       <div id="health-verdict-card" hidden class="verdict-card risk" style="margin-bottom:16px;">
         <div class="verdict-hd" style="align-items:flex-start;">
           <div class="verdict-icon">⚡</div>
-          <div style="flex:1;">
-            <div class="verdict-title" id="health-verdict-text"></div>
+          <div style="flex:1;min-width:0;">
+            <div class="verdict-title" id="health-verdict-domain" style="font-size:19px;font-weight:700;letter-spacing:-.02em;"></div>
+            <div id="health-verdict-text" style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:4px;"></div>
           </div>
           <div style="text-align:right;padding-left:20px;flex-shrink:0;">
             <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Health Score</div>
@@ -5135,24 +5136,29 @@ function confirmModelSelection() {
     }
 
     function _anlOnHealthWorkstreams(evt) {
-      // ── D-07 + D-06: Architecture verdict + health score ──────────────────────
+      const ws = Array.isArray(evt.workstreams) ? evt.workstreams : [];
+
+      // ── Verdict card: domain (large) + technical details (small) ─────────────
       const verdictCard = _anl$('health-verdict-card');
       if (verdictCard) {
-        const verdictText = _anl$('health-verdict-text');
-        const scoreNum = _anl$('health-score-num');
-        if (verdictText && evt.architectureVerdict) verdictText.textContent = evt.architectureVerdict;
+        const domainEl  = _anl$('health-verdict-domain');
+        const detailEl  = _anl$('health-verdict-text');
+        const scoreNum  = _anl$('health-score-num');
+        if (domainEl && evt.domain) domainEl.textContent = evt.domain;
+        if (detailEl && evt.architectureVerdict) {
+          // strip the domain from the verdict string for the subtitle
+          const sub = evt.architectureVerdict.replace(/^[^,]+\s*\([^)]+\),?\s*/, '');
+          detailEl.textContent = (evt.moduleCount ? evt.moduleCount + ' modules · ' : '') + sub;
+        }
         if (scoreNum && Number.isFinite(evt.healthScore)) scoreNum.textContent = String(evt.healthScore);
         verdictCard.hidden = false;
       }
 
-      // ── Format-specific render slot ───────────────────────────────────────────
+      // ── Format slot (workstream cards) ───────────────────────────────────────
       const slot = _anl$('health-format-slot');
-      if (slot) {
-        slot.innerHTML = _renderHealthFormat(evt);
-        slot.hidden = false;
-      }
+      if (slot) { slot.innerHTML = _renderHealthFormat(evt); slot.hidden = false; }
 
-      // ── Populate _anlState.score so export / share / Workstreams tab work ───────
+      // ── _anlState.score (export / share / Workstreams tab) ───────────────────
       if (evt.assessment) {
         _anlState.score = {
           verdict:    evt.assessment.verdict    || '',
@@ -5163,16 +5169,51 @@ function confirmModelSelection() {
         };
       }
 
-      // ── Update Workstreams tab badge and render Workstreams list ──────────────
-      const wsBadge = document.getElementById('dash-badge-suggestions');
-      if (Array.isArray(evt.workstreams) && evt.workstreams.length) {
-        if (wsBadge) wsBadge.textContent = String(evt.workstreams.length);
+      // ── Evidence tab: populate _anlState.intelligence from v3 data ───────────
+      if (ws.length) {
+        _anlState.intelligence = {
+          workstreams:        ws,
+          evidenceSummary:    ws.length + ' focused workstreams identified from formula and architecture analysis.',
+          evidenceItems:      ws.map(w => ({ moduleName: w.title, evidence: w.problem || '' })),
+          feasibility:        { supportedNow: [], notKnowableYet: [] },
+          architecture:       {},
+          blastRadius:        [],
+          regressionChecklist:[],
+          footprint:          { functionalModuleCount: evt.moduleCount || 0 },
+          diagnostics:        {},
+        };
+        const evBadge = document.getElementById('dash-badge-intelligence');
+        if (evBadge) evBadge.textContent = String(ws.length);
+        renderIntelPanel();
+      }
 
-        // Convert v3 workstream shape → legacy renderSuggCard shape
-        const suggItems = evt.workstreams.map(w => ({
+      // ── Notes tab: auto-generate narrative from workstreams ───────────────────
+      if (ws.length) {
+        const critCount = ws.filter(w => w.priority === 'Critical').length;
+        const highCount = ws.filter(w => w.priority === 'High').length;
+        const prioritySummary = [
+          critCount ? critCount + ' critical' : '',
+          highCount ? highCount + ' high' : '',
+        ].filter(Boolean).join(', ');
+        narrativeStory = (evt.domain || 'Model') + ' review complete. '
+          + 'Health score: ' + (evt.healthScore || '--') + '. '
+          + ws.length + ' issue' + (ws.length === 1 ? '' : 's') + ' identified'
+          + (prioritySummary ? ' (' + prioritySummary + ')' : '') + '.\n\n'
+          + ws.map((w, i) => (i + 1) + '. ' + w.title
+              + (w.problem ? '\n   Problem: '  + w.problem  : '')
+              + (w.impact  ? '\n   Impact: '   + w.impact   : '')
+              + (w.fix     ? '\n   Fix: '      + w.fix      : '')
+            ).join('\n\n');
+        renderNotesStory();
+      }
+
+      // ── Workstreams tab badge + list ──────────────────────────────────────────
+      const wsBadge = document.getElementById('dash-badge-suggestions');
+      if (ws.length) {
+        if (wsBadge) wsBadge.textContent = String(ws.length);
+        renderSuggestionsList(ws.map(w => ({
           text:         w.title,
-          triage:       w.priority === 'Critical' || w.priority === 'High' ? 'Fix Now'
-                        : w.priority === 'Medium' ? 'Consider' : 'Monitor',
+          triage:       w.priority === 'Critical' || w.priority === 'High' ? 'Fix Now' : w.priority === 'Medium' ? 'Consider' : 'Monitor',
           kind:         w.kind,
           priority:     w.priority,
           confidence:   w.confidence,
@@ -5180,8 +5221,7 @@ function confirmModelSelection() {
           examples:     Array.isArray(w.examples) ? w.examples : [],
           affectedCount: w.evidenceCount,
           domain:       w.kind === 'evidence-limit' ? 'Best Practice' : 'Structural',
-        }));
-        renderSuggestionsList(suggItems);
+        })));
       }
     }
 
@@ -5260,7 +5300,7 @@ function confirmModelSelection() {
           : '<div style="padding:10px 0;border-top:1px solid #f0ece4;font-size:13px;color:#555;line-height:1.6;">' + escapeHtml(w.whyItMatters || '') + '</div>';
         return '<div style="background:' + bgCol + ';border:1px solid #e8e2d8;border-left:4px solid ' + borderCol + ';border-radius:8px;padding:14px 16px;margin-bottom:12px;">'
           + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">'
-          + '<strong style="font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.4;">' + escapeHtml(w.title || '?') + '</strong>'
+          + '<strong style="font-size:15px;font-weight:600;color:#1a1a1a;line-height:1.4;">' + escapeHtml(w.title || '?') + '</strong>'
           + '<div style="text-align:right;flex-shrink:0;">'
           + '<div style="font-size:12px;font-weight:700;color:' + borderCol + ';white-space:nowrap;">' + escapeHtml(w.priority || '') + '</div>'
           + '<div style="font-size:11px;color:#999;white-space:nowrap;margin-top:2px;">' + (w.evidenceCount || 0) + ' finding' + (w.evidenceCount === 1 ? '' : 's') + '</div>'
