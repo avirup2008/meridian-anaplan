@@ -716,562 +716,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 <body>
 
 <!-- ════════ DEV MOCK NAV STRIP ════════ -->
-<div id="mock-nav" style="position:fixed;top:8px;right:8px;z-index:9999;background:#fffbea;border:1px solid #e0c050;padding:6px 10px;font-size:12px;border-radius:4px;">
-  <span style="font-weight:600;margin-right:8px;color:#92400e;">DEV — mockups</span>
-  <button onclick="showMock('mock-health-brief')" style="margin:2px;font-size:11px;cursor:pointer;">Health: Brief</button>
-  <button onclick="showMock('mock-health-surgical')" style="margin:2px;font-size:11px;cursor:pointer;">Health: Surgical</button>
-  <button onclick="showMock('mock-health-domain')" style="margin:2px;font-size:11px;cursor:pointer;">Health: Domain</button>
-  <button onclick="showMock('mock-health-workstreams')" style="margin:2px;font-size:11px;cursor:pointer;">Health: Workstreams</button>
-  <button onclick="showMock('mock-model-additive')" style="margin:2px;font-size:11px;cursor:pointer;">Model: Additive</button>
-  <button onclick="showMock('mock-model-redesign')" style="margin:2px;font-size:11px;cursor:pointer;">Model: Redesign</button>
-  <button onclick="showMock(null)" style="margin:2px;font-size:11px;cursor:pointer;background:#eee;">Hide all mockups</button>
-</div>
-<script>
-function showMock(id) {
-  var sections = document.querySelectorAll('[id^="mock-health-"],[id^="mock-model-"]');
-  for (var i = 0; i < sections.length; i++) { sections[i].hidden = true; }
-  if (id) {
-    var el = document.getElementById(id);
-    if (el) { el.hidden = false; el.scrollIntoView({behavior:'smooth',block:'start'}); }
-  }
-}
-</script>
-
-<!-- ════════ S1: INTRO ════════ -->
-<div id="s-intro" class="screen active">
-  <nav class="intro-nav">
-    <div class="intro-nav-brand">
-      <div class="intro-nav-icon">
-        <svg viewBox="0 0 20 20" fill="none">
-          <circle cx="10" cy="10" r="7.5" stroke="#FAF8F0" stroke-width="1.1"/>
-          <line x1="10" y1="2.5" x2="10" y2="17.5" stroke="#7EC8FA" stroke-width="1.4" stroke-linecap="round"/>
-          <line x1="2.5" y1="10" x2="17.5" y2="10" stroke="#FAF8F0" stroke-width=".8" stroke-linecap="round" opacity=".35"/>
-          <circle cx="10" cy="10" r="1.5" fill="#7EC8FA"/>
-          <circle cx="10" cy="4.5" r=".85" fill="#FAF8F0" opacity=".65"/>
-          <circle cx="10" cy="15.5" r=".85" fill="#FAF8F0" opacity=".65"/>
-        </svg>
-      </div>
-      <div>
-        <div class="intro-nav-name">Meridian<em>.</em></div>
-        <div class="intro-nav-by">EyeOn · Planning Intelligence</div>
-      </div>
-    </div>
-  </nav>
-
-  <div class="intro-split">
-    <!-- Hero preview -->
-    <div class="intro-hero">
-      <div class="hero-stack">
-        <div class="hero-score-card">
-          <div class="hero-score-lbl" id="hero-mii-lbl">Evidence Review</div>
-          <div class="hero-gauge">
-            <svg width="118" height="118" viewBox="0 0 118 118" fill="none" id="hero-svg">
-              <circle cx="59" cy="59" r="46" stroke="#EBE8E0" stroke-width="7"/>
-              <circle id="hero-arc" cx="59" cy="59" r="46" stroke="#B82E2E" stroke-width="7"
-                stroke-linecap="round" stroke-dasharray="110 289" transform="rotate(-90 59 59)"/>
-              <text id="hero-score-txt" x="59" y="54" text-anchor="middle" font-size="18" font-weight="700" fill="#1C2129" font-family="IBM Plex Mono,monospace">REVIEW</text>
-              <text x="59" y="72" text-anchor="middle" font-size="9" fill="#9EA1AB" font-family="IBM Plex Mono,monospace">evidence-backed</text>
-            </svg>
-          </div>
-          <div class="hero-chip"><span><div class="hero-chip-dot"></div>Focused review · 4 workstreams</span></div>
-          <div class="hero-bars" id="hero-bars">
-            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#B82E2E"></div><div class="hero-bar-lbl">Architecture flow</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:86%;background:#B82E2E"></div></div><div class="hero-bar-num">High</div></div>
-            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#C8733A"></div><div class="hero-bar-lbl">Formula review</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:68%;background:#C8733A"></div></div><div class="hero-bar-num">Med</div></div>
-            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#175AA6"></div><div class="hero-bar-lbl">Aggregation checks</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:54%;background:#175AA6"></div></div><div class="hero-bar-num">Med</div></div>
-            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#7047A3"></div><div class="hero-bar-lbl">Governance cleanup</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:32%;background:#7047A3"></div></div><div class="hero-bar-num">Watch</div></div>
-          </div>
-          <div class="hero-rule"></div>
-        </div>
-        <div class="hero-verdict">
-          <div class="hero-verdict-icon">⚠</div>
-          <div>
-            <div class="hero-verdict-title">One report generated</div>
-            <div class="hero-verdict-sub">Assessment · workstreams · evidence</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Content -->
-    <div class="intro-content">
-      <div class="intro-inner">
-        <h1 class="intro-h1">Your Anaplan model,<br><em>fully understood.</em></h1>
-        <p class="intro-sub">Upload Anaplan blueprint CSVs. Get an evidence-backed review workbench: focused workstreams, cited module and line-item evidence, dependency context when formulas support it, and regression checks for model-builder review.</p>
-        <div class="intro-stats">
-          <div class="intro-stat"><div class="intro-stat-val">47</div><div class="intro-stat-lbl">Planual rules checked</div></div>
-          <div class="intro-stat"><div class="intro-stat-val">≤6</div><div class="intro-stat-lbl">Review workstreams</div></div>
-          <div class="intro-stat"><div class="intro-stat-val">✓</div><div class="intro-stat-lbl">Evidence anchored</div></div>
-        </div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:22px;line-height:1.6;padding:10px 14px;background:var(--surface);border-radius:var(--r);border:1px solid var(--border);display:flex;align-items:flex-start;gap:8px;">
-          <span style="color:var(--accent);font-weight:700;flex-shrink:0;font-family:'IBM Plex Mono',monospace;">MIR</span>
-          <span>The <strong style="color:var(--text2);">Model Intelligence Review</strong> does not assign fake precision scores. It groups concrete blueprint evidence into senior review workstreams that a CoE lead can validate.</span>
-        </div>
-        <div class="intro-paths">
-          <div class="intro-path pri" onclick="go('s-connect')">
-            <div class="intro-path-icon" style="background:#175AA6;font-size:14px;">🔗</div>
-            <div><div class="intro-path-lbl">Connect to Anaplan</div><div class="intro-path-desc">Live model intelligence — sign in with your credentials</div></div>
-            <div class="intro-path-arr">→</div>
-          </div>
-          <div class="intro-path" onclick="go('s-upload')">
-            <div class="intro-path-icon">📂</div>
-            <div><div class="intro-path-lbl">Upload blueprint CSV</div><div class="intro-path-desc">Analyse a model from exported blueprint files</div></div>
-            <div class="intro-path-arr">→</div>
-          </div>
-        </div>
-        <p class="intro-foot">The Anaplan Way · Planual v2 · Anapedia · BARC Planning Survey 2025</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ════════ S2: UPLOAD ════════ -->
-<div id="s-upload" class="screen">
-  <div class="hdr"><div class="hdr-inner">
-    <div class="hdr-logo" onclick="go('s-intro')">
-      <div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>
-      Meridian<em>.</em>
-      <div style="margin-left:2px;"><div class="hdr-by">EyeOn</div></div>
-    </div>
-    <div class="hdr-sp"></div>
-    <button class="btn btn-ghost btn-sm" onclick="go('s-settings')">Settings</button>
-  </div></div>
-  <div class="body-shell">
-    <div class="step-label">Blueprint Upload</div>
-    <h1 class="page-h1">Upload your Anaplan blueprint files</h1>
-    <p class="page-sub">Export blueprint CSVs from Model Settings → Modules. One file per module. Meridian normalises column headers automatically.</p>
-
-    <div class="dropzone" id="dropzone">
-      <input type="file" id="file-input" accept=".csv" multiple onchange="handleFiles(this.files)">
-      <div class="dz-icon">📂</div>
-      <div class="dz-h">Drop blueprint CSV files here</div>
-      <p class="dz-p">Multiple files · Anaplan blueprint export format</p>
-      <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('file-input').click()">Browse files</button>
-    </div>
-
-    <div class="file-list" id="file-list"></div>
-
-    <div class="req-grid">
-      <div class="req-card"><div class="req-lbl">Required columns</div><div class="req-text">Line Item · Format (JSON) · Formula · Summary (JSON) · Applies To · Time Scale · Style · Cell Count · Referenced By · Module Name</div></div>
-      <div class="req-card"><div class="req-lbl">Export path</div><div class="req-text">Anaplan → Model Settings → Modules → select module → Download Blueprint CSV</div></div>
-    </div>
-    <div class="upload-actions">
-      <button class="btn btn-ghost" onclick="clearFiles()">Clear all</button>
-      <button class="btn btn-pri" id="analyse-btn" onclick="startAnalysis()" disabled>Analyse modules →</button>
-    </div>
-  </div>
-</div>
-
-<!-- ════════ S3: PROCESSING ════════ -->
-<div id="s-processing" class="screen">
-  <div class="hdr"><div class="hdr-inner">
-    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
-    <div class="hdr-sp"></div>
-    <div class="hdr-status"><span class="spinner"></span><span id="proc-status-txt">Parsing files...</span></div>
-  </div></div>
-  <div class="proc-shell">
-    <div class="step-label">Step 1 of 3 — Parsing &amp; Normalising</div>
-    <h2 style="font-size:24px;font-weight:700;letter-spacing:-.025em;margin-bottom:8px;" id="proc-h2">Reading blueprint files</h2>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:28px;" id="proc-sub">Normalising column headers and detecting DISCO prefixes</p>
-    <div class="proc-card">
-      <div class="proc-card-head">
-        <div class="spinner"></div>
-        <div><div style="font-size:13px;font-weight:700;">Overall progress</div><div style="font-size:11px;color:var(--text3);margin-top:2px;font-family:'IBM Plex Mono',monospace;" id="proc-progress-sub">0 of 0 files complete</div></div>
-        <div class="proc-pct" id="proc-pct">0%</div>
-      </div>
-      <div style="height:4px;background:var(--surface3);"><div id="proc-bar" style="height:100%;width:0%;background:var(--accent);transition:width .5s ease;"></div></div>
-      <div class="proc-body">
-        <div class="file-prog-list" id="file-prog-list"></div>
-        <div class="proc-log" id="proc-log"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ════════ S4: ANALYSIS ════════ -->
-<!-- SECTION: ANALYSIS -->
-<div id="s-analysis" class="screen">
-  <div class="hdr"><div class="hdr-inner">
-    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
-    <div class="hdr-sp"></div>
-    <div class="hdr-status" id="anl-hdr-status"><span class="spinner"></span>Preparing analysis…</div>
-  </div></div>
-
-  <div class="anl-shell">
-    <div class="step-label">Step 3 of 3 — Evidence Review</div>
-    <h2 class="anl-title">Model Review Workbench</h2>
-    <p class="anl-sub" id="anl-sub">Analysing your model…</p>
-
-    <div class="anl-progress-wrap" id="anl-progress-wrap">
-      <div class="anl-progress-label"><span id="anl-stage-label">Fetching blueprint</span><span id="anl-progress-pct">0%</span></div>
-      <div class="prog"><div class="prog-f" id="anl-progress-bar" style="width:0%"></div></div>
-      <div class="anl-progress-detail" id="anl-progress-detail">&nbsp;</div>
-    </div>
-
-    <div class="anl-error" id="anl-error" hidden>
-      <strong>Analysis failed.</strong> <span id="anl-error-msg"></span>
-      <button class="btn" onclick="go('s-fetch')">Re-fetch blueprint</button>
-    </div>
-
-    <div class="anl-warning" id="anl-warning" hidden>
-      <strong>Partial analysis.</strong> <span id="anl-warning-msg"></span>
-    </div>
-
-    <div class="dash-tab-bar" id="dash-tab-bar" hidden>
-      <button class="dash-tab" data-tab="model" id="tab-btn-model" onclick="switchTab('model')">Model</button>
-      <button class="dash-tab on" data-tab="verdict" onclick="switchTab('verdict')">Assessment</button>
-      <button class="dash-tab" data-tab="suggestions" onclick="switchTab('suggestions')">Workstreams <span class="dash-tab-badge" id="dash-badge-suggestions">0</span></button>
-      <button class="dash-tab" data-tab="intelligence" onclick="switchTab('intelligence')">Evidence <span class="dash-tab-badge" id="dash-badge-intelligence">0</span></button>
-      <button class="dash-tab" data-tab="notes" onclick="switchTab('notes')">Notes</button>
-      <button class="dash-tab" data-tab="export" onclick="switchTab('export')">Export</button>
-    </div>
-
-    <div id="evidence-limit-warning" role="alert" hidden class="evidence-warning">
-      <strong>Evidence Limits</strong>
-      <p>This fetch is incomplete. The following conclusions are blocked:</p>
-      <ul id="blocked-conclusions-list"></ul>
-    </div>
-
-    <div class="dash-panel" id="dash-panel-model" data-alias="tab-panel-model">
-      <!-- Model tab: populated by _anlOnModelComprehension() when model-comprehension SSE event arrives -->
-      <div id="model-loading" class="notes-empty">Analysing model architecture — this usually takes a few seconds.</div>
-
-      <!-- Module classification table — hidden until model-comprehension arrives -->
-      <div id="model-classification-section" hidden>
-        <h3 class="step-label">Module Classification</h3>
-        <p class="anl-summary" id="model-classification-subtitle"></p>
-        <div id="model-classification-table-wrap" style="overflow-x:auto;margin-top:12px;">
-          <table id="model-classification-table" class="data-table" style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-              <tr>
-                <th style="text-align:left;padding:6px 10px;">Module</th>
-                <th style="text-align:left;padding:6px 10px;">DISCO</th>
-                <th style="text-align:left;padding:6px 10px;">Confidence</th>
-                <th style="text-align:right;padding:6px 10px;">Formulas</th>
-                <th style="text-align:right;padding:6px 10px;">Inputs</th>
-              </tr>
-            </thead>
-            <tbody id="model-classification-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- DISCO architecture map — hidden until model-comprehension arrives -->
-      <div id="model-disco-section" hidden style="margin-top:24px;">
-        <h3 class="step-label">Architecture Map</h3>
-        <div id="model-disco-map" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;"></div>
-      </div>
-
-      <!-- Limitation cards — shown when gates fail -->
-      <div id="model-limitations-section" hidden style="margin-top:24px;">
-        <h3 class="step-label">Evidence Limitations</h3>
-        <div id="model-limitation-cards"></div>
-      </div>
-
-      <!-- Dependency graph table -->
-      <div id="model-graph-section" hidden style="margin-top:24px;">
-        <h3 class="step-label">Cross-Module Dependencies</h3>
-        <p class="anl-summary" id="model-graph-subtitle"></p>
-        <div style="overflow-x:auto;margin-top:12px;">
-          <table id="model-graph-table" class="data-table" style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-              <tr>
-                <th style="text-align:left;padding:6px 10px;">From</th>
-                <th style="text-align:left;padding:6px 10px;">To</th>
-                <th style="text-align:right;padding:6px 10px;">Line Items</th>
-              </tr>
-            </thead>
-            <tbody id="model-graph-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Dead logic and patterns -->
-      <div id="model-patterns-section" hidden style="margin-top:24px;">
-        <h3 class="step-label">Formula Patterns</h3>
-        <div id="model-dead-logic-wrap"></div>
-        <div id="model-cycles-wrap" style="margin-top:12px;"></div>
-        <div id="model-daisy-chains-wrap" style="margin-top:12px;"></div>
-      </div>
-    </div>
-
-    <div class="dash-panel active" id="dash-panel-verdict">
-      <div class="anl-score-card" id="anl-score-card" hidden>
-        <div class="anl-score-main">
-          <div class="step-label">Review Posture</div>
-          <div class="mii-num" id="anl-score-num">Review</div>
-          <div id="anl-verdict-chip" class="mii-band-chip"><span class="anl-dot"></span><span id="anl-verdict-text">—</span></div>
-          <p class="anl-summary" id="anl-summary"></p>
-        </div>
-        <div class="anl-dims" id="anl-dims">
-          <div class="anl-dim" data-key="architecture"><label>Architecture</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
-          <div class="anl-dim" data-key="naming"><label>Naming</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
-          <div class="anl-dim" data-key="formulas"><label>Formulas</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
-          <div class="anl-dim" data-key="dataHygiene"><label>Data Hygiene</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
-          <div class="anl-dim" data-key="governance"><label>Governance</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
-        </div>
-      </div>
-      <div class="intel-card wide" id="anl-intel-preview" hidden></div>
-
-      <!-- Health workstreams — populated by _anlOnHealthWorkstreams() -->
-      <div id="health-workstreams-section" hidden style="margin-top:24px;">
-        <h3 class="step-label">Evidence Workstreams</h3>
-        <p class="anl-summary" id="health-executive-brief"></p>
-        <div id="health-workstreams-list" style="margin-top:16px;"></div>
-      </div>
-
-      <!-- Evidence limits section -->
-      <div id="health-evidence-limits" hidden style="margin-top:24px;">
-        <h3 class="step-label">Evidence Limits</h3>
-        <p style="font-size:13px;color:#666;margin-bottom:12px;">What Meridian can and cannot determine from the fetched blueprint.</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-          <div>
-            <strong style="font-size:12px;color:#2ecc71;">What the evidence supports</strong>
-            <ul id="health-can-say" style="margin-top:8px;font-size:13px;padding-left:18px;"></ul>
-          </div>
-          <div>
-            <strong style="font-size:12px;color:#e74c3c;">What cannot be determined</strong>
-            <ul id="health-cannot-say" style="margin-top:8px;font-size:13px;padding-left:18px;"></ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ════════ DEV MOCKUP SECTIONS — remove before production (see Plan 07-04) ════════ -->
-
-    <!-- MOCKUP 1: Health — Consultant Brief -->
-    <section id="mock-health-brief" hidden style="padding:24px;max-width:980px;margin:0 auto;">
-      <h2 style="margin-bottom:16px;">Health Review — Consultant Brief</h2>
-      <div style="background:#fff4e6;border-left:4px solid #d97706;padding:14px 18px;margin:14px 0;">
-        <strong>What Meridian cannot tell you</strong>
-        <ul style="margin:8px 0 0;font-size:13px;">
-          <li>Calculation execution speed</li>
-          <li>Data load runtimes</li>
-          <li>User experience / dashboard design</li>
-          <li>ALM governance (dev/test/prod hygiene)</li>
-          <li>Whether formulas are logically correct (only that they exist)</li>
-          <li>Workspace utilization</li>
-        </ul>
-      </div>
-      <h3 style="margin-top:20px;">Domain Coverage</h3>
-      <p style="font-size:14px;margin-top:6px;">Two planning domains detected: <strong>Workforce Planning</strong> (12 modules) and <strong>Demand Planning</strong> (18 modules). Three integration seam modules sit between them: <em>SYS01 Config</em>, <em>DAT03 Employee Master</em>, <em>CAL07 Revenue Build</em>.</p>
-      <h3 style="margin-top:20px;">Architecture Shape</h3>
-      <p style="font-size:14px;margin-top:6px;">Multi-domain model, partially DISCO-named (62% naming coverage). Calculation layer carries 73% of formulas; data layer cleanly separated. Integration seams under-protected — no boundary validation modules detected.</p>
-      <h3 style="margin-top:20px;">Top 3 Named Risks</h3>
-      <ol style="font-size:14px;margin-top:6px;padding-left:20px;">
-        <li style="margin-bottom:8px;"><strong>CAL07 Revenue Build</strong> — Revenue Forecast line item uses SUM+LOOKUP (8 downstream modules affected)</li>
-        <li style="margin-bottom:8px;"><strong>SYS01 Config</strong> — Hardcoded SELECT in Active Period (<strong style="color:#c41a1a;">23 downstream modules affected</strong>)</li>
-        <li style="margin-bottom:8px;"><strong>WFP01 Headcount Build</strong> — Nested IF depth 6 in Total FTE (4 downstream modules affected)</li>
-      </ol>
-    </section>
-
-    <!-- MOCKUP 2: Health — Surgical Named Findings -->
-    <section id="mock-health-surgical" hidden style="padding:24px;max-width:980px;margin:0 auto;">
-      <h2 style="margin-bottom:16px;">Health Review — Surgical Findings</h2>
-      <div style="background:#fff4e6;border-left:4px solid #d97706;padding:14px 18px;margin:14px 0;">
-        <strong>What Meridian cannot tell you</strong>
-        <ul style="margin:8px 0 0;font-size:13px;">
-          <li>Calculation execution speed</li>
-          <li>Data load runtimes</li>
-          <li>User experience / dashboard design</li>
-          <li>ALM governance (dev/test/prod hygiene)</li>
-          <li>Whether formulas are logically correct (only that they exist)</li>
-          <li>Workspace utilization</li>
-        </ul>
-      </div>
-      <h3 style="margin-top:20px;">Findings (12)</h3>
-      <div style="margin-top:10px;border:1px solid #eee;border-radius:4px;overflow:hidden;">
-        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>CAL07 Revenue Build</strong> · Revenue Forecast · SUM+LOOKUP · <strong style="color:#c41a1a;">8 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Replace SUM(…LOOKUP) with mapping module + SUM.</span></div>
-        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>SYS01 Config</strong> · Active Period · Hardcoded SELECT · <strong style="color:#c41a1a;">23 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Drive Active Period from a list-property, not a hardcoded SELECT formula.</span></div>
-        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>WFP01 Headcount Build</strong> · Total FTE · Nested IF depth 6 · 4 downstream<br><span style="color:#555;font-size:12px;">Fix: Decompose into intermediate line items per decision branch.</span></div>
-        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>DAT03 Employee Master</strong> · Cost Center · TEXT format · <strong style="color:#c41a1a;">11 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Convert to list-formatted line item referencing Cost Center list.</span></div>
-        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>DEM05 Demand Forecast</strong> · Baseline Demand · FORMULA_LONG (220 chars) · 6 downstream<br><span style="color:#555;font-size:12px;">Fix: Break into named intermediate line items for readability and auditability.</span></div>
-        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>CAL07 Revenue Build</strong> · Margin · Unguarded division · <strong style="color:#c41a1a;">8 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Add IF(denominator=0, 0, numerator/denominator) guard.</span></div>
-        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>WFP01 Headcount Build</strong> · Hiring Plan · Boolean named "Flag1" · 2 downstream<br><span style="color:#555;font-size:12px;">Fix: Rename to descriptive line item name (e.g. "Is Active Hire").</span></div>
-        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>DAT03 Employee Master</strong> · Salary · Rate summary SUM · <strong style="color:#c41a1a;">11 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Verify SUM aggregation is intentional; use LOOKUP if employee-level rate is needed.</span></div>
-        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>SYS01 Config</strong> · Scenarios · Boolean summary INVALID · <strong style="color:#c41a1a;">23 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Replace Boolean summary with SUM or ANY aggregation appropriate to context.</span></div>
-        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>DEM05 Demand Forecast</strong> · Channel Mix · SUM+LOOKUP · 6 downstream<br><span style="color:#555;font-size:12px;">Fix: Replace SUM(…LOOKUP) with mapping module + SUM.</span></div>
-        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>CAL07 Revenue Build</strong> · COGS · Output reads raw layer · <strong style="color:#c41a1a;">8 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Route via a staging line item in the calculation layer.</span></div>
-        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;"><strong>WFP01 Headcount Build</strong> · Attrition Rate · Daisy-chain passthrough · 4 downstream<br><span style="color:#555;font-size:12px;">Fix: Source directly from DAT layer; remove passthrough chain.</span></div>
-      </div>
-    </section>
-
-    <!-- MOCKUP 3: Health — Domain Map -->
-    <section id="mock-health-domain" hidden style="padding:24px;max-width:980px;margin:0 auto;">
-      <h2 style="margin-bottom:16px;">Health Review — Domain Map</h2>
-      <div style="background:#fff4e6;border-left:4px solid #d97706;padding:14px 18px;margin:14px 0;">
-        <strong>What Meridian cannot tell you</strong>
-        <ul style="margin:8px 0 0;font-size:13px;">
-          <li>Calculation execution speed</li>
-          <li>Data load runtimes</li>
-          <li>User experience / dashboard design</li>
-          <li>ALM governance (dev/test/prod hygiene)</li>
-          <li>Whether formulas are logically correct (only that they exist)</li>
-          <li>Workspace utilization</li>
-        </ul>
-      </div>
-      <h3 style="margin-top:20px;">Workforce Planning</h3>
-      <p style="font-size:13px;color:#555;margin-top:4px;">12 modules. Headcount build, attrition, hiring plan. Clean DAT/CAL separation.</p>
-      <ul style="font-size:13px;margin-top:6px;padding-left:20px;">
-        <li style="margin-bottom:4px;">WFP01 Headcount Build · Total FTE · Nested IF depth 6 · 4 downstream</li>
-        <li style="margin-bottom:4px;">WFP01 Headcount Build · Hiring Plan · Boolean named "Flag1" · 2 downstream</li>
-        <li style="margin-bottom:4px;">WFP01 Headcount Build · Attrition Rate · Daisy-chain passthrough · 4 downstream</li>
-      </ul>
-      <h3 style="margin-top:20px;">Demand Planning</h3>
-      <p style="font-size:13px;color:#555;margin-top:4px;">18 modules. Baseline, channel mix, seasonality. Heavy SUM+LOOKUP usage.</p>
-      <ul style="font-size:13px;margin-top:6px;padding-left:20px;">
-        <li style="margin-bottom:4px;">DEM05 Demand Forecast · Baseline Demand · FORMULA_LONG · 6 downstream</li>
-        <li style="margin-bottom:4px;">DEM05 Demand Forecast · Channel Mix · SUM+LOOKUP · 6 downstream</li>
-      </ul>
-      <h3 style="margin-top:20px;">Integration Seams</h3>
-      <p style="font-size:13px;color:#555;margin-top:4px;">3 modules at cross-domain boundaries (highest risk):</p>
-      <ul style="font-size:13px;margin-top:6px;padding-left:20px;">
-        <li style="margin-bottom:4px;"><strong>SYS01 Config</strong> · <strong style="color:#c41a1a;">23 downstream modules</strong></li>
-        <li style="margin-bottom:4px;"><strong>DAT03 Employee Master</strong> · <strong style="color:#c41a1a;">11 downstream modules</strong></li>
-        <li style="margin-bottom:4px;"><strong>CAL07 Revenue Build</strong> · 8 downstream modules</li>
-      </ul>
-    </section>
-
-    <!-- MOCKUP 4: Health — Workstream Cards -->
-    <section id="mock-health-workstreams" hidden style="padding:24px;max-width:980px;margin:0 auto;">
-      <h2 style="margin-bottom:16px;">Health Review — Workstream Cards</h2>
-      <div style="background:#fff4e6;border-left:4px solid #d97706;padding:14px 18px;margin:14px 0;">
-        <strong>What Meridian cannot tell you</strong>
-        <ul style="margin:8px 0 0;font-size:13px;">
-          <li>Calculation execution speed</li>
-          <li>Data load runtimes</li>
-          <li>User experience / dashboard design</li>
-          <li>ALM governance (dev/test/prod hygiene)</li>
-          <li>Whether formulas are logically correct (only that they exist)</li>
-          <li>Workspace utilization</li>
-        </ul>
-      </div>
-      <div style="margin-top:20px;display:flex;flex-direction:column;gap:16px;">
-        <!-- Card 1: Critical -->
-        <div style="border:1px solid #eee;border-radius:8px;padding:16px;border-left:4px solid #c41a1a;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-weight:600;font-size:14px;">Replace SUM+LOOKUP pattern across CAL07</span>
-            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#fde8e8;color:#c41a1a;font-weight:600;">Critical</span>
-            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#2e7d32;font-weight:600;">High confidence</span>
-          </div>
-          <p style="font-size:13px;color:#444;margin-bottom:8px;">8 occurrences across Revenue Forecast, Margin, and COGS line items. SUM+LOOKUP is a known anti-pattern — causes silent errors when list membership changes.</p>
-          <p style="font-size:12px;color:#666;"><strong>Why it matters:</strong> CAL07 has 8 downstream modules. A silent error here propagates silently.</p>
-          <p style="font-size:12px;color:#666;margin-top:4px;"><strong>Review question:</strong> Has this formula been validated against all list permutations?</p>
-          <p style="font-size:12px;color:#888;margin-top:4px;"><em>Examples: Revenue Forecast; Margin; COGS</em></p>
-        </div>
-        <!-- Card 2: High -->
-        <div style="border:1px solid #eee;border-radius:8px;padding:16px;border-left:4px solid #d97706;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-weight:600;font-size:14px;">Reduce nested IF depth in WFP01 Headcount Build</span>
-            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#fff3e0;color:#d97706;font-weight:600;">High</span>
-            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#2e7d32;font-weight:600;">High confidence</span>
-          </div>
-          <p style="font-size:13px;color:#444;margin-bottom:8px;">4 occurrences. Total FTE uses nested IF depth 6 — exceeds the community-standard limit of 4 for maintainability.</p>
-          <p style="font-size:12px;color:#666;"><strong>Why it matters:</strong> Deep nesting makes formulas unauditable without decomposition.</p>
-          <p style="font-size:12px;color:#666;margin-top:4px;"><strong>Review question:</strong> Can each IF branch be named as an intermediate line item?</p>
-        </div>
-        <!-- Card 3: Medium -->
-        <div style="border:1px solid #eee;border-radius:8px;padding:16px;border-left:4px solid #0a7a3b;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-weight:600;font-size:14px;">Establish DISCO naming coverage</span>
-            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#0a7a3b;font-weight:600;">Medium</span>
-            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#fff8e1;color:#f59e0b;font-weight:600;">Medium confidence</span>
-          </div>
-          <p style="font-size:13px;color:#444;margin-bottom:8px;">62% DISCO naming coverage detected. 8 modules lack a recognized prefix — may be integration, reporting, or legacy modules.</p>
-          <p style="font-size:12px;color:#666;"><strong>Why it matters:</strong> Evidence limit — Meridian infers domain from naming; un-prefixed modules reduce classification confidence.</p>
-          <p style="font-size:12px;color:#666;margin-top:4px;"><strong>Review question:</strong> Do the un-prefixed modules belong to an intentional naming convention?</p>
-        </div>
-        <!-- Card 4: Watch -->
-        <div style="border:1px solid #eee;border-radius:8px;padding:16px;border-left:4px solid #5563de;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            <span style="font-weight:600;font-size:14px;">Architecture verdict requires boundary validation</span>
-            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#ede9fe;color:#5563de;font-weight:600;">Watch</span>
-            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#f3f4f6;color:#6b7280;font-weight:600;">Low confidence</span>
-          </div>
-          <p style="font-size:13px;color:#444;margin-bottom:8px;">Integration seam modules (SYS01, DAT03, CAL07) carry cross-domain data flow but have no detected boundary validation. Meridian cannot confirm whether this is intentional.</p>
-          <p style="font-size:12px;color:#666;"><strong>Why it matters:</strong> Evidence limit — cross-domain integrity cannot be verified from formula structure alone.</p>
-          <p style="font-size:12px;color:#666;margin-top:4px;"><strong>Review question:</strong> Are there separate data validation modules not captured in this fetch?</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- MOCKUP 5: Model — Additive Layout -->
-    <section id="mock-model-additive" hidden style="padding:24px;max-width:980px;margin:0 auto;">
-      <h2 style="margin-bottom:16px;">Model Architecture (Additive Layout)</h2>
-      <div style="background:#f0f7ff;border-left:4px solid #2563eb;padding:14px 18px;margin:14px 0;">
-        <strong>Architecture Verdict</strong>
-        <p style="margin:6px 0 0;font-size:14px;">Multi-domain model (workforce + demand), partially DISCO-named, integration seams under-protected.</p>
-      </div>
-      <h3 style="margin-top:20px;">Architecture Story</h3>
-      <p style="font-size:14px;margin-top:6px;">Two planning domains identified: Workforce Planning (12 modules) and Demand Planning (18 modules). Three integration-seam modules carry the cross-domain dataflow. Calculation layer is concentrated (73% of formulas in 8 modules); data layer is cleanly separated.</p>
-      <h3 style="margin-top:20px;">Blast Radius — Top 10 Modules</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
-        <thead><tr style="background:#f5f5f5;"><th style="text-align:left;padding:6px 10px;font-weight:600;">Module</th><th style="text-align:right;padding:6px 10px;font-weight:600;">Downstream modules</th></tr></thead>
-        <tbody>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">SYS01 Config</td><td style="text-align:right;padding:6px 10px;font-weight:600;color:#c41a1a;">23</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">DAT03 Employee Master</td><td style="text-align:right;padding:6px 10px;font-weight:600;color:#c41a1a;">11</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">CAL07 Revenue Build</td><td style="text-align:right;padding:6px 10px;font-weight:600;">8</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">DEM05 Demand Forecast</td><td style="text-align:right;padding:6px 10px;font-weight:600;">6</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">WFP01 Headcount Build</td><td style="text-align:right;padding:6px 10px;font-weight:600;">4</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">CAL02 Margin Calc</td><td style="text-align:right;padding:6px 10px;">3</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">DAT02 Calendar</td><td style="text-align:right;padding:6px 10px;">3</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">SYS02 Versions</td><td style="text-align:right;padding:6px 10px;">2</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">REP01 Exec Dashboard</td><td style="text-align:right;padding:6px 10px;">1</td></tr>
-          <tr><td style="padding:6px 10px;">REP02 Workforce Report</td><td style="text-align:right;padding:6px 10px;">1</td></tr>
-        </tbody>
-      </table>
-      <hr style="margin:24px 0;border:none;border-top:1px solid #eee;">
-      <h3>Module Classification (existing table format — preserved)</h3>
-      <p style="font-size:13px;color:#666;margin-top:4px;">[Existing DISCO classification table rendered below — preserved unchanged]</p>
-      <div style="border:1px dashed #ccc;padding:12px;font-size:12px;color:#888;margin-top:8px;">(Existing #model-classification-table content slot — preserved)</div>
-      <h3 style="margin-top:20px;">DISCO Map (existing — preserved)</h3>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;">
-        <div style="background:#f5f5f5;padding:12px 16px;border-radius:6px;"><div style="font-size:22px;font-weight:700;">8</div><div style="font-size:11px;">SYS</div></div>
-        <div style="background:#f5f5f5;padding:12px 16px;border-radius:6px;"><div style="font-size:22px;font-weight:700;">5</div><div style="font-size:11px;">DAT</div></div>
-        <div style="background:#f5f5f5;padding:12px 16px;border-radius:6px;"><div style="font-size:22px;font-weight:700;">12</div><div style="font-size:11px;">CAL</div></div>
-        <div style="background:#f5f5f5;padding:12px 16px;border-radius:6px;"><div style="font-size:22px;font-weight:700;">3</div><div style="font-size:11px;">REP</div></div>
-        <div style="background:#f5f5f5;padding:12px 16px;border-radius:6px;"><div style="font-size:22px;font-weight:700;">4</div><div style="font-size:11px;">INP</div></div>
-        <div style="background:#fff4e6;padding:12px 16px;border-radius:6px;"><div style="font-size:22px;font-weight:700;">8</div><div style="font-size:11px;">UNKNOWN</div></div>
-      </div>
-    </section>
-
-    <!-- MOCKUP 6: Model — Redesign Layout -->
-    <section id="mock-model-redesign" hidden style="padding:24px;max-width:980px;margin:0 auto;">
-      <div style="background:#0f172a;color:#fff;padding:24px;border-radius:8px;margin-bottom:18px;">
-        <div style="font-size:11px;letter-spacing:1px;opacity:.7;text-transform:uppercase;">Architecture Verdict</div>
-        <h2 style="margin:6px 0 12px;font-size:22px;">Multi-domain model, integration seams under-protected</h2>
-        <p style="font-size:14px;line-height:1.5;opacity:.9;">Two planning domains (Workforce Planning, Demand Planning), 40 functional modules, 3 cross-domain integration seams. Calculation layer concentrated in CAL07. DISCO naming at 62% — 8 modules un-prefixed.</p>
-      </div>
-      <h3 style="margin-top:20px;">Blast Radius — Top 10</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
-        <thead><tr style="background:#f5f5f5;"><th style="text-align:left;padding:6px 10px;font-weight:600;">Module</th><th style="text-align:right;padding:6px 10px;font-weight:600;">Downstream modules</th></tr></thead>
-        <tbody>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">SYS01 Config</td><td style="text-align:right;padding:6px 10px;font-weight:600;color:#c41a1a;">23</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">DAT03 Employee Master</td><td style="text-align:right;padding:6px 10px;font-weight:600;color:#c41a1a;">11</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">CAL07 Revenue Build</td><td style="text-align:right;padding:6px 10px;font-weight:600;">8</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">DEM05 Demand Forecast</td><td style="text-align:right;padding:6px 10px;font-weight:600;">6</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">WFP01 Headcount Build</td><td style="text-align:right;padding:6px 10px;font-weight:600;">4</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">CAL02 Margin Calc</td><td style="text-align:right;padding:6px 10px;">3</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">DAT02 Calendar</td><td style="text-align:right;padding:6px 10px;">3</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">SYS02 Versions</td><td style="text-align:right;padding:6px 10px;">2</td></tr>
-          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">REP01 Exec Dashboard</td><td style="text-align:right;padding:6px 10px;">1</td></tr>
-          <tr><td style="padding:6px 10px;">REP02 Workforce Report</td><td style="text-align:right;padding:6px 10px;">1</td></tr>
-        </tbody>
-      </table>
-      <details style="margin-top:24px;">
-        <summary style="cursor:pointer;font-weight:600;font-size:14px;">Module Classification (40 modules)</summary>
-        <div style="margin-top:10px;padding:12px;border:1px dashed #ccc;font-size:12px;color:#888;">(Existing #model-classification-table content slot)</div>
-      </details>
-      <details style="margin-top:12px;">
-        <summary style="cursor:pointer;font-weight:600;font-size:14px;">DISCO Map</summary>
-        <div style="margin-top:10px;padding:12px;border:1px dashed #ccc;font-size:12px;color:#888;">(Existing DISCO tiles slot)</div>
-      </details>
-      <details style="margin-top:12px;">
-        <summary style="cursor:pointer;font-weight:600;font-size:14px;">Cross-Module Dependencies</summary>
-        <div style="margin-top:10px;padding:12px;border:1px dashed #ccc;font-size:12px;color:#888;">(Existing dependency table slot)</div>
-      </details>
-    </section>
-
-    <!-- ════════ END DEV MOCKUP SECTIONS ════════ -->
 
     <div class="dash-panel" id="dash-panel-intelligence">
       <div id="dash-intelligence-body">
@@ -5311,6 +4755,28 @@ function confirmModelSelection() {
       const loading = _anl$('model-loading');
       if (loading) loading.hidden = true;
 
+      // ── D-03: Blast radius bar chart ─────────────────────────────────────────
+      const blastSection = _anl$('model-blast-radius-section');
+      const blastBars = _anl$('model-blast-radius-bars');
+      if (blastSection && blastBars && evt.blastRadiusTop10 && evt.blastRadiusTop10.length) {
+        const maxDown = evt.blastRadiusTop10[0].downstreamCount || 1;
+        blastBars.innerHTML = evt.blastRadiusTop10.map(b => {
+          const pct = Math.round((b.downstreamCount / maxDown) * 100);
+          const color = b.downstreamCount >= 15 ? 'var(--neg)' : b.downstreamCount >= 5 ? 'var(--gold)' : 'var(--pos)';
+          const numColor = b.downstreamCount >= 15 ? 'var(--neg)' : b.downstreamCount >= 5 ? 'var(--gold)' : 'var(--text3)';
+          return '<div style="display:grid;grid-template-columns:160px 1fr 28px;align-items:center;gap:10px;">'
+            + '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtml(b.moduleName) + '">' + escapeHtml(b.moduleName) + '</div>'
+            + '<div class="prog" style="height:10px;border-radius:3px;"><div class="prog-f" style="width:' + pct + '%;background:' + color + ';border-radius:3px;height:100%;"></div></div>'
+            + '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;font-weight:700;color:' + numColor + ';text-align:right;">' + b.downstreamCount + '</div>'
+            + '</div>';
+        }).join('');
+        blastSection.hidden = false;
+      }
+
+      // Show architecture section with "Computing…" placeholder (enriched event fills it)
+      const archSection = _anl$('model-architecture-section');
+      if (archSection) archSection.hidden = false;
+
       // ── Module classification table ──────────────────────────────────────────
       const classSection = _anl$('model-classification-section');
       const classBody = _anl$('model-classification-body');
@@ -5447,69 +4913,173 @@ function confirmModelSelection() {
       if (patternsSection) patternsSection.hidden = !hasPatterns;
     }
 
-    function _anlOnHealthWorkstreams(evt) {
-      // ── Workstream cards ──────────────────────────────────────────────────────
-      const wsSection = _anl$('health-workstreams-section');
-      const wsList = _anl$('health-workstreams-list');
-      const execBrief = _anl$('health-executive-brief');
+    function _anlOnModelComprehensionEnriched(evt) {
+      // Architecture verdict
+      const verdictTitle = _anl$('model-verdict-title');
+      const verdictSub = _anl$('model-verdict-sub');
+      const storyEl = _anl$('model-architecture-story');
+      if (verdictTitle && evt.architectureVerdict) verdictTitle.textContent = evt.architectureVerdict;
+      if (verdictSub && evt.architectureStory) verdictSub.textContent = evt.architectureStory.split('.')[0] + '.';
+      if (storyEl && evt.architectureStory) storyEl.textContent = evt.architectureStory;
 
-      if (wsSection && wsList && evt.workstreams && evt.workstreams.length) {
-        // Executive brief
-        if (execBrief && evt.executiveBrief) {
-          // Strip markdown headers, take first non-empty prose paragraph
-          const _briefParas = (evt.executiveBrief || '').split(/\n{2,}/).map(p => p.replace(/^#+\s*/, '').trim()).filter(Boolean);
-          execBrief.textContent = _briefParas[0] || '';
-        }
-
-        wsList.innerHTML = '';
-        const priorityColor = { Critical: '#c0392b', High: '#e67e22', Medium: '#2980b9', Watch: '#7f8c8d' };
-        const kindBadge = { 'evidence-limit': '<span style="font-size:10px;background:#fff3cd;color:#856404;border-radius:10px;padding:2px 8px;margin-left:8px;">Evidence Limit</span>', 'remediation': '' };
-
-        for (const ws of evt.workstreams) {
-          const color = priorityColor[ws.priority] || '#7f8c8d';
-          const confColor = ws.confidence === 'High' ? '#2ecc71' : ws.confidence === 'Medium' ? '#f39c12' : '#e74c3c';
-          const card = document.createElement('div');
-          card.className = 'intel-card wide';
-          card.style.cssText = 'margin-bottom:12px;border-left:4px solid ' + color + ';';
-          card.innerHTML = `
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
-              <div>
-                <strong style="font-size:14px;">${escapeHtml(ws.title)}${kindBadge[ws.kind] || ''}</strong>
-                <p style="margin:6px 0 0;font-size:13px;color:#555;">${escapeHtml(ws.whyItMatters)}</p>
-              </div>
-              <div style="text-align:right;flex-shrink:0;">
-                <div style="font-size:11px;font-weight:600;color:${color};white-space:nowrap;">${escapeHtml(ws.priority)}</div>
-                <div style="font-size:11px;color:${confColor};white-space:nowrap;margin-top:2px;">${escapeHtml(ws.confidence)} confidence</div>
-                <div style="font-size:11px;color:#888;white-space:nowrap;margin-top:2px;">${ws.evidenceCount} finding${ws.evidenceCount === 1 ? '' : 's'}</div>
-              </div>
-            </div>
-            ${ws.reviewQuestion ? `<p style="margin:10px 0 0;font-size:12px;color:#888;font-style:italic;">Review: ${escapeHtml(ws.reviewQuestion)}</p>` : ''}
-            ${ws.examples && ws.examples.length ? `<p style="margin:8px 0 0;font-size:11px;color:#aaa;">Examples: ${ws.examples.map(escapeHtml).join('; ')}</p>` : ''}
-          `;
-          wsList.appendChild(card);
-        }
-        wsSection.hidden = false;
+      // Domain map
+      const domainSection = _anl$('model-domain-map-section');
+      const domainBody = _anl$('model-domain-map-body');
+      if (domainSection && domainBody && Array.isArray(evt.domainMap) && evt.domainMap.length) {
+        domainBody.innerHTML = evt.domainMap.map(d => {
+          const count = Array.isArray(d.moduleIds) ? d.moduleIds.length : 0;
+          return '<div style="padding:10px 14px;border-left:3px solid var(--accent);background:var(--accent-pale,#EEF4FB);border-radius:0 var(--r-md) var(--r-md) 0;margin-bottom:6px;">'
+            + '<strong style="font-size:13px;">' + escapeHtml(d.domainName || 'Unnamed domain') + '</strong>'
+            + ' <span style="font-size:11px;color:var(--text3);">(' + count + ' modules)</span>'
+            + (d.description ? '<p style="margin:4px 0 0;font-size:12px;color:var(--text2);">' + escapeHtml(d.description) + '</p>' : '')
+            + '</div>';
+        }).join('');
+        domainSection.hidden = false;
       }
 
-      // ── Evidence limits ───────────────────────────────────────────────────────
-      const limSection = _anl$('health-evidence-limits');
+      // Integration seams
+      const seamsWrap = _anl$('model-integration-seams-wrap');
+      const seamsEl = _anl$('model-integration-seams');
+      if (seamsWrap && seamsEl && Array.isArray(evt.integrationSeams) && evt.integrationSeams.length) {
+        seamsEl.innerHTML = evt.integrationSeams.map(s =>
+          '<li style="font-size:12px;margin-bottom:4px;"><strong>' + escapeHtml(s.moduleName || s.moduleId || '?') + '</strong>'
+          + (s.reason ? ' — ' + escapeHtml(s.reason) : '') + '</li>'
+        ).join('');
+        seamsWrap.hidden = false;
+      }
+    }
+
+    function _anlOnHealthWorkstreams(evt) {
+      // ── D-04: Honest limits — FIRST AND PROMINENT ────────────────────────────
+      const limitsBox = _anl$('health-honest-limits');
+      const limitsList = _anl$('health-honest-limits-list');
+      if (limitsBox && limitsList && Array.isArray(evt.honestLimits) && evt.honestLimits.length) {
+        limitsList.innerHTML = evt.honestLimits.map(h => '<li>' + escapeHtml(h) + '</li>').join('');
+        limitsBox.hidden = false;
+      }
+
+      // ── D-07 + D-06: Architecture verdict + health score ──────────────────────
+      const verdictCard = _anl$('health-verdict-card');
+      if (verdictCard) {
+        const verdictText = _anl$('health-verdict-text');
+        const scoreNum = _anl$('health-score-num');
+        const scoreSplit = _anl$('health-score-split');
+        const scoreReasoning = _anl$('health-score-reasoning');
+        if (verdictText && evt.architectureVerdict) verdictText.textContent = evt.architectureVerdict;
+        if (scoreNum && Number.isFinite(evt.healthScore)) scoreNum.textContent = String(evt.healthScore);
+        if (scoreSplit && Number.isFinite(evt.healthScoreDeterministic) && Number.isFinite(evt.healthScoreSonnet)) {
+          scoreSplit.textContent = 'rules: ' + evt.healthScoreDeterministic + ' · review: ' + evt.healthScoreSonnet;
+        }
+        if (scoreReasoning && evt.healthScoreReasoning) scoreReasoning.textContent = evt.healthScoreReasoning;
+        verdictCard.hidden = false;
+      }
+
+      // ── Format-specific render slot ───────────────────────────────────────────
+      const slot = _anl$('health-format-slot');
+      if (slot) {
+        slot.innerHTML = _renderHealthFormat(evt);
+        slot.hidden = false;
+      }
+
+      // ── Evidence limits (canSay / cannotSay) ──────────────────────────────────
+      const evSection = _anl$('health-evidence-limits');
       const canSayEl = _anl$('health-can-say');
       const cannotSayEl = _anl$('health-cannot-say');
-      if (limSection && canSayEl && cannotSayEl && evt.evidenceLimits) {
-        canSayEl.innerHTML = (evt.evidenceLimits.canSay || []).map(s => `<li style="margin-bottom:4px;">${escapeHtml(s)}</li>`).join('');
-        cannotSayEl.innerHTML = (evt.evidenceLimits.cannotSay || []).map(s => `<li style="margin-bottom:4px;">${escapeHtml(s)}</li>`).join('');
-        limSection.hidden = false;
+      if (evSection && canSayEl && cannotSayEl && evt.evidenceLimits) {
+        canSayEl.innerHTML = (evt.evidenceLimits.canSay || []).map(s => '<li style="margin-bottom:4px;">' + escapeHtml(s) + '</li>').join('');
+        cannotSayEl.innerHTML = (evt.evidenceLimits.cannotSay || []).map(s => '<li style="margin-bottom:4px;">' + escapeHtml(s) + '</li>').join('');
+        evSection.hidden = false;
       }
 
-      // ── Update verdict chip from assessment ───────────────────────────────────
+      // ── Legacy score card (kept for anl-score-card header area) ───────────────
       if (evt.assessment) {
-        const scoreCard = _anl$('anl-score-card');
         const verdictText = _anl$('anl-verdict-text');
         const summary = _anl$('anl-summary');
-        if (verdictText) verdictText.textContent = evt.assessment.verdict;
-        if (summary) summary.textContent = evt.assessment.summary;
+        if (verdictText) verdictText.textContent = evt.assessment.verdict || '';
+        if (summary) summary.textContent = evt.assessment.summary || '';
+        const scoreCard = _anl$('anl-score-card');
         if (scoreCard) scoreCard.hidden = false;
       }
+    }
+
+    function _renderHealthFormat(evt) {
+      const fmt = evt.format;
+      const ws = Array.isArray(evt.workstreams) ? evt.workstreams : [];
+
+      if (fmt === 'surgical' && evt.surgical && Array.isArray(evt.surgical.findings)) {
+        return '<h3 class="step-label">Findings (' + evt.surgical.findings.length + ')</h3>'
+          + evt.surgical.findings.map(f => {
+              const blast = Number(f.downstream) || 0;
+              const blastColor = blast >= 15 ? 'var(--neg)' : blast >= 5 ? 'var(--gold)' : 'var(--text3)';
+              return '<div style="padding:10px 12px;border-bottom:1px solid var(--rule);font-size:13px;">'
+                + '<strong>' + escapeHtml(f.module || '?') + '</strong> · '
+                + escapeHtml(f.lineItem || '?') + ' · ' + escapeHtml(f.issue || '?')
+                + ' · <span style="color:' + blastColor + ';font-family:\'IBM Plex Mono\',monospace;font-size:11px;">' + blast + ' dn</span>'
+                + (f.fix ? '<div style="margin-top:3px;font-size:11px;color:var(--text2);">Fix: ' + escapeHtml(f.fix) + '</div>' : '')
+                + '</div>';
+          }).join('');
+      }
+
+      if (fmt === 'brief' && evt.brief) {
+        const b = evt.brief;
+        let html = '';
+        if (b.domainCoverage) html += '<h3 class="step-label">Domain Coverage</h3><p style="font-size:13px;">' + escapeHtml(b.domainCoverage) + '</p>';
+        if (b.architectureShape) html += '<h3 class="step-label" style="margin-top:14px;">Architecture Shape</h3><p style="font-size:13px;">' + escapeHtml(b.architectureShape) + '</p>';
+        if (Array.isArray(b.top3Risks) && b.top3Risks.length) {
+          html += '<h3 class="step-label" style="margin-top:14px;">Top 3 Named Risks</h3><ol style="font-size:13px;padding-left:20px;">';
+          for (const r of b.top3Risks) {
+            const blast = Number(r.downstream) || 0;
+            html += '<li style="margin-bottom:8px;"><strong>' + escapeHtml(r.module || '?') + '</strong> — '
+              + escapeHtml(r.lineItem || '?') + ' · ' + escapeHtml(r.issue || '?')
+              + ' <span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:var(--text3);">(' + blast + ' downstream)</span></li>';
+          }
+          html += '</ol>';
+        }
+        return html;
+      }
+
+      if (fmt === 'domain' && evt.domain) {
+        const d = evt.domain;
+        let html = '';
+        for (const dom of (d.domains || [])) {
+          html += '<h3 class="step-label">' + escapeHtml(dom.name || 'Domain') + '</h3>';
+          html += '<p style="font-size:12px;color:var(--text2);">' + (dom.moduleCount || 0) + ' modules. ' + escapeHtml(dom.description || '') + '</p>';
+          if (Array.isArray(dom.findings) && dom.findings.length) {
+            html += '<ul style="font-size:12px;padding-left:18px;">' + dom.findings.map(f =>
+              '<li>' + escapeHtml(f.module || '?') + ' · ' + escapeHtml(f.lineItem || '?') + ' · ' + escapeHtml(f.issue || '?')
+              + ' <span style="color:var(--text3);">(' + (Number(f.downstream) || 0) + ' dn)</span></li>'
+            ).join('') + '</ul>';
+          }
+        }
+        if (Array.isArray(d.integrationSeams) && d.integrationSeams.length) {
+          html += '<h3 class="step-label" style="margin-top:14px;">Integration Seams</h3><ul style="font-size:12px;padding-left:18px;">'
+            + d.integrationSeams.map(s => '<li>' + escapeHtml(s.module || '?') + ' · ' + (Number(s.downstream) || 0) + ' downstream</li>').join('')
+            + '</ul>';
+        }
+        return html;
+      }
+
+      // 'workstreams' format (default)
+      if (!ws.length) return '<p style="color:var(--text3);font-size:13px;">No workstreams available.</p>';
+      const priorityColor = { Critical: 'var(--neg)', High: 'var(--gold)', Medium: 'var(--accent)', Watch: 'var(--text3)' };
+      return ws.map(w => {
+        const color = priorityColor[w.priority] || 'var(--text3)';
+        const confColor = w.confidence === 'High' ? 'var(--pos)' : w.confidence === 'Medium' ? 'var(--gold)' : 'var(--neg)';
+        const kindBadge = w.kind === 'evidence-limit'
+          ? '<span class="badge b-gray" style="font-size:10px;margin-left:6px;">Evidence Limit</span>' : '';
+        return '<div class="gen-block" style="margin-bottom:12px;">'
+          + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">'
+          + '<div><strong style="font-size:13px;">' + escapeHtml(w.title || '?') + '</strong>' + kindBadge
+          + '<p style="margin:6px 0 0;font-size:13px;color:var(--text2);">' + escapeHtml(w.whyItMatters || '') + '</p></div>'
+          + '<div style="text-align:right;flex-shrink:0;">'
+          + '<div style="font-size:11px;font-weight:600;color:' + color + ';white-space:nowrap;">' + escapeHtml(w.priority || '') + '</div>'
+          + '<div style="font-size:11px;color:' + confColor + ';white-space:nowrap;margin-top:2px;">' + escapeHtml(w.confidence || '') + ' confidence</div>'
+          + '<div style="font-size:11px;color:var(--text3);white-space:nowrap;margin-top:2px;">' + (w.evidenceCount || 0) + ' finding' + (w.evidenceCount === 1 ? '' : 's') + '</div>'
+          + '</div></div>'
+          + (w.reviewQuestion ? '<p style="margin:8px 0 0;font-size:12px;color:var(--text3);font-style:italic;">' + escapeHtml(w.reviewQuestion) + '</p>' : '')
+          + (w.examples && w.examples.length ? '<p style="margin:6px 0 0;font-size:11px;color:var(--text4);">Examples: ' + w.examples.map(escapeHtml).join('; ') + '</p>' : '')
+          + '</div>';
+      }).join('');
     }
 
     function _anlEsc(s) {
@@ -5698,6 +5268,7 @@ function confirmModelSelection() {
               switch (evt.type) {
                 case 'stage': { const stageEl = _anl$('anl-stage-label'); if (stageEl) stageEl.textContent = evt.label || ''; break; }
                 case 'model-comprehension': _anlOnModelComprehension(evt); break;
+                case 'model-comprehension-enriched': _anlOnModelComprehensionEnriched(evt); break;
                 case 'health-workstreams': _anlOnHealthWorkstreams(evt); break;
                 case 'cache-hit': _anl$('anl-hdr-status').innerHTML = 'Loading from cache…'; break;
                 case 'progress': _anlOnProgress(evt.stage, evt.pct); break;

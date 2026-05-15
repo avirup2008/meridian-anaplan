@@ -1,112 +1,78 @@
----
-phase: 07-comprehension-health
-plan: 03
-subsystem: api
-tags: [health-engine, sse, haiku, evidence-workstreams, fallback]
-dependency_graph:
-  requires: [07-02]
-  provides: [api/analyze-v3.js:health-workstreams SSE event, api/analyze-v3.js:workstreamCount in complete]
-  affects: [07-04]
-tech_stack:
-  added: []
-  patterns: [Haiku executive brief with deterministic fallback, Promise.race timeout, buildEvidenceBackedIntelligence orchestrator]
-key_files:
-  created: []
-  modified: [api/analyze-v3.js]
-decisions:
-  - "Haiku model claude-haiku-4-5-20251001 with 8-second Promise.race timeout; deterministic fallback to intelligence.executiveNarrative on any failure"
-  - "buildEvidenceBackedIntelligence called with (normalized, findings) where findings merges scanDeterministicFindings + scanArchitectureFindings"
-  - "workstreamCount in complete event uses intelligence.workstreams.length — no longer hardcoded 0"
-metrics:
-  duration: ~10m
-  completed: 2026-05-14
-  tasks_completed: 1
-  tasks_total: 1
-  files_created: 0
-  files_modified: 1
+# Phase 07-03 + 07-04 Summary
+
+**Completed:** 2026-05-15  
+**Status:** Done
+
 ---
 
-# Phase 07 Plan 03: Health Engine Wiring Summary
+## HEALTH_FORMAT applied
 
-**One-liner:** Health engine wired into `analyze-v3.js` — `buildEvidenceBackedIntelligence()` called after model-comprehension, emitting `health-workstreams` SSE event with evidence-backed workstreams, assessment, canSay/cannotSay limits, and Haiku executive brief with deterministic fallback.
+`const HEALTH_FORMAT = 'workstreams'`  
+Matches the 07-MOCKUP-DECISION.md choice: Brief + Workstreams combined. The workstreams format provides the richest per-card output; architecture/domain context comes from `model-comprehension-enriched`.
 
-## Files Modified
+---
 
-| File | Action | Lines Added | Description |
-|------|--------|-------------|-------------|
-| `api/analyze-v3.js` | Updated | +62, -2 | Added `buildEvidenceBackedIntelligence` import; replaced PLAN-03 marker with health engine block; updated complete event workstreamCount |
+## Sonnet call structure
 
-## SSE Event Emission Order (confirmed in file)
+Single call via `singleSonnetCall()` — replaces the old `Promise.all([workstreamPrompt, briefPrompt])` dual-call.
 
-1. `stage: parsing` — fetch state blob (line 147)
-2. `stage: classifying` — parse state blob (line 153)
-3. `stage: graph` — buildDependencyGraph (line 163)
-4. `stage: classifying` — buildArchitectureClassification (line 167)
-5. `stage: dead-logic` — detectDeadLogic, detectCircularDependencies, detectDaisyChains (line 196)
-6. `model-comprehension` event (line 206)
-7. `stage: health` — health engine start (line 218)
-8. `health-workstreams` event (line 263)
-9. `complete` event (line 280)
+**Input to Sonnet:**
+- All module names (one per line — domain inference)
+- Top 10 blast radius modules with downstream counts
+- Deterministic finding summary (rule-level, module + line item names)
+- Model stats (module count, line item count, formula count, naming coverage %)
 
-## health-workstreams Event Shape (as emitted)
+**Output from Sonnet (validated JSON):**
+- `domainMap[]` — planning domains inferred from module names
+- `integrationSeams[]` — cross-domain boundary modules
+- `architectureStory` — 2-sentence characterization
+- `architectureVerdict` — one-line verdict string
+- `workstreams[]` — 3-5 review workstream cards
+- `healthScoreSonnet` — 0-100 integer
+- `healthScoreReasoning` — 1-2 sentence rationale
 
-```json
-{
-  "type": "health-workstreams",
-  "workstreams": [...],
-  "assessment": {
-    "verdict": "string",
-    "summary": "string",
-    "confidence": "string",
-    "posture": "string"
-  },
-  "evidenceLimits": {
-    "canSay": ["string"],
-    "cannotSay": ["string"]
-  },
-  "executiveBrief": "string"
-}
+---
+
+## Deterministic health score formula (D-06)
+
+```javascript
+penalty += severityWeight * (1 + blastRadius * 0.25)
+score = clamp(95, 100 - (penalty / moduleCount) * 8)
 ```
 
-## Haiku Brief Configuration
+Severity weights: Critical=4, warning=2, info=1.  
+Final `healthScore = round((deterministicScore + sonnetScore) / 2)`.  
+Both components emitted separately (`healthScoreDeterministic`, `healthScoreSonnet`) for transparency.
 
-| Parameter | Value |
-|-----------|-------|
-| Model | `claude-haiku-4-5-20251001` |
-| max_tokens | 200 |
-| Timeout | 8 seconds (Promise.race) |
-| Fallback | `intelligence.executiveNarrative` (deterministic from buildExecutiveBrief) |
+---
 
-## Workstream Count
+## SSE event order
 
-Not testable without live blob. `workstreamCount` in the complete event is wired to `intelligence.workstreams.length` (was hardcoded 0 in Plan 02 stub).
+1. `model-comprehension` — fast (pre-Sonnet): modules, graph, blast radius top-10, dead logic, cycles
+2. `model-comprehension-enriched` — post-Sonnet: domain map, integration seams, architecture story + verdict
+3. `health-workstreams` — post-Sonnet: honest limits, health score, workstreams, architecture verdict
+4. `complete`
 
-## Commits
+---
 
-| Task | Hash | Message |
-|------|------|---------|
-| Task 1 | 0374ffe | feat(07-03): wire health engine into analyze-v3.js, emit health-workstreams SSE event |
+## Fallback behaviour
 
-## Deviations from Plan
+On Sonnet timeout (40s) or JSON parse failure:
+- `architectureVerdict` = 'Architectural verdict unavailable — synthesis failed'
+- `architectureStory` = deterministic fallback string
+- `healthScoreSonnet` defaults to 50 (neutral)
+- `workstreams` = `intelligence.workstreams` (deterministic fallback from `buildEvidenceBackedIntelligence`)
+- SSE still completes — UI renders with deterministic data
 
-None — plan executed exactly as written.
+---
 
-## Known Stubs
+## index.html changes (Wave 4)
 
-None. All stubs from Plan 02 (`workstreamCount: 0`, unused `scanDeterministicFindings`/`scanArchitectureFindings`) have been resolved by this plan.
-
-## Threat Flags
-
-None. All new surface covered by plan's threat model (T-07-03-01, T-07-03-02, T-07-03-03 all accepted per threat register).
-
-## Self-Check
-
-- [x] `api/analyze-v3.js` imports `buildEvidenceBackedIntelligence` (line 13)
-- [x] `api/analyze-v3.js` contains `type: 'health-workstreams'` (line 263)
-- [x] `api/analyze-v3.js` contains `type: 'model-comprehension'` (line 206) — Plan 02 preserved
-- [x] `api/analyze-v3.js` `workstreamCount: intelligence.workstreams.length` (line 284)
-- [x] PLAN-03 comment marker removed — confirmed by grep (no output)
-- [x] Commit exists: 0374ffe
-- [x] `node -e "import('./api/analyze-v3.js').then(m => console.log('ok'))"` → handler: function, imports resolved
-
-## Self-Check: PASSED
+- Added `model-architecture-section`, `model-blast-radius-section`, `model-domain-map-section` to Model tab (additive layout)
+- Added `health-honest-limits`, `health-verdict-card`, `health-format-slot` to Health tab (above workstreams)
+- Added `_anlOnModelComprehensionEnriched()` function
+- Replaced `_anlOnHealthWorkstreams()` with new version
+- Added `_renderHealthFormat()` dispatcher (handles workstreams, brief, surgical, domain formats)
+- Added `case 'model-comprehension-enriched'` to SSE switch
+- Deleted all 6 `#mock-*` sections + `#mock-nav` strip + `showMock()` script (959 lines removed)
+- All Sonnet-sourced strings wrapped via `escapeHtml()`

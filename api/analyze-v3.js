@@ -115,6 +115,93 @@ const DISCO_LABEL = {
   data: 'DAT', system: 'SYS', calculation: 'CAL', planning: 'INP', output: 'REP', unknown: 'UNKNOWN',
 };
 
+// D-05: which health output format Sonnet produces (matches 07-MOCKUP-DECISION.md choice)
+const HEALTH_FORMAT = 'workstreams';
+
+// D-04: fixed list of what Meridian cannot assess — always emitted verbatim
+const HONEST_LIMITS = [
+  'Calculation execution speed',
+  'Data load runtimes',
+  'User experience / dashboard design',
+  'ALM governance (dev/test/prod hygiene)',
+  'Whether formulas are logically correct (only that they exist)',
+  'Workspace utilization',
+];
+
+// D-06: deterministic health score base — finding severity weighted by host module blast radius
+function computeDeterministicHealthScore(findings, blastRadiusById, moduleCount) {
+  const SEVERITY_WEIGHT = { critical: 4, warning: 2, info: 1 };
+  let penalty = 0;
+  for (const f of findings) {
+    const w = SEVERITY_WEIGHT[f.severity] || 1;
+    const blast = blastRadiusById.get(f.moduleId) || 0;
+    penalty += w * (1 + blast * 0.25);
+  }
+  const score = Math.max(0, 100 - (penalty / Math.max(moduleCount, 1)) * 8);
+  return Math.round(Math.min(95, score));
+}
+
+// D-05: single combined Sonnet call — domain inference + health findings in one round-trip
+async function singleSonnetCall({ aiClient, modules, findingSummary, blastRadiusTop10, healthFormat, modelStats }) {
+  const moduleNames = modules.map(m => m.name).join('\n');
+  const blastLines = blastRadiusTop10.map(b => `  ${b.moduleName} → ${b.downstreamCount} downstream modules`).join('\n');
+
+  const formatInstructions = {
+    brief: `Output the "brief" object with: domainCoverage (1 sentence), architectureShape (1 sentence), top3Risks (array of exactly 3 objects, each {module, lineItem, issue, downstream}).`,
+    surgical: `Output the "surgical" object with findings: array of 10-15 objects, each {module, lineItem, issue, fix, downstream}. No narrative.`,
+    domain: `Output the "domain" object with domains: array of {name, moduleCount, description, findings:[{module,lineItem,issue,downstream}]} and integrationSeams: [{module,downstream}].`,
+    workstreams: `Output the "workstreams" object with workstreams: array of 3-5 objects, each {id, title, priority(Critical|High|Medium|Watch), confidence(High|Medium|Low), kind(remediation|evidence-limit), whyItMatters(2 sentences citing specific module names), reviewQuestion, action, evidenceCount, examples(<=5 strings)}.`,
+  }[healthFormat];
+
+  const prompt = `You are a senior Anaplan model reviewer. Respond with VALID JSON only — no markdown, no explanation.
+
+MODEL FACTS:
+- ${modelStats.moduleCount} functional modules, ${modelStats.lineItemCount} line items, ${modelStats.formulaCount} formulas
+- DISCO naming coverage: ${modelStats.namingPct}
+
+ALL MODULE NAMES (infer planning domains from these):
+${moduleNames}
+
+TOP MODULES BY BLAST RADIUS:
+${blastLines}
+
+DETERMINISTIC FINDINGS (anchor your claims to these — do NOT invent issues):
+${findingSummary}
+
+Return a single JSON object with these top-level keys:
+{
+  "domainMap": [{ "domainName": "...", "moduleIds": [...], "description": "1 sentence" }],
+  "integrationSeams": [{ "moduleId": "...", "moduleName": "...", "reason": "1 phrase" }],
+  "architectureStory": "exactly 2 sentences — what kind of model, how mature is the architecture",
+  "architectureVerdict": "one-line: '<model type>, <naming maturity>, <key risk>'",
+  "${healthFormat}": <format-specific output per instructions below>,
+  "healthScoreSonnet": <integer 0-100>,
+  "healthScoreReasoning": "1-2 sentences citing specific module names"
+}
+
+FORMAT INSTRUCTIONS:
+${formatInstructions}
+
+RULES:
+- Cite real module names from the list above only
+- Every claim must trace to a finding or blast radius fact
+- Do NOT mention "blueprint" — data came from the live Anaplan API
+- Return ONLY the JSON object`;
+
+  const response = await Promise.race([
+    aiClient.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 3000,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('sonnet-timeout')), 40000)),
+  ]);
+
+  const raw = response.content?.[0]?.text?.trim() || '{}';
+  const stripped = raw.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '');
+  return JSON.parse(stripped);
+}
+
 export default async function handler(req, res) {
   applyCors(req, res);
 
@@ -201,7 +288,23 @@ export default async function handler(req, res) {
     // Limitation cards from diagnostics blocked conclusions
     const limitationCards = diagnostics.blockedClaims || [];
 
-    // Emit model-comprehension event
+    // D-03: Blast radius — downstream module count per module
+    // graph.edges: fromModuleId depends-on toModuleId (to reads from from), so
+    // downstreamCount(from) = number of distinct toModuleIds that reference from.
+    const downstreamByModule = new Map();
+    for (const edge of graph.edges) {
+      if (!downstreamByModule.has(edge.fromModuleId)) downstreamByModule.set(edge.fromModuleId, new Set());
+      downstreamByModule.get(edge.fromModuleId).add(edge.toModuleId);
+    }
+    const blastRadius = normalized.modules.map(m => ({
+      moduleId: m.id,
+      moduleName: m.name,
+      downstreamCount: (downstreamByModule.get(m.id) || new Set()).size,
+    })).sort((a, b) => b.downstreamCount - a.downstreamCount);
+    const blastRadiusTop10 = blastRadius.slice(0, 10);
+    const blastRadiusById = new Map(blastRadius.map(b => [b.moduleId, b.downstreamCount]));
+
+    // Emit model-comprehension event (architecture/domain fields filled by enriched event after Sonnet)
     sendEvent({
       type: 'model-comprehension',
       modules: classifiedModules,
@@ -211,6 +314,7 @@ export default async function handler(req, res) {
       cycles,
       daisyChains,
       discoMap,
+      blastRadiusTop10,
       limitationCards,
     });
 
@@ -257,57 +361,44 @@ export default async function handler(req, res) {
       `ARCHITECTURE signals (${findings.filter(f=>ARCH_RULES.includes(f.ruleId)).length} total):\n${ruleLines(ARCH_RULES) || '  none detected — naming coverage ${namingPct} limits architecture detection'}`,
     ].join('\n\n');
 
-    // ── Sonnet: model-specific workstream narratives ──────────────────────────────
+    // ── D-05: Single Sonnet call — domain inference + health findings ─────────────
     let workstreams = intelligence.workstreams; // deterministic fallback
-    let executiveBrief = intelligence.executiveNarrative;
     let assessmentObj = intelligence.assessment;
+    let domainMap = [];
+    let integrationSeams = [];
+    let architectureStory = '';
+    let architectureVerdict = '';
+    let healthScoreSonnet = 50;
+    let healthScoreReasoning = '';
+    let healthFormatPayload = null;
+
+    const deterministicHealthScore = computeDeterministicHealthScore(findings, blastRadiusById, normalized.modules.length);
 
     try {
       const Anthropic = (await import('@anthropic-ai/sdk')).default;
       const aiClient = new Anthropic();
+      const sonnetOut = await singleSonnetCall({
+        aiClient,
+        modules: normalized.modules,
+        findingSummary,
+        blastRadiusTop10,
+        integrationSeamCandidates: blastRadiusTop10.slice(0, 5),
+        healthFormat: HEALTH_FORMAT,
+        modelStats: { moduleCount: normalized.modules.length, lineItemCount: totalLIs, formulaCount: totalFormulas, namingPct },
+      });
+      domainMap = Array.isArray(sonnetOut.domainMap) ? sonnetOut.domainMap : [];
+      integrationSeams = Array.isArray(sonnetOut.integrationSeams) ? sonnetOut.integrationSeams : [];
+      architectureStory = String(sonnetOut.architectureStory || '');
+      architectureVerdict = String(sonnetOut.architectureVerdict || '');
+      healthScoreSonnet = Number.isFinite(sonnetOut.healthScoreSonnet) ? sonnetOut.healthScoreSonnet : 50;
+      healthScoreReasoning = String(sonnetOut.healthScoreReasoning || '');
+      healthFormatPayload = sonnetOut[HEALTH_FORMAT] || null;
 
-      const workstreamPrompt = `You are a senior Anaplan architect writing a health review for a client model.
-
-Model: ${normalized.modules.length} functional modules, ${totalLIs} line items, ${totalFormulas} calculated formulas.
-DISCO naming coverage: ${namingPct} of modules have recognisable layer prefixes.
-
-Deterministic scan findings:
-${findingSummary}
-
-Write 3–5 review workstreams as a JSON array. Each object must have exactly these keys:
-  id (slug), title, priority (Critical|High|Medium|Watch), confidence (High|Medium|Low),
-  kind ("remediation" or "evidence-limit"), whyItMatters (2 sentences),
-  reviewQuestion (1 sentence), action (1 sentence), evidenceCount (integer), examples (array of ≤5 strings)
-
-Rules:
-- title must describe THIS model's actual pattern, not generic Anaplan advice
-- whyItMatters must cite specific module names and counts from the findings above
-- Do NOT mention "blueprint" — the data came from the live Anaplan API
-- Return ONLY the JSON array, no markdown fences, no explanation`;
-
-      const briefPrompt = `Anaplan model: ${normalized.modules.length} modules, ${totalFormulas} formulas.
-Key findings: ${findings.length} total — formula issues: ${findings.filter(f=>FORMULA_RULES.includes(f.ruleId)).length}, naming issues: ${findings.filter(f=>NAMING_RULES.includes(f.ruleId)).length}, rollup issues: ${findings.filter(f=>ROLLUP_RULES.includes(f.ruleId)).length}.
-Top affected modules: ${[...new Set(findings.slice(0,30).map(f=>f.moduleName).filter(Boolean))].slice(0,5).join(', ')}.
-Write exactly 2 sentences summarising the most important health findings for the model owner. Cite module names. No generic advice. No markdown.`;
-
-      const [wsRes, brRes] = await Promise.all([
-        Promise.race([
-          aiClient.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: workstreamPrompt }] }),
-          new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 30000)),
-        ]),
-        Promise.race([
-          aiClient.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 150, messages: [{ role: 'user', content: briefPrompt }] }),
-          new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 10000)),
-        ]).catch(()=>null),
-      ]);
-
-      const raw = wsRes.content?.[0]?.text?.trim() || '[]';
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        workstreams = parsed;
+      if (HEALTH_FORMAT === 'workstreams' && healthFormatPayload?.workstreams?.length) {
+        workstreams = healthFormatPayload.workstreams;
         const hasEvLimit = workstreams.some(w => w.kind === 'evidence-limit');
-        const critical   = workstreams.filter(w => w.priority === 'Critical').length;
-        const high       = workstreams.filter(w => w.priority === 'High').length;
+        const critical = workstreams.filter(w => w.priority === 'Critical').length;
+        const high = workstreams.filter(w => w.priority === 'High').length;
         assessmentObj = {
           verdict: hasEvLimit ? 'Evidence Limited' : critical > 0 ? 'Executive Review' : high > 0 ? 'Focused Review' : 'Builder Review',
           summary: workstreams[0]?.whyItMatters || '',
@@ -315,18 +406,39 @@ Write exactly 2 sentences summarising the most important health findings for the
           posture: 'review',
         };
       }
-      if (brRes?.content?.[0]?.text) executiveBrief = brRes.content[0].text.trim();
     } catch (e) {
-      console.log('[analyze-v3] Sonnet synthesis failed, using deterministic fallback:', e.message);
+      console.log('[analyze-v3] singleSonnetCall failed, using deterministic fallback:', e.message);
+      architectureVerdict = 'Architectural verdict unavailable — synthesis failed';
+      architectureStory = 'Sonnet domain inference did not complete; deterministic findings only.';
     }
 
-    // Emit health-workstreams event
+    // D-06: blend deterministic base with Sonnet judgment (equal weight)
+    const healthScore = Math.round((deterministicHealthScore + healthScoreSonnet) / 2);
+
+    // Emit enriched architecture fields after Sonnet (Model tab merges both events)
+    sendEvent({
+      type: 'model-comprehension-enriched',
+      domainMap,
+      integrationSeams,
+      architectureStory,
+      architectureVerdict,
+    });
+
+    // Emit health-workstreams with format-specific payload
     sendEvent({
       type: 'health-workstreams',
+      format: HEALTH_FORMAT,
+      healthScore,
+      healthScoreDeterministic: deterministicHealthScore,
+      healthScoreSonnet,
+      healthScoreReasoning,
+      architectureVerdict,
+      honestLimits: HONEST_LIMITS,
+      [HEALTH_FORMAT]: healthFormatPayload,
       workstreams,
       assessment: {
-        verdict: assessmentObj.verdict,
-        summary: assessmentObj.summary,
+        verdict: architectureVerdict || assessmentObj.verdict,
+        summary: architectureStory || assessmentObj.summary,
         confidence: assessmentObj.confidence,
         posture: assessmentObj.posture,
       },
@@ -334,7 +446,6 @@ Write exactly 2 sentences summarising the most important health findings for the
         canSay: intelligence.feasibility.supportedNow,
         cannotSay: intelligence.feasibility.notKnowableYet,
       },
-      executiveBrief,
     });
 
     const lineItemCount = normalized.modules.reduce((s, m) => s + m.lineItemCount, 0);
