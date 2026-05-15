@@ -42,7 +42,11 @@
   2. Dead logic (line items with no downstream references) and circular or daisy-chain formula patterns are detected and listed — the user can see which specific line items and modules are implicated
   3. When graph density or naming coverage is insufficient, diagrams and architecture claims are replaced with limitation cards that state exactly what evidence is missing — no speculative claims appear
   4. The rebuilt Health tab shows up to 6 workstreams with cited evidence and explicit confidence levels; low-confidence findings appear as limitation workstreams, not remediation workstreams; an "Evidence Limits" section states what Meridian can and cannot say; the executive summary is validated against real module and line-item data before display
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 07-01-PLAN.md — Mockups: build all 4 Health tab format candidates + 2 Model tab layout candidates as static HTML with hardcoded fake data
+- [ ] 07-02-PLAN.md — Checkpoint: user reviews mockups in browser and selects Health format + Model layout, recorded in 07-MOCKUP-DECISION.md
+- [ ] 07-03-PLAN.md — Backend redesign: single Sonnet call architecture in api/analyze-v3.js with domain inference, hybrid health score, format-aware payload
+- [ ] 07-04-PLAN.md — UI wiring: Model + Health tab renderers wired to new SSE events; honest limits, blast radius, architecture verdict; mockups deleted
 **UI hint**: yes
 
 ### Phase 8: Chat Interface
