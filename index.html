@@ -715,6 +715,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 </head>
 <body>
 
+<!-- ════════ DEV MOCK NAV STRIP ════════ -->
+<div id="mock-nav" style="position:fixed;top:8px;right:8px;z-index:9999;background:#fffbea;border:1px solid #e0c050;padding:6px 10px;font-size:12px;border-radius:4px;">
+  <span style="font-weight:600;margin-right:8px;color:#92400e;">DEV — mockups</span>
+  <button onclick="showMock('mock-health-brief')" style="margin:2px;font-size:11px;cursor:pointer;">Health: Brief</button>
+  <button onclick="showMock('mock-health-surgical')" style="margin:2px;font-size:11px;cursor:pointer;">Health: Surgical</button>
+  <button onclick="showMock('mock-health-domain')" style="margin:2px;font-size:11px;cursor:pointer;">Health: Domain</button>
+  <button onclick="showMock('mock-health-workstreams')" style="margin:2px;font-size:11px;cursor:pointer;">Health: Workstreams</button>
+  <button onclick="showMock('mock-model-additive')" style="margin:2px;font-size:11px;cursor:pointer;">Model: Additive</button>
+  <button onclick="showMock('mock-model-redesign')" style="margin:2px;font-size:11px;cursor:pointer;">Model: Redesign</button>
+  <button onclick="showMock(null)" style="margin:2px;font-size:11px;cursor:pointer;background:#eee;">Hide all mockups</button>
+</div>
+<script>
+function showMock(id) {
+  var sections = document.querySelectorAll('[id^="mock-health-"],[id^="mock-model-"]');
+  for (var i = 0; i < sections.length; i++) { sections[i].hidden = true; }
+  if (id) {
+    var el = document.getElementById(id);
+    if (el) { el.hidden = false; el.scrollIntoView({behavior:'smooth',block:'start'}); }
+  }
+}
+</script>
+
 <!-- ════════ S1: INTRO ════════ -->
 <div id="s-intro" class="screen active">
   <nav class="intro-nav">
@@ -1013,6 +1035,243 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
         </div>
       </div>
     </div>
+
+    <!-- ════════ DEV MOCKUP SECTIONS — remove before production (see Plan 07-04) ════════ -->
+
+    <!-- MOCKUP 1: Health — Consultant Brief -->
+    <section id="mock-health-brief" hidden style="padding:24px;max-width:980px;margin:0 auto;">
+      <h2 style="margin-bottom:16px;">Health Review — Consultant Brief</h2>
+      <div style="background:#fff4e6;border-left:4px solid #d97706;padding:14px 18px;margin:14px 0;">
+        <strong>What Meridian cannot tell you</strong>
+        <ul style="margin:8px 0 0;font-size:13px;">
+          <li>Calculation execution speed</li>
+          <li>Data load runtimes</li>
+          <li>User experience / dashboard design</li>
+          <li>ALM governance (dev/test/prod hygiene)</li>
+          <li>Whether formulas are logically correct (only that they exist)</li>
+          <li>Workspace utilization</li>
+        </ul>
+      </div>
+      <h3 style="margin-top:20px;">Domain Coverage</h3>
+      <p style="font-size:14px;margin-top:6px;">Two planning domains detected: <strong>Workforce Planning</strong> (12 modules) and <strong>Demand Planning</strong> (18 modules). Three integration seam modules sit between them: <em>SYS01 Config</em>, <em>DAT03 Employee Master</em>, <em>CAL07 Revenue Build</em>.</p>
+      <h3 style="margin-top:20px;">Architecture Shape</h3>
+      <p style="font-size:14px;margin-top:6px;">Multi-domain model, partially DISCO-named (62% naming coverage). Calculation layer carries 73% of formulas; data layer cleanly separated. Integration seams under-protected — no boundary validation modules detected.</p>
+      <h3 style="margin-top:20px;">Top 3 Named Risks</h3>
+      <ol style="font-size:14px;margin-top:6px;padding-left:20px;">
+        <li style="margin-bottom:8px;"><strong>CAL07 Revenue Build</strong> — Revenue Forecast line item uses SUM+LOOKUP (8 downstream modules affected)</li>
+        <li style="margin-bottom:8px;"><strong>SYS01 Config</strong> — Hardcoded SELECT in Active Period (<strong style="color:#c41a1a;">23 downstream modules affected</strong>)</li>
+        <li style="margin-bottom:8px;"><strong>WFP01 Headcount Build</strong> — Nested IF depth 6 in Total FTE (4 downstream modules affected)</li>
+      </ol>
+    </section>
+
+    <!-- MOCKUP 2: Health — Surgical Named Findings -->
+    <section id="mock-health-surgical" hidden style="padding:24px;max-width:980px;margin:0 auto;">
+      <h2 style="margin-bottom:16px;">Health Review — Surgical Findings</h2>
+      <div style="background:#fff4e6;border-left:4px solid #d97706;padding:14px 18px;margin:14px 0;">
+        <strong>What Meridian cannot tell you</strong>
+        <ul style="margin:8px 0 0;font-size:13px;">
+          <li>Calculation execution speed</li>
+          <li>Data load runtimes</li>
+          <li>User experience / dashboard design</li>
+          <li>ALM governance (dev/test/prod hygiene)</li>
+          <li>Whether formulas are logically correct (only that they exist)</li>
+          <li>Workspace utilization</li>
+        </ul>
+      </div>
+      <h3 style="margin-top:20px;">Findings (12)</h3>
+      <div style="margin-top:10px;border:1px solid #eee;border-radius:4px;overflow:hidden;">
+        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>CAL07 Revenue Build</strong> · Revenue Forecast · SUM+LOOKUP · <strong style="color:#c41a1a;">8 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Replace SUM(…LOOKUP) with mapping module + SUM.</span></div>
+        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>SYS01 Config</strong> · Active Period · Hardcoded SELECT · <strong style="color:#c41a1a;">23 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Drive Active Period from a list-property, not a hardcoded SELECT formula.</span></div>
+        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>WFP01 Headcount Build</strong> · Total FTE · Nested IF depth 6 · 4 downstream<br><span style="color:#555;font-size:12px;">Fix: Decompose into intermediate line items per decision branch.</span></div>
+        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>DAT03 Employee Master</strong> · Cost Center · TEXT format · <strong style="color:#c41a1a;">11 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Convert to list-formatted line item referencing Cost Center list.</span></div>
+        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>DEM05 Demand Forecast</strong> · Baseline Demand · FORMULA_LONG (220 chars) · 6 downstream<br><span style="color:#555;font-size:12px;">Fix: Break into named intermediate line items for readability and auditability.</span></div>
+        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>CAL07 Revenue Build</strong> · Margin · Unguarded division · <strong style="color:#c41a1a;">8 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Add IF(denominator=0, 0, numerator/denominator) guard.</span></div>
+        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>WFP01 Headcount Build</strong> · Hiring Plan · Boolean named "Flag1" · 2 downstream<br><span style="color:#555;font-size:12px;">Fix: Rename to descriptive line item name (e.g. "Is Active Hire").</span></div>
+        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>DAT03 Employee Master</strong> · Salary · Rate summary SUM · <strong style="color:#c41a1a;">11 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Verify SUM aggregation is intentional; use LOOKUP if employee-level rate is needed.</span></div>
+        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>SYS01 Config</strong> · Scenarios · Boolean summary INVALID · <strong style="color:#c41a1a;">23 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Replace Boolean summary with SUM or ANY aggregation appropriate to context.</span></div>
+        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>DEM05 Demand Forecast</strong> · Channel Mix · SUM+LOOKUP · 6 downstream<br><span style="color:#555;font-size:12px;">Fix: Replace SUM(…LOOKUP) with mapping module + SUM.</span></div>
+        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;border-bottom:1px solid #eee;"><strong>CAL07 Revenue Build</strong> · COGS · Output reads raw layer · <strong style="color:#c41a1a;">8 downstream</strong><br><span style="color:#555;font-size:12px;">Fix: Route via a staging line item in the calculation layer.</span></div>
+        <div style="font-family:-apple-system,sans-serif;font-size:13px;padding:8px 12px;"><strong>WFP01 Headcount Build</strong> · Attrition Rate · Daisy-chain passthrough · 4 downstream<br><span style="color:#555;font-size:12px;">Fix: Source directly from DAT layer; remove passthrough chain.</span></div>
+      </div>
+    </section>
+
+    <!-- MOCKUP 3: Health — Domain Map -->
+    <section id="mock-health-domain" hidden style="padding:24px;max-width:980px;margin:0 auto;">
+      <h2 style="margin-bottom:16px;">Health Review — Domain Map</h2>
+      <div style="background:#fff4e6;border-left:4px solid #d97706;padding:14px 18px;margin:14px 0;">
+        <strong>What Meridian cannot tell you</strong>
+        <ul style="margin:8px 0 0;font-size:13px;">
+          <li>Calculation execution speed</li>
+          <li>Data load runtimes</li>
+          <li>User experience / dashboard design</li>
+          <li>ALM governance (dev/test/prod hygiene)</li>
+          <li>Whether formulas are logically correct (only that they exist)</li>
+          <li>Workspace utilization</li>
+        </ul>
+      </div>
+      <h3 style="margin-top:20px;">Workforce Planning</h3>
+      <p style="font-size:13px;color:#555;margin-top:4px;">12 modules. Headcount build, attrition, hiring plan. Clean DAT/CAL separation.</p>
+      <ul style="font-size:13px;margin-top:6px;padding-left:20px;">
+        <li style="margin-bottom:4px;">WFP01 Headcount Build · Total FTE · Nested IF depth 6 · 4 downstream</li>
+        <li style="margin-bottom:4px;">WFP01 Headcount Build · Hiring Plan · Boolean named "Flag1" · 2 downstream</li>
+        <li style="margin-bottom:4px;">WFP01 Headcount Build · Attrition Rate · Daisy-chain passthrough · 4 downstream</li>
+      </ul>
+      <h3 style="margin-top:20px;">Demand Planning</h3>
+      <p style="font-size:13px;color:#555;margin-top:4px;">18 modules. Baseline, channel mix, seasonality. Heavy SUM+LOOKUP usage.</p>
+      <ul style="font-size:13px;margin-top:6px;padding-left:20px;">
+        <li style="margin-bottom:4px;">DEM05 Demand Forecast · Baseline Demand · FORMULA_LONG · 6 downstream</li>
+        <li style="margin-bottom:4px;">DEM05 Demand Forecast · Channel Mix · SUM+LOOKUP · 6 downstream</li>
+      </ul>
+      <h3 style="margin-top:20px;">Integration Seams</h3>
+      <p style="font-size:13px;color:#555;margin-top:4px;">3 modules at cross-domain boundaries (highest risk):</p>
+      <ul style="font-size:13px;margin-top:6px;padding-left:20px;">
+        <li style="margin-bottom:4px;"><strong>SYS01 Config</strong> · <strong style="color:#c41a1a;">23 downstream modules</strong></li>
+        <li style="margin-bottom:4px;"><strong>DAT03 Employee Master</strong> · <strong style="color:#c41a1a;">11 downstream modules</strong></li>
+        <li style="margin-bottom:4px;"><strong>CAL07 Revenue Build</strong> · 8 downstream modules</li>
+      </ul>
+    </section>
+
+    <!-- MOCKUP 4: Health — Workstream Cards -->
+    <section id="mock-health-workstreams" hidden style="padding:24px;max-width:980px;margin:0 auto;">
+      <h2 style="margin-bottom:16px;">Health Review — Workstream Cards</h2>
+      <div style="background:#fff4e6;border-left:4px solid #d97706;padding:14px 18px;margin:14px 0;">
+        <strong>What Meridian cannot tell you</strong>
+        <ul style="margin:8px 0 0;font-size:13px;">
+          <li>Calculation execution speed</li>
+          <li>Data load runtimes</li>
+          <li>User experience / dashboard design</li>
+          <li>ALM governance (dev/test/prod hygiene)</li>
+          <li>Whether formulas are logically correct (only that they exist)</li>
+          <li>Workspace utilization</li>
+        </ul>
+      </div>
+      <div style="margin-top:20px;display:flex;flex-direction:column;gap:16px;">
+        <!-- Card 1: Critical -->
+        <div style="border:1px solid #eee;border-radius:8px;padding:16px;border-left:4px solid #c41a1a;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-weight:600;font-size:14px;">Replace SUM+LOOKUP pattern across CAL07</span>
+            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#fde8e8;color:#c41a1a;font-weight:600;">Critical</span>
+            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#2e7d32;font-weight:600;">High confidence</span>
+          </div>
+          <p style="font-size:13px;color:#444;margin-bottom:8px;">8 occurrences across Revenue Forecast, Margin, and COGS line items. SUM+LOOKUP is a known anti-pattern — causes silent errors when list membership changes.</p>
+          <p style="font-size:12px;color:#666;"><strong>Why it matters:</strong> CAL07 has 8 downstream modules. A silent error here propagates silently.</p>
+          <p style="font-size:12px;color:#666;margin-top:4px;"><strong>Review question:</strong> Has this formula been validated against all list permutations?</p>
+          <p style="font-size:12px;color:#888;margin-top:4px;"><em>Examples: Revenue Forecast; Margin; COGS</em></p>
+        </div>
+        <!-- Card 2: High -->
+        <div style="border:1px solid #eee;border-radius:8px;padding:16px;border-left:4px solid #d97706;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-weight:600;font-size:14px;">Reduce nested IF depth in WFP01 Headcount Build</span>
+            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#fff3e0;color:#d97706;font-weight:600;">High</span>
+            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#2e7d32;font-weight:600;">High confidence</span>
+          </div>
+          <p style="font-size:13px;color:#444;margin-bottom:8px;">4 occurrences. Total FTE uses nested IF depth 6 — exceeds the community-standard limit of 4 for maintainability.</p>
+          <p style="font-size:12px;color:#666;"><strong>Why it matters:</strong> Deep nesting makes formulas unauditable without decomposition.</p>
+          <p style="font-size:12px;color:#666;margin-top:4px;"><strong>Review question:</strong> Can each IF branch be named as an intermediate line item?</p>
+        </div>
+        <!-- Card 3: Medium -->
+        <div style="border:1px solid #eee;border-radius:8px;padding:16px;border-left:4px solid #0a7a3b;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-weight:600;font-size:14px;">Establish DISCO naming coverage</span>
+            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#e8f5e9;color:#0a7a3b;font-weight:600;">Medium</span>
+            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#fff8e1;color:#f59e0b;font-weight:600;">Medium confidence</span>
+          </div>
+          <p style="font-size:13px;color:#444;margin-bottom:8px;">62% DISCO naming coverage detected. 8 modules lack a recognized prefix — may be integration, reporting, or legacy modules.</p>
+          <p style="font-size:12px;color:#666;"><strong>Why it matters:</strong> Evidence limit — Meridian infers domain from naming; un-prefixed modules reduce classification confidence.</p>
+          <p style="font-size:12px;color:#666;margin-top:4px;"><strong>Review question:</strong> Do the un-prefixed modules belong to an intentional naming convention?</p>
+        </div>
+        <!-- Card 4: Watch -->
+        <div style="border:1px solid #eee;border-radius:8px;padding:16px;border-left:4px solid #5563de;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-weight:600;font-size:14px;">Architecture verdict requires boundary validation</span>
+            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#ede9fe;color:#5563de;font-weight:600;">Watch</span>
+            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#f3f4f6;color:#6b7280;font-weight:600;">Low confidence</span>
+          </div>
+          <p style="font-size:13px;color:#444;margin-bottom:8px;">Integration seam modules (SYS01, DAT03, CAL07) carry cross-domain data flow but have no detected boundary validation. Meridian cannot confirm whether this is intentional.</p>
+          <p style="font-size:12px;color:#666;"><strong>Why it matters:</strong> Evidence limit — cross-domain integrity cannot be verified from formula structure alone.</p>
+          <p style="font-size:12px;color:#666;margin-top:4px;"><strong>Review question:</strong> Are there separate data validation modules not captured in this fetch?</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MOCKUP 5: Model — Additive Layout -->
+    <section id="mock-model-additive" hidden style="padding:24px;max-width:980px;margin:0 auto;">
+      <h2 style="margin-bottom:16px;">Model Architecture (Additive Layout)</h2>
+      <div style="background:#f0f7ff;border-left:4px solid #2563eb;padding:14px 18px;margin:14px 0;">
+        <strong>Architecture Verdict</strong>
+        <p style="margin:6px 0 0;font-size:14px;">Multi-domain model (workforce + demand), partially DISCO-named, integration seams under-protected.</p>
+      </div>
+      <h3 style="margin-top:20px;">Architecture Story</h3>
+      <p style="font-size:14px;margin-top:6px;">Two planning domains identified: Workforce Planning (12 modules) and Demand Planning (18 modules). Three integration-seam modules carry the cross-domain dataflow. Calculation layer is concentrated (73% of formulas in 8 modules); data layer is cleanly separated.</p>
+      <h3 style="margin-top:20px;">Blast Radius — Top 10 Modules</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
+        <thead><tr style="background:#f5f5f5;"><th style="text-align:left;padding:6px 10px;font-weight:600;">Module</th><th style="text-align:right;padding:6px 10px;font-weight:600;">Downstream modules</th></tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">SYS01 Config</td><td style="text-align:right;padding:6px 10px;font-weight:600;color:#c41a1a;">23</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">DAT03 Employee Master</td><td style="text-align:right;padding:6px 10px;font-weight:600;color:#c41a1a;">11</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">CAL07 Revenue Build</td><td style="text-align:right;padding:6px 10px;font-weight:600;">8</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">DEM05 Demand Forecast</td><td style="text-align:right;padding:6px 10px;font-weight:600;">6</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">WFP01 Headcount Build</td><td style="text-align:right;padding:6px 10px;font-weight:600;">4</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">CAL02 Margin Calc</td><td style="text-align:right;padding:6px 10px;">3</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">DAT02 Calendar</td><td style="text-align:right;padding:6px 10px;">3</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">SYS02 Versions</td><td style="text-align:right;padding:6px 10px;">2</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">REP01 Exec Dashboard</td><td style="text-align:right;padding:6px 10px;">1</td></tr>
+          <tr><td style="padding:6px 10px;">REP02 Workforce Report</td><td style="text-align:right;padding:6px 10px;">1</td></tr>
+        </tbody>
+      </table>
+      <hr style="margin:24px 0;border:none;border-top:1px solid #eee;">
+      <h3>Module Classification (existing table format — preserved)</h3>
+      <p style="font-size:13px;color:#666;margin-top:4px;">[Existing DISCO classification table rendered below — preserved unchanged]</p>
+      <div style="border:1px dashed #ccc;padding:12px;font-size:12px;color:#888;margin-top:8px;">(Existing #model-classification-table content slot — preserved)</div>
+      <h3 style="margin-top:20px;">DISCO Map (existing — preserved)</h3>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;">
+        <div style="background:#f5f5f5;padding:12px 16px;border-radius:6px;"><div style="font-size:22px;font-weight:700;">8</div><div style="font-size:11px;">SYS</div></div>
+        <div style="background:#f5f5f5;padding:12px 16px;border-radius:6px;"><div style="font-size:22px;font-weight:700;">5</div><div style="font-size:11px;">DAT</div></div>
+        <div style="background:#f5f5f5;padding:12px 16px;border-radius:6px;"><div style="font-size:22px;font-weight:700;">12</div><div style="font-size:11px;">CAL</div></div>
+        <div style="background:#f5f5f5;padding:12px 16px;border-radius:6px;"><div style="font-size:22px;font-weight:700;">3</div><div style="font-size:11px;">REP</div></div>
+        <div style="background:#f5f5f5;padding:12px 16px;border-radius:6px;"><div style="font-size:22px;font-weight:700;">4</div><div style="font-size:11px;">INP</div></div>
+        <div style="background:#fff4e6;padding:12px 16px;border-radius:6px;"><div style="font-size:22px;font-weight:700;">8</div><div style="font-size:11px;">UNKNOWN</div></div>
+      </div>
+    </section>
+
+    <!-- MOCKUP 6: Model — Redesign Layout -->
+    <section id="mock-model-redesign" hidden style="padding:24px;max-width:980px;margin:0 auto;">
+      <div style="background:#0f172a;color:#fff;padding:24px;border-radius:8px;margin-bottom:18px;">
+        <div style="font-size:11px;letter-spacing:1px;opacity:.7;text-transform:uppercase;">Architecture Verdict</div>
+        <h2 style="margin:6px 0 12px;font-size:22px;">Multi-domain model, integration seams under-protected</h2>
+        <p style="font-size:14px;line-height:1.5;opacity:.9;">Two planning domains (Workforce Planning, Demand Planning), 40 functional modules, 3 cross-domain integration seams. Calculation layer concentrated in CAL07. DISCO naming at 62% — 8 modules un-prefixed.</p>
+      </div>
+      <h3 style="margin-top:20px;">Blast Radius — Top 10</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
+        <thead><tr style="background:#f5f5f5;"><th style="text-align:left;padding:6px 10px;font-weight:600;">Module</th><th style="text-align:right;padding:6px 10px;font-weight:600;">Downstream modules</th></tr></thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">SYS01 Config</td><td style="text-align:right;padding:6px 10px;font-weight:600;color:#c41a1a;">23</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">DAT03 Employee Master</td><td style="text-align:right;padding:6px 10px;font-weight:600;color:#c41a1a;">11</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">CAL07 Revenue Build</td><td style="text-align:right;padding:6px 10px;font-weight:600;">8</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">DEM05 Demand Forecast</td><td style="text-align:right;padding:6px 10px;font-weight:600;">6</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">WFP01 Headcount Build</td><td style="text-align:right;padding:6px 10px;font-weight:600;">4</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">CAL02 Margin Calc</td><td style="text-align:right;padding:6px 10px;">3</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">DAT02 Calendar</td><td style="text-align:right;padding:6px 10px;">3</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">SYS02 Versions</td><td style="text-align:right;padding:6px 10px;">2</td></tr>
+          <tr style="border-bottom:1px solid #eee;"><td style="padding:6px 10px;">REP01 Exec Dashboard</td><td style="text-align:right;padding:6px 10px;">1</td></tr>
+          <tr><td style="padding:6px 10px;">REP02 Workforce Report</td><td style="text-align:right;padding:6px 10px;">1</td></tr>
+        </tbody>
+      </table>
+      <details style="margin-top:24px;">
+        <summary style="cursor:pointer;font-weight:600;font-size:14px;">Module Classification (40 modules)</summary>
+        <div style="margin-top:10px;padding:12px;border:1px dashed #ccc;font-size:12px;color:#888;">(Existing #model-classification-table content slot)</div>
+      </details>
+      <details style="margin-top:12px;">
+        <summary style="cursor:pointer;font-weight:600;font-size:14px;">DISCO Map</summary>
+        <div style="margin-top:10px;padding:12px;border:1px dashed #ccc;font-size:12px;color:#888;">(Existing DISCO tiles slot)</div>
+      </details>
+      <details style="margin-top:12px;">
+        <summary style="cursor:pointer;font-weight:600;font-size:14px;">Cross-Module Dependencies</summary>
+        <div style="margin-top:10px;padding:12px;border:1px dashed #ccc;font-size:12px;color:#888;">(Existing dependency table slot)</div>
+      </details>
+    </section>
+
+    <!-- ════════ END DEV MOCKUP SECTIONS ════════ -->
 
     <div class="dash-panel" id="dash-panel-intelligence">
       <div id="dash-intelligence-body">
