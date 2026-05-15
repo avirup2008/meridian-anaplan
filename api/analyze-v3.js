@@ -314,7 +314,7 @@ Generate exactly 3 workstreams. Rules:
   const response = await Promise.race([
     aiClient.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1000,
+      max_tokens: 1600,
       messages: [{ role: 'user', content: prompt }],
     }),
     new Promise((_, rej) => setTimeout(() => rej(new Error('workstreams-timeout')), 30000)),
@@ -327,7 +327,12 @@ Generate exactly 3 workstreams. Rules:
     console.error('[analyze-v3] workstreams: no JSON (first 200):', raw.slice(0, 200));
     throw new Error('Workstreams response contained no JSON object');
   }
-  return JSON.parse(raw.slice(start, end + 1));
+  try {
+    return JSON.parse(raw.slice(start, end + 1));
+  } catch (parseErr) {
+    console.error('[analyze-v3] workstreams: JSON.parse failed, raw (first 600):', raw.slice(0, 600));
+    throw parseErr;
+  }
 }
 
 // ─── AI call: architecture ─────────────────────────────────────────────────────
@@ -378,7 +383,7 @@ RULES:
   const response = await Promise.race([
     aiClient.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 700,
+      max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }],
     }),
     new Promise((_, rej) => setTimeout(() => rej(new Error('architecture-timeout')), 30000)),
@@ -391,7 +396,12 @@ RULES:
     console.error('[analyze-v3] architecture: no JSON (first 200):', raw.slice(0, 200));
     throw new Error('Architecture response contained no JSON object');
   }
-  return JSON.parse(raw.slice(start, end + 1));
+  try {
+    return JSON.parse(raw.slice(start, end + 1));
+  } catch (parseErr) {
+    console.error('[analyze-v3] architecture: JSON.parse failed, raw (first 600):', raw.slice(0, 600));
+    throw parseErr;
+  }
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
