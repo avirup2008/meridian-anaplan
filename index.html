@@ -5104,8 +5104,13 @@ function confirmModelSelection() {
       const verdictTitle = _anl$('model-verdict-title');
       const verdictSub = _anl$('model-verdict-sub');
       const storyEl = _anl$('model-architecture-story');
-      if (verdictTitle && evt.architectureVerdict) verdictTitle.textContent = evt.architectureVerdict;
-      if (verdictSub && evt.architectureStory) verdictSub.textContent = evt.architectureStory.split('.')[0] + '.';
+      if (verdictTitle && evt.architectureVerdict) {
+        const domainMatch = evt.architectureVerdict.match(/\(([^)]+)\)/);
+        verdictTitle.textContent = domainMatch ? domainMatch[1] : evt.architectureVerdict.split(',')[0];
+      }
+      if (verdictSub && evt.architectureVerdict) {
+        verdictSub.textContent = evt.architectureVerdict.replace(/^[^,]+\s*\([^)]+\),?\s*/, '');
+      }
       if (storyEl && evt.architectureStory) storyEl.textContent = evt.architectureStory;
 
       // Domain map
@@ -5184,7 +5189,7 @@ function confirmModelSelection() {
         };
         const evBadge = document.getElementById('dash-badge-intelligence');
         if (evBadge) evBadge.textContent = String(ws.length);
-        renderIntelPanel();
+        renderIntelligencePanel();
       }
 
       // ── Notes tab: auto-generate narrative from workstreams ───────────────────
