@@ -716,6 +716,305 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 <body>
 
 <!-- ════════ DEV MOCK NAV STRIP ════════ -->
+<!-- ════════ S1: INTRO ════════ -->
+<div id="s-intro" class="screen active">
+  <nav class="intro-nav">
+    <div class="intro-nav-brand">
+      <div class="intro-nav-icon">
+        <svg viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="7.5" stroke="#FAF8F0" stroke-width="1.1"/>
+          <line x1="10" y1="2.5" x2="10" y2="17.5" stroke="#7EC8FA" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="2.5" y1="10" x2="17.5" y2="10" stroke="#FAF8F0" stroke-width=".8" stroke-linecap="round" opacity=".35"/>
+          <circle cx="10" cy="10" r="1.5" fill="#7EC8FA"/>
+          <circle cx="10" cy="4.5" r=".85" fill="#FAF8F0" opacity=".65"/>
+          <circle cx="10" cy="15.5" r=".85" fill="#FAF8F0" opacity=".65"/>
+        </svg>
+      </div>
+      <div>
+        <div class="intro-nav-name">Meridian<em>.</em></div>
+        <div class="intro-nav-by">EyeOn · Planning Intelligence</div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="intro-split">
+    <!-- Hero preview -->
+    <div class="intro-hero">
+      <div class="hero-stack">
+        <div class="hero-score-card">
+          <div class="hero-score-lbl" id="hero-mii-lbl">Evidence Review</div>
+          <div class="hero-gauge">
+            <svg width="118" height="118" viewBox="0 0 118 118" fill="none" id="hero-svg">
+              <circle cx="59" cy="59" r="46" stroke="#EBE8E0" stroke-width="7"/>
+              <circle id="hero-arc" cx="59" cy="59" r="46" stroke="#B82E2E" stroke-width="7"
+                stroke-linecap="round" stroke-dasharray="110 289" transform="rotate(-90 59 59)"/>
+              <text id="hero-score-txt" x="59" y="54" text-anchor="middle" font-size="18" font-weight="700" fill="#1C2129" font-family="IBM Plex Mono,monospace">REVIEW</text>
+              <text x="59" y="72" text-anchor="middle" font-size="9" fill="#9EA1AB" font-family="IBM Plex Mono,monospace">evidence-backed</text>
+            </svg>
+          </div>
+          <div class="hero-chip"><span><div class="hero-chip-dot"></div>Focused review · 4 workstreams</span></div>
+          <div class="hero-bars" id="hero-bars">
+            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#B82E2E"></div><div class="hero-bar-lbl">Architecture flow</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:86%;background:#B82E2E"></div></div><div class="hero-bar-num">High</div></div>
+            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#C8733A"></div><div class="hero-bar-lbl">Formula review</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:68%;background:#C8733A"></div></div><div class="hero-bar-num">Med</div></div>
+            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#175AA6"></div><div class="hero-bar-lbl">Aggregation checks</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:54%;background:#175AA6"></div></div><div class="hero-bar-num">Med</div></div>
+            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#7047A3"></div><div class="hero-bar-lbl">Governance cleanup</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:32%;background:#7047A3"></div></div><div class="hero-bar-num">Watch</div></div>
+          </div>
+          <div class="hero-rule"></div>
+        </div>
+        <div class="hero-verdict">
+          <div class="hero-verdict-icon">⚠</div>
+          <div>
+            <div class="hero-verdict-title">One report generated</div>
+            <div class="hero-verdict-sub">Assessment · workstreams · evidence</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="intro-content">
+      <div class="intro-inner">
+        <h1 class="intro-h1">Your Anaplan model,<br><em>fully understood.</em></h1>
+        <p class="intro-sub">Upload Anaplan blueprint CSVs. Get an evidence-backed review workbench: focused workstreams, cited module and line-item evidence, dependency context when formulas support it, and regression checks for model-builder review.</p>
+        <div class="intro-stats">
+          <div class="intro-stat"><div class="intro-stat-val">47</div><div class="intro-stat-lbl">Planual rules checked</div></div>
+          <div class="intro-stat"><div class="intro-stat-val">≤6</div><div class="intro-stat-lbl">Review workstreams</div></div>
+          <div class="intro-stat"><div class="intro-stat-val">✓</div><div class="intro-stat-lbl">Evidence anchored</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:22px;line-height:1.6;padding:10px 14px;background:var(--surface);border-radius:var(--r);border:1px solid var(--border);display:flex;align-items:flex-start;gap:8px;">
+          <span style="color:var(--accent);font-weight:700;flex-shrink:0;font-family:'IBM Plex Mono',monospace;">MIR</span>
+          <span>The <strong style="color:var(--text2);">Model Intelligence Review</strong> does not assign fake precision scores. It groups concrete blueprint evidence into senior review workstreams that a CoE lead can validate.</span>
+        </div>
+        <div class="intro-paths">
+          <div class="intro-path pri" onclick="go('s-connect')">
+            <div class="intro-path-icon" style="background:#175AA6;font-size:14px;">🔗</div>
+            <div><div class="intro-path-lbl">Connect to Anaplan</div><div class="intro-path-desc">Live model intelligence — sign in with your credentials</div></div>
+            <div class="intro-path-arr">→</div>
+          </div>
+          <div class="intro-path" onclick="go('s-upload')">
+            <div class="intro-path-icon">📂</div>
+            <div><div class="intro-path-lbl">Upload blueprint CSV</div><div class="intro-path-desc">Analyse a model from exported blueprint files</div></div>
+            <div class="intro-path-arr">→</div>
+          </div>
+        </div>
+        <p class="intro-foot">The Anaplan Way · Planual v2 · Anapedia · BARC Planning Survey 2025</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ S2: UPLOAD ════════ -->
+<div id="s-upload" class="screen">
+  <div class="hdr"><div class="hdr-inner">
+    <div class="hdr-logo" onclick="go('s-intro')">
+      <div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>
+      Meridian<em>.</em>
+      <div style="margin-left:2px;"><div class="hdr-by">EyeOn</div></div>
+    </div>
+    <div class="hdr-sp"></div>
+    <button class="btn btn-ghost btn-sm" onclick="go('s-settings')">Settings</button>
+  </div></div>
+  <div class="body-shell">
+    <div class="step-label">Blueprint Upload</div>
+    <h1 class="page-h1">Upload your Anaplan blueprint files</h1>
+    <p class="page-sub">Export blueprint CSVs from Model Settings → Modules. One file per module. Meridian normalises column headers automatically.</p>
+
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="file-input" accept=".csv" multiple onchange="handleFiles(this.files)">
+      <div class="dz-icon">📂</div>
+      <div class="dz-h">Drop blueprint CSV files here</div>
+      <p class="dz-p">Multiple files · Anaplan blueprint export format</p>
+      <button class="btn btn-ghost btn-sm" type="button" onclick="document.getElementById('file-input').click()">Browse files</button>
+    </div>
+
+    <div class="file-list" id="file-list"></div>
+
+    <div class="req-grid">
+      <div class="req-card"><div class="req-lbl">Required columns</div><div class="req-text">Line Item · Format (JSON) · Formula · Summary (JSON) · Applies To · Time Scale · Style · Cell Count · Referenced By · Module Name</div></div>
+      <div class="req-card"><div class="req-lbl">Export path</div><div class="req-text">Anaplan → Model Settings → Modules → select module → Download Blueprint CSV</div></div>
+    </div>
+    <div class="upload-actions">
+      <button class="btn btn-ghost" onclick="clearFiles()">Clear all</button>
+      <button class="btn btn-pri" id="analyse-btn" onclick="startAnalysis()" disabled>Analyse modules →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ S3: PROCESSING ════════ -->
+<div id="s-processing" class="screen">
+  <div class="hdr"><div class="hdr-inner">
+    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-sp"></div>
+    <div class="hdr-status"><span class="spinner"></span><span id="proc-status-txt">Parsing files...</span></div>
+  </div></div>
+  <div class="proc-shell">
+    <div class="step-label">Step 1 of 3 — Parsing &amp; Normalising</div>
+    <h2 style="font-size:24px;font-weight:700;letter-spacing:-.025em;margin-bottom:8px;" id="proc-h2">Reading blueprint files</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:28px;" id="proc-sub">Normalising column headers and detecting DISCO prefixes</p>
+    <div class="proc-card">
+      <div class="proc-card-head">
+        <div class="spinner"></div>
+        <div><div style="font-size:13px;font-weight:700;">Overall progress</div><div style="font-size:11px;color:var(--text3);margin-top:2px;font-family:'IBM Plex Mono',monospace;" id="proc-progress-sub">0 of 0 files complete</div></div>
+        <div class="proc-pct" id="proc-pct">0%</div>
+      </div>
+      <div style="height:4px;background:var(--surface3);"><div id="proc-bar" style="height:100%;width:0%;background:var(--accent);transition:width .5s ease;"></div></div>
+      <div class="proc-body">
+        <div class="file-prog-list" id="file-prog-list"></div>
+        <div class="proc-log" id="proc-log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ S4: ANALYSIS ════════ -->
+<!-- SECTION: ANALYSIS -->
+<div id="s-analysis" class="screen">
+  <div class="hdr"><div class="hdr-inner">
+    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-sp"></div>
+    <div class="hdr-status" id="anl-hdr-status"><span class="spinner"></span>Preparing analysis…</div>
+  </div></div>
+
+  <div class="anl-shell">
+    <div class="step-label">Step 3 of 3 — Evidence Review</div>
+    <h2 class="anl-title">Model Review Workbench</h2>
+    <p class="anl-sub" id="anl-sub">Analysing your model…</p>
+
+    <div class="anl-progress-wrap" id="anl-progress-wrap">
+      <div class="anl-progress-label"><span id="anl-stage-label">Fetching blueprint</span><span id="anl-progress-pct">0%</span></div>
+      <div class="prog"><div class="prog-f" id="anl-progress-bar" style="width:0%"></div></div>
+      <div class="anl-progress-detail" id="anl-progress-detail">&nbsp;</div>
+    </div>
+
+    <div class="anl-error" id="anl-error" hidden>
+      <strong>Analysis failed.</strong> <span id="anl-error-msg"></span>
+      <button class="btn" onclick="go('s-fetch')">Re-fetch blueprint</button>
+    </div>
+
+    <div class="anl-warning" id="anl-warning" hidden>
+      <strong>Partial analysis.</strong> <span id="anl-warning-msg"></span>
+    </div>
+
+    <div class="dash-tab-bar" id="dash-tab-bar" hidden>
+      <button class="dash-tab" data-tab="model" id="tab-btn-model" onclick="switchTab('model')">Model</button>
+      <button class="dash-tab on" data-tab="verdict" onclick="switchTab('verdict')">Assessment</button>
+      <button class="dash-tab" data-tab="suggestions" onclick="switchTab('suggestions')">Workstreams <span class="dash-tab-badge" id="dash-badge-suggestions">0</span></button>
+      <button class="dash-tab" data-tab="intelligence" onclick="switchTab('intelligence')">Evidence <span class="dash-tab-badge" id="dash-badge-intelligence">0</span></button>
+      <button class="dash-tab" data-tab="notes" onclick="switchTab('notes')">Notes</button>
+      <button class="dash-tab" data-tab="export" onclick="switchTab('export')">Export</button>
+    </div>
+
+    <div id="evidence-limit-warning" role="alert" hidden class="evidence-warning">
+      <strong>Evidence Limits</strong>
+      <p>This fetch is incomplete. The following conclusions are blocked:</p>
+      <ul id="blocked-conclusions-list"></ul>
+    </div>
+
+    <div class="dash-panel" id="dash-panel-model" data-alias="tab-panel-model">
+      <!-- Model tab: populated by _anlOnModelComprehension() when model-comprehension SSE event arrives -->
+      <div id="model-loading" class="notes-empty">Analysing model architecture — this usually takes a few seconds.</div>
+
+      <!-- Module classification table — hidden until model-comprehension arrives -->
+      <div id="model-classification-section" hidden>
+        <h3 class="step-label">Module Classification</h3>
+        <p class="anl-summary" id="model-classification-subtitle"></p>
+        <div id="model-classification-table-wrap" style="overflow-x:auto;margin-top:12px;">
+          <table id="model-classification-table" class="data-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:6px 10px;">Module</th>
+                <th style="text-align:left;padding:6px 10px;">DISCO</th>
+                <th style="text-align:left;padding:6px 10px;">Confidence</th>
+                <th style="text-align:right;padding:6px 10px;">Formulas</th>
+                <th style="text-align:right;padding:6px 10px;">Inputs</th>
+              </tr>
+            </thead>
+            <tbody id="model-classification-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- DISCO architecture map — hidden until model-comprehension arrives -->
+      <div id="model-disco-section" hidden style="margin-top:24px;">
+        <h3 class="step-label">Architecture Map</h3>
+        <div id="model-disco-map" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;"></div>
+      </div>
+
+      <!-- Limitation cards — shown when gates fail -->
+      <div id="model-limitations-section" hidden style="margin-top:24px;">
+        <h3 class="step-label">Evidence Limitations</h3>
+        <div id="model-limitation-cards"></div>
+      </div>
+
+      <!-- Dependency graph table -->
+      <div id="model-graph-section" hidden style="margin-top:24px;">
+        <h3 class="step-label">Cross-Module Dependencies</h3>
+        <p class="anl-summary" id="model-graph-subtitle"></p>
+        <div style="overflow-x:auto;margin-top:12px;">
+          <table id="model-graph-table" class="data-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:6px 10px;">From</th>
+                <th style="text-align:left;padding:6px 10px;">To</th>
+                <th style="text-align:right;padding:6px 10px;">Line Items</th>
+              </tr>
+            </thead>
+            <tbody id="model-graph-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Dead logic and patterns -->
+      <div id="model-patterns-section" hidden style="margin-top:24px;">
+        <h3 class="step-label">Formula Patterns</h3>
+        <div id="model-dead-logic-wrap"></div>
+        <div id="model-cycles-wrap" style="margin-top:12px;"></div>
+        <div id="model-daisy-chains-wrap" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <div class="dash-panel active" id="dash-panel-verdict">
+      <div class="anl-score-card" id="anl-score-card" hidden>
+        <div class="anl-score-main">
+          <div class="step-label">Review Posture</div>
+          <div class="mii-num" id="anl-score-num">Review</div>
+          <div id="anl-verdict-chip" class="mii-band-chip"><span class="anl-dot"></span><span id="anl-verdict-text">—</span></div>
+          <p class="anl-summary" id="anl-summary"></p>
+        </div>
+        <div class="anl-dims" id="anl-dims">
+          <div class="anl-dim" data-key="architecture"><label>Architecture</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+          <div class="anl-dim" data-key="naming"><label>Naming</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+          <div class="anl-dim" data-key="formulas"><label>Formulas</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+          <div class="anl-dim" data-key="dataHygiene"><label>Data Hygiene</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+          <div class="anl-dim" data-key="governance"><label>Governance</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
+        </div>
+      </div>
+      <div class="intel-card wide" id="anl-intel-preview" hidden></div>
+
+      <!-- Health workstreams — populated by _anlOnHealthWorkstreams() -->
+      <div id="health-workstreams-section" hidden style="margin-top:24px;">
+        <h3 class="step-label">Evidence Workstreams</h3>
+        <p class="anl-summary" id="health-executive-brief"></p>
+        <div id="health-workstreams-list" style="margin-top:16px;"></div>
+      </div>
+
+      <!-- Evidence limits section -->
+      <div id="health-evidence-limits" hidden style="margin-top:24px;">
+        <h3 class="step-label">Evidence Limits</h3>
+        <p style="font-size:13px;color:#666;margin-bottom:12px;">What Meridian can and cannot determine from the fetched blueprint.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <strong style="font-size:12px;color:#2ecc71;">What the evidence supports</strong>
+            <ul id="health-can-say" style="margin-top:8px;font-size:13px;padding-left:18px;"></ul>
+          </div>
+          <div>
+            <strong style="font-size:12px;color:#e74c3c;">What cannot be determined</strong>
+            <ul id="health-cannot-say" style="margin-top:8px;font-size:13px;padding-left:18px;"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
     <div class="dash-panel" id="dash-panel-intelligence">
       <div id="dash-intelligence-body">
