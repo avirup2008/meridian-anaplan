@@ -215,64 +215,120 @@ export default async function handler(req, res) {
     });
 
     // ── Health engine ────────────────────────────────────────────────────────────
-    sendEvent({ type: 'stage', stage: 'health', label: 'Building health workstreams…' });
+    sendEvent({ type: 'stage', stage: 'health', label: 'Synthesizing model intelligence…' });
 
-    // Run deterministic findings (reuses graph + architecture already computed above)
+    // Run deterministic findings
     const findings = [
       ...scanDeterministicFindings(normalized),
       ...scanArchitectureFindings(normalized),
     ];
 
-    // buildEvidenceBackedIntelligence is the top-level orchestrator in analysis-core.js.
-    // It internally calls buildDependencyGraph, buildArchitectureClassification,
-    // buildEvidenceDiagnostics, buildEvidenceWorkstreams, buildAssessment, and
-    // buildExecutiveBrief. We pass it the normalized object and deterministic findings.
-    // NOTE: This re-runs the graph build internally; that is acceptable — it is O(n*m)
-    // on module count and completes in well under 1 second for 228-module models.
+    // Get deterministic structure (workstream groupings, examples, evidence items)
     const intelligence = buildEvidenceBackedIntelligence(normalized, findings);
 
-    // Diagnostic log — remove after debugging
-    const ruleBreakdown = {};
-    for (const f of findings) { ruleBreakdown[f.ruleId] = (ruleBreakdown[f.ruleId] || 0) + 1; }
-    console.log('[analyze-v3] findings:', findings.length, JSON.stringify(ruleBreakdown));
-    console.log('[analyze-v3] workstreams:', intelligence.workstreams.length, intelligence.workstreams.map(w => `${w.id}(${w.kind},${w.evidenceCount})`).join(', '));
+    // ── Build per-rule example map for Sonnet ────────────────────────────────────
+    const byRule = {};
+    for (const f of findings) {
+      if (!byRule[f.ruleId]) byRule[f.ruleId] = [];
+      byRule[f.ruleId].push(f);
+    }
+    function ruleLines(rules) {
+      return rules
+        .filter(r => byRule[r]?.length)
+        .map(r => {
+          const fs = byRule[r];
+          const mods = [...new Set(fs.map(f => f.moduleName).filter(Boolean))].slice(0, 5);
+          const lis  = [...new Set(fs.map(f => f.lineItemName).filter(Boolean))].slice(0, 3);
+          return `  ${r}: ${fs.length} occurrences — modules: ${mods.join('; ')}${lis.length ? ` — line items: ${lis.join('; ')}` : ''}`;
+        }).join('\n');
+    }
+    const FORMULA_RULES = ['FORMULA_SUM_LOOKUP','FORMULA_SELECT_HARDCODED','FORMULA_NESTED_IF','FORMULA_DIVISION_UNGUARDED','FORMULA_LONG'];
+    const NAMING_RULES  = ['MODULE_NAMING_PATTERN','BOOLEAN_NAME_WEAK','TEXT_FORMAT_USED'];
+    const ROLLUP_RULES  = ['RATE_SUMMARY_SUM','BOOLEAN_SUMMARY_INVALID'];
+    const ARCH_RULES    = ['ARCH_OUTPUT_READS_RAW_LAYER','ARCH_DATA_MODULE_HAS_FORMULAS','MODULE_DATA_HAS_CALC','ARCH_CALC_MODULE_STORES_INPUTS'];
+    const totalFormulas = normalized.modules.reduce((s,m)=>s+m.lineItems.filter(li=>li.hasFormula).length,0);
+    const totalLIs      = normalized.modules.reduce((s,m)=>s+m.lineItems.length,0);
+    const namingPct     = evidencePack?.namingCoverage != null ? `${(evidencePack.namingCoverage*100).toFixed(0)}%` : 'unknown';
 
-    // ── Executive brief: Haiku with deterministic fallback ───────────────────────
-    let executiveBrief = intelligence.executiveNarrative; // deterministic fallback
+    const findingSummary = [
+      `FORMULA issues (${findings.filter(f=>FORMULA_RULES.includes(f.ruleId)).length} total):\n${ruleLines(FORMULA_RULES) || '  none detected'}`,
+      `ROLLUP issues (${findings.filter(f=>ROLLUP_RULES.includes(f.ruleId)).length} total):\n${ruleLines(ROLLUP_RULES) || '  none detected'}`,
+      `NAMING/GOVERNANCE issues (${findings.filter(f=>NAMING_RULES.includes(f.ruleId)).length} total):\n${ruleLines(NAMING_RULES) || '  none detected'}`,
+      `ARCHITECTURE signals (${findings.filter(f=>ARCH_RULES.includes(f.ruleId)).length} total):\n${ruleLines(ARCH_RULES) || '  none detected — naming coverage ${namingPct} limits architecture detection'}`,
+    ].join('\n\n');
+
+    // ── Sonnet: model-specific workstream narratives ──────────────────────────────
+    let workstreams = intelligence.workstreams; // deterministic fallback
+    let executiveBrief = intelligence.executiveNarrative;
+    let assessmentObj = intelligence.assessment;
+
     try {
       const Anthropic = (await import('@anthropic-ai/sdk')).default;
       const aiClient = new Anthropic();
-      const briefPrompt = `You are a senior Anaplan architect writing an executive summary for a model health report.
-Evidence pack (4 gates): fetchCompleteness=${evidencePack?.fetchCompleteness?.toFixed(2)}, formulaCoverage=${evidencePack?.formulaCoverage?.toFixed(2)}, graphDensity=${evidencePack?.graphDensity?.toFixed(2)}, namingCoverage=${evidencePack?.namingCoverage?.toFixed(2)}.
-Verdict: ${intelligence.assessment.verdict}. Confidence: ${intelligence.assessment.confidence}.
-Workstreams (${intelligence.workstreams.length}): ${intelligence.workstreams.slice(0,6).map(w => `${w.priority} – ${w.title}`).join('; ')}.
-Write 2–3 sentences. Cite only what the evidence supports. No invented findings. No score out of 10.`;
 
-      const briefRes = await Promise.race([
-        aiClient.messages.create({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 200,
-          messages: [{ role: 'user', content: briefPrompt }],
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000)),
+      const workstreamPrompt = `You are a senior Anaplan architect writing a health review for a client model.
+
+Model: ${normalized.modules.length} functional modules, ${totalLIs} line items, ${totalFormulas} calculated formulas.
+DISCO naming coverage: ${namingPct} of modules have recognisable layer prefixes.
+
+Deterministic scan findings:
+${findingSummary}
+
+Write 3–5 review workstreams as a JSON array. Each object must have exactly these keys:
+  id (slug), title, priority (Critical|High|Medium|Watch), confidence (High|Medium|Low),
+  kind ("remediation" or "evidence-limit"), whyItMatters (2 sentences),
+  reviewQuestion (1 sentence), action (1 sentence), evidenceCount (integer), examples (array of ≤5 strings)
+
+Rules:
+- title must describe THIS model's actual pattern, not generic Anaplan advice
+- whyItMatters must cite specific module names and counts from the findings above
+- Do NOT mention "blueprint" — the data came from the live Anaplan API
+- Return ONLY the JSON array, no markdown fences, no explanation`;
+
+      const briefPrompt = `Anaplan model: ${normalized.modules.length} modules, ${totalFormulas} formulas.
+Key findings: ${findings.length} total — formula issues: ${findings.filter(f=>FORMULA_RULES.includes(f.ruleId)).length}, naming issues: ${findings.filter(f=>NAMING_RULES.includes(f.ruleId)).length}, rollup issues: ${findings.filter(f=>ROLLUP_RULES.includes(f.ruleId)).length}.
+Top affected modules: ${[...new Set(findings.slice(0,30).map(f=>f.moduleName).filter(Boolean))].slice(0,5).join(', ')}.
+Write exactly 2 sentences summarising the most important health findings for the model owner. Cite module names. No generic advice. No markdown.`;
+
+      const [wsRes, brRes] = await Promise.all([
+        Promise.race([
+          aiClient.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: workstreamPrompt }] }),
+          new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 30000)),
+        ]),
+        Promise.race([
+          aiClient.messages.create({ model: 'claude-haiku-4-5-20251001', max_tokens: 150, messages: [{ role: 'user', content: briefPrompt }] }),
+          new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 10000)),
+        ]).catch(()=>null),
       ]);
-      if (briefRes.content?.[0]?.text) {
-        executiveBrief = briefRes.content[0].text.trim();
+
+      const raw = wsRes.content?.[0]?.text?.trim() || '[]';
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        workstreams = parsed;
+        const hasEvLimit = workstreams.some(w => w.kind === 'evidence-limit');
+        const critical   = workstreams.filter(w => w.priority === 'Critical').length;
+        const high       = workstreams.filter(w => w.priority === 'High').length;
+        assessmentObj = {
+          verdict: hasEvLimit ? 'Evidence Limited' : critical > 0 ? 'Executive Review' : high > 0 ? 'Focused Review' : 'Builder Review',
+          summary: workstreams[0]?.whyItMatters || '',
+          confidence: 'Qualified evidence',
+          posture: 'review',
+        };
       }
+      if (brRes?.content?.[0]?.text) executiveBrief = brRes.content[0].text.trim();
     } catch (e) {
-      // Haiku unavailable or timed out — fall back to deterministic brief (already set above)
-      console.log('[analyze-v3] Haiku brief skipped, using deterministic fallback:', e.message);
+      console.log('[analyze-v3] Sonnet synthesis failed, using deterministic fallback:', e.message);
     }
 
     // Emit health-workstreams event
     sendEvent({
       type: 'health-workstreams',
-      workstreams: intelligence.workstreams,
+      workstreams,
       assessment: {
-        verdict: intelligence.assessment.verdict,
-        summary: intelligence.assessment.summary,
-        confidence: intelligence.assessment.confidence,
-        posture: intelligence.assessment.posture,
+        verdict: assessmentObj.verdict,
+        summary: assessmentObj.summary,
+        confidence: assessmentObj.confidence,
+        posture: assessmentObj.posture,
       },
       evidenceLimits: {
         canSay: intelligence.feasibility.supportedNow,
@@ -287,7 +343,7 @@ Write 2–3 sentences. Cite only what the evidence supports. No invented finding
       version: 'v3',
       moduleCount: normalized.modules.length,
       lineItemCount,
-      workstreamCount: intelligence.workstreams.length,
+      workstreamCount: workstreams.length,
       deadLogicCount: deadLogic.length,
       cycleCount: cycles.length,
     });
