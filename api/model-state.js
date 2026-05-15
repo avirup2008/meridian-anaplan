@@ -49,8 +49,11 @@ function safeLog(label, obj) {
 function classifyModelDomain(listNames) {
   const lower = listNames.join(' ').toLowerCase();
   if (/employee|headcount|fte|job.grade|position|workforce|personnel|hcm/.test(lower)) return 'Workforce Planning';
-  if (/product|sku|channel|customer|territory|quota|pipeline|opportunity|crm/.test(lower)) return 'Sales & Revenue Planning';
-  if (/supplier|warehouse|inventory|demand|lead.time|procurement|logistics|distribution/.test(lower)) return 'Supply Chain Planning';
+  // Supply chain / S&OP checked before Sales — "product" and "customer" appear in both; only CRM-specific terms (quota, pipeline, opportunity, crm, territory) uniquely identify sales
+  if (/clinical|trial|pharma|pharmaceutical|patient|dosage|formulation|flavour|flavor/.test(lower)) return 'Pharmaceutical Supply Chain';
+  if (/supplier|warehouse|inventory|demand plan|supply plan|s&op|snop|lead.time|procurement|logistics|distribution|replenishment/.test(lower)) return 'Supply Chain Planning';
+  if (/quota|pipeline|opportunity|crm|territory|bookings|win.rate/.test(lower)) return 'Sales & Revenue Planning';
+  if (/product|sku|channel|customer/.test(lower)) return 'Sales & Revenue Planning';
   if (/project|milestone|capex|initiative|program|phase|deliverable/.test(lower)) return 'Project & Capex Planning';
   if (/entity|subsidiary|elimination|intercompany|consolidat|group/.test(lower)) return 'Financial Consolidation';
   if (/account|cost.center|gl|general.ledger|budget|forecast/.test(lower)) return 'Financial Planning & Analysis';

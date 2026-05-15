@@ -146,8 +146,11 @@ const HONEST_LIMITS = [
 function classifyModelDomain(listNames) {
   const lower = listNames.join(' ').toLowerCase();
   if (/employee|headcount|fte|job.grade|position|workforce|personnel|hcm/.test(lower)) return 'Workforce Planning';
-  if (/product|sku|channel|customer|territory|quota|pipeline|opportunity|crm/.test(lower)) return 'Sales & Revenue Planning';
-  if (/supplier|warehouse|inventory|demand|lead.time|procurement|logistics|distribution/.test(lower)) return 'Supply Chain Planning';
+  // Supply chain / S&OP checked before Sales — "product" and "customer" appear in both; only CRM-specific terms (quota, pipeline, opportunity, crm, territory) uniquely identify sales
+  if (/clinical|trial|pharma|pharmaceutical|patient|dosage|formulation|flavour|flavor/.test(lower)) return 'Pharmaceutical Supply Chain';
+  if (/supplier|warehouse|inventory|demand plan|supply plan|s&op|snop|lead.time|procurement|logistics|distribution|replenishment/.test(lower)) return 'Supply Chain Planning';
+  if (/quota|pipeline|opportunity|crm|territory|bookings|win.rate/.test(lower)) return 'Sales & Revenue Planning';
+  if (/product|sku|channel|customer/.test(lower)) return 'Sales & Revenue Planning';
   if (/project|milestone|capex|initiative|program|phase|deliverable/.test(lower)) return 'Project & Capex Planning';
   if (/entity|subsidiary|elimination|intercompany|consolidat|group/.test(lower)) return 'Financial Consolidation';
   if (/account|cost.center|gl|general.ledger|budget|forecast/.test(lower)) return 'Financial Planning & Analysis';
@@ -231,12 +234,17 @@ function buildDeterministicVerdict(discoMap, blastRadiusTop10, findings, moduleC
 
   const calCount = discoMap.CAL || 0;
   const datCount = discoMap.DAT || 0;
-  const modelType = calCount > datCount ? 'calculation-heavy model'
+  // Only infer model type from DISCO counts when DISCO covers > 50% of modules — otherwise the sample is too small to be meaningful
+  const discoKnown = moduleCount - unknown;
+  const modelType = discoKnown / (moduleCount || 1) < 0.5
+    ? 'mixed-prefix model'
+    : calCount > datCount ? 'calculation-heavy model'
     : datCount > calCount ? 'data-staging model'
     : 'balanced model';
 
   const namingLabel = namingPct >= 80 ? 'well-named'
     : namingPct >= 50 ? 'partially-named'
+    : namingPct >= 20 ? 'client-prefix naming'
     : 'sparse naming';
 
   const riskLabel = criticalCount > 5 ? 'high formula risk'
@@ -567,6 +575,10 @@ export default async function handler(req, res) {
     try {
       const Anthropic = (await import('@anthropic-ai/sdk')).default;
       const aiClient = new Anthropic();
+
+      console.log('[analyze-v3] AI calls: domain=%s formulaSamples=%d samplePreview=%s',
+        domain, formulaSamples.length,
+        formulaSamples[0] ? `${formulaSamples[0].module}.${formulaSamples[0].lineItem}:${formulaSamples[0].formula.slice(0, 80)}` : 'none');
 
       const [wsResult, archResult] = await Promise.allSettled([
         callWorkstreams({ aiClient, modules: normalized.modules, findingSummary, blastRadiusTop10, domain, formulaSamples, enrichment }),
