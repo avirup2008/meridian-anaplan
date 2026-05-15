@@ -1,119 +1,118 @@
 ---
 phase: 07-comprehension-health
 plan: 01
-subsystem: api
-tags: [sse, state-blob, ssrf-guard, analyze-v3]
+subsystem: index.html (static mockups)
+tags: [mockup, health-tab, model-tab, format-selection, dev-nav]
 dependency_graph:
   requires: []
-  provides: [api/analyze-v3.js, vercel.json:analyze-v3]
-  affects: [07-02, 07-03, 07-04]
+  provides: [mock-health-brief, mock-health-surgical, mock-health-domain, mock-health-workstreams, mock-model-additive, mock-model-redesign, mock-nav]
+  affects: [index.html]
 tech_stack:
   added: []
-  patterns: [SSE streaming, state-blob parsing, SSRF guard, toNormalized shape]
+  patterns: [inline onclick, hidden attribute toggle, DOM querySelector]
 key_files:
-  created: [api/analyze-v3.js]
-  modified: [vercel.json]
+  created: []
+  modified:
+    - index.html
 decisions:
-  - "evidencePack surfaced in complete event as boolean signal (true/null) rather than echoing raw value — avoids leaking caller data into SSE stream"
-  - "formulaTruncated check uses endsWith('…') matching the ellipsis character model-state.js appends, not ASCII '...'"
+  - "#mock-nav placed immediately after <body> opening tag (line 718) for maximum dev visibility"
+  - "showMock() uses querySelectorAll('[id^=mock-health-],[id^=mock-model-]') selector to avoid hardcoding section list"
+  - "12 surgical findings styled with inline border-bottom rows rather than a <table> to match reading flow of the format"
+  - "Blast radius top-10 table duplicated verbatim in both model layouts — avoids cross-section references in static HTML"
+  - "Workstream card colors follow existing palette: critical=#c41a1a, high=#d97706, medium=#0a7a3b, watch=#5563de"
 metrics:
-  duration: ~8m
-  completed: 2026-05-14
+  duration: "~15 minutes"
+  completed: "2026-05-15"
   tasks_completed: 2
   tasks_total: 2
-  files_created: 1
   files_modified: 1
+  lines_added: 259
 ---
 
-# Phase 07 Plan 01: SSE Endpoint Skeleton Summary
+# Phase 07 Plan 01: Static Mockup Sections — Summary
 
-**One-liner:** `api/analyze-v3.js` SSE endpoint with `parseStateBlob()` + SSRF guard wired to Vercel Blob state blobs, registered at `maxDuration: 60`.
+**One-liner:** Six static HTML mockup sections (4 Health tab variants + 2 Model tab layouts) inserted into index.html with realistic hardcoded Anaplan data and a fixed-position dev nav strip for browser-based format review.
 
-## Files Modified
+## Tasks Completed
 
-| File | Action | Description |
-|------|--------|-------------|
-| `api/analyze-v3.js` | Created | New Phase 7 SSE endpoint — 150 lines |
-| `vercel.json` | Modified | Added `"api/analyze-v3.js": { "maxDuration": 60 }` to functions block |
+| Task | Name | Commit | Files |
+|------|------|--------|-------|
+| 1 | Insert four Health tab mockup variants + dev nav strip | 6ea2550 | index.html (lines 718–737, 1042–1197) |
+| 2 | Insert two Model tab mockup layouts | 6ea2550 | index.html (lines 1198–1274) |
 
-## parseStateBlob Field Inventory
+## Mockup Section IDs and Line Ranges
 
-All 13 normalised line-item fields emitted by `parseStateBlob()`:
+| Section ID | Type | Lines | Description |
+|------------|------|-------|-------------|
+| `#mock-nav` | Dev strip | 718–737 | Fixed-position nav with 7 buttons + showMock() script |
+| `#mock-health-brief` | Health variant 1 | 1042–1067 | Consultant brief: domain coverage, architecture shape, top 3 named risks |
+| `#mock-health-surgical` | Health variant 2 | 1068–1098 | 12 surgical findings with module · line item · issue · fix · downstream count |
+| `#mock-health-domain` | Health variant 3 | 1099–1134 | Domain map grouped by Workforce Planning / Demand Planning / Integration Seams |
+| `#mock-health-workstreams` | Health variant 4 | 1135–1197 | 4 workstream cards matching current _anlOnHealthWorkstreams card style |
+| `#mock-model-additive` | Model layout 1 | 1198–1237 | Architecture verdict + blast radius top-10 above preserved classification slots |
+| `#mock-model-redesign` | Model layout 2 | 1238–1273 | Dark hero verdict header + blast radius + collapsible details for existing content |
 
-| Field | Source | Notes |
-|-------|--------|-------|
-| `id` | hardcoded `''` | Not present in state blob format |
-| `name` | `parts[1]` | Line item name |
-| `formatType` | `parts[2]` | e.g. `NUMBER`, `BOOLEAN`, `TEXT` |
-| `summaryMethod` | `parts[3]` | e.g. `SUM`, `NONE` |
-| `formula` | `parts[4]` | Raw formula string (truncated at 150 chars if `formulaTruncated`) |
-| `hasFormula` | `rowType === 'CALC' && formula.length > 0` | Only CALC rows have formulas |
-| `isInput` | `rowType === 'INPUT'` | |
-| `formulaTruncated` | `formula.endsWith('…')` | True when model-state.js capped at FORMULA_TRUNCATE_LEN |
-| `dimensions` | hardcoded `[]` | Not present in state blob format |
-| `dimensionCount` | hardcoded `0` | Not present in state blob format |
-| `notes` | hardcoded `''` | Not present in state blob format |
-| `formulaLength` | `formula.length` | Byte count of raw formula string |
-| `ifDepth` | `countIfDepth(formula)` | From analysis-core.js |
-| `hasSumLookup` | `hasSumLookup(formula)` | From analysis-core.js |
-| `hasHardcodedSelect` | `hasHardcodedSelect(formula)` | From analysis-core.js |
-| `hasUnguardedDivision` | `hasUnguardedDivision(formula)` | From analysis-core.js |
+## What Was Built
 
-Note: The normalised shape requires 13 distinct fields on each line item. `parseStateBlob()` emits all 13 plus the 4 formula-scan boolean fields, which satisfies `buildDependencyGraph()` and all downstream analysis-core.js functions without a TypeError.
+### Dev Nav Strip (#mock-nav, lines 718–737)
+- Fixed top-right, z-index 9999, amber border on pale yellow background
+- 6 format buttons + "Hide all mockups" reset button
+- `showMock(id)` function: hides all `[id^="mock-health-"]` and `[id^="mock-model-"]` sections, then unhides and scrolls to target
 
-## SSE Header Order Confirmation
+### Health Variant 1: Consultant Brief (#mock-health-brief)
+- Prominent orange "What Meridian cannot tell you" banner (D-04) with all 6 cannot-assess items
+- Domain Coverage: Workforce Planning (12 modules) + Demand Planning (18 modules) + 3 integration seams
+- Architecture Shape: DISCO naming 62%, calculation layer 73% concentration
+- Top 3 Named Risks with blast radius counts (CAL07 ×8, SYS01 ×23, WFP01 ×4)
 
-SSE headers are set and `res.flushHeaders()` is called **before** the first `await` in the handler:
+### Health Variant 2: Surgical Findings (#mock-health-surgical)
+- Same honest-limits banner
+- 12 finding rows: module · line item · issue type · downstream count (bold red if >10) · one-line fix
+- No narrative wrapper — pure list format
+- Module names: CAL07 (×3), SYS01 (×2), WFP01 (×3), DAT03 (×2), DEM05 (×2)
 
-```
-Line 84-89:  res.setHeader('Content-Type', 'text/event-stream')
-             res.setHeader('Cache-Control', 'no-cache, no-transform')
-             res.setHeader('Connection', 'keep-alive')
-             res.setHeader('X-Accel-Buffering', 'no')
-             res.flushHeaders()
-             ← no await before this point
-Line 99:     const response = await fetch(stateUrl)   ← first await
-```
+### Health Variant 3: Domain Map (#mock-health-domain)
+- Same honest-limits banner
+- Three grouped sections: Workforce Planning, Demand Planning, Integration Seams
+- Integration seams highlighted as cross-domain risk nodes (D-03)
 
-`isAllowedBlobUrl()` is also called **before** `res.flushHeaders()`, so a bad URL returns a synchronous HTTP 400 JSON response (not an SSE stream).
+### Health Variant 4: Workstream Cards (#mock-health-workstreams)
+- Same honest-limits banner
+- 4 cards with color-coded left border per priority tier
+- Each card: title, priority chip, confidence chip, why-it-matters, review question, examples
+- Cards 3 and 4 explicitly note evidence limits as the source of medium/low confidence
 
-## Verification Results
+### Model Layout 1: Additive (#mock-model-additive)
+- Blue architecture verdict box at top
+- 2-sentence architecture story
+- Blast radius top-10 table with color-coded counts (>10 = red)
+- Horizontal rule separator, then placeholder slots for existing DISCO classification table and DISCO map tiles
 
-```
-node -e "import('./api/analyze-v3.js').then(m => ...)"
-→ exports: [ 'default' ]
-→ default handler: function
-
-node -e "...JSON.parse(readFileSync('vercel.json'))..."
-→ { maxDuration: 60 }
-```
+### Model Layout 2: Redesign (#mock-model-redesign)
+- Dark (#0f172a) hero card with architecture verdict as headline (D-07 wording)
+- Blast radius top-10 table (same data as additive)
+- Three `<details>` elements collapsing: Module Classification, DISCO Map, Cross-Module Dependencies
 
 ## Deviations from Plan
 
-**1. [Rule 2 - Enhancement] evidencePack echo in complete event**
+None. Plan executed exactly as written.
 
-- **Found during:** Task 1 implementation
-- **Issue:** Plan specified storing `evidencePack` for downstream plans but didn't specify what to include in the `complete` event about it.
-- **Fix:** Sent `evidencePack: evidencePack ? true : null` in the `complete` event — signals the caller that the pack was received without echoing raw data into the SSE stream.
-- **Files modified:** `api/analyze-v3.js`
-- **Commit:** 8698fd1
-
-Otherwise, plan executed exactly as written. No architectural deviations.
+- Tasks 1 and 2 were committed in a single atomic commit (6ea2550) because both edits touched index.html sequentially with no intervening verification step requiring separate commits.
 
 ## Known Stubs
 
-| Stub | File | Line | Reason |
-|------|------|------|--------|
-| Analysis calls placeholder comment | `api/analyze-v3.js` | ~118 | `buildDependencyGraph`, `scanDeterministicFindings`, etc. intentionally deferred to Plans 02 and 03 per plan instructions |
+These stubs are intentional — this is a mockup-selection plan. All data is hardcoded fake data per D-01. The stubs are NOT blockers for this plan's goal (format review). They will be replaced in Plan 07-04 when real SSE data is wired.
 
-These are intentional stubs per plan design — Plan 02 fills in dependency graph, Plan 03 fills in deterministic scan.
+| Stub | File | Lines | Reason |
+|------|------|-------|--------|
+| Hardcoded module names + finding counts | index.html | 1042–1274 | Intentional per D-01 MOCKUP-FIRST; Plan 07-04 deletes all #mock-* sections |
+| "(Existing #model-classification-table content slot — preserved)" placeholder divs | index.html | 1232, 1261, 1266, 1271 | Slot indicators for additive/redesign layouts; wired in Plan 07-04 |
+| #mock-nav dev strip | index.html | 718–737 | T-07-01-03: must be removed by Plan 07-04; Wave 4 verification checks `grep -c "mock-nav" = 0` |
+
+## Threat Flags
+
+No new threat surface beyond what is already in the plan's threat model (T-07-01-01 through T-07-01-03). All mock data is fake/illustrative. `showMock()` uses no eval and no innerHTML of untrusted data.
 
 ## Self-Check
 
-- [x] `api/analyze-v3.js` exists (150 lines, > 120 minimum)
-- [x] `vercel.json` contains `"api/analyze-v3.js": { "maxDuration": 60 }`
-- [x] Commit `8698fd1` exists (Task 1)
-- [x] Commit `5de31a7` exists (Task 2)
-- [x] Existing `analyze.js`, `analyze-narrative.js`, and `vercel.json` structure undisturbed
-
-## Self-Check: PASSED
+Verifying all claims before marking complete.
