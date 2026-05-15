@@ -176,46 +176,26 @@ async function callWorkstreams({ aiClient, modules, findingSummary, blastRadiusT
     .map(b => `  ${b.moduleName}: ${b.downstreamCount} downstream modules`)
     .join('\n');
 
-  const prompt = `You are a senior Anaplan model reviewer. Respond with VALID JSON only — no markdown, no explanation.
+  const prompt = `You are a senior Anaplan model reviewer. JSON only — no markdown fences, no explanation.
 
-REAL MODULE NAMES IN THIS MODEL (you MUST cite these by exact name in your output):
+MODULE NAMES (cite by exact name):
 ${moduleNames}
 
-TOP BLAST-RADIUS MODULES (highest downstream dependency count):
+TOP BLAST-RADIUS:
 ${blastLines}
 
-DETERMINISTIC FINDINGS (anchor every claim to these — do NOT invent issues):
+FINDINGS:
 ${findingSummary}
 
-Return a JSON object with exactly this shape:
-{
-  "workstreams": [
-    {
-      "id": "ws-1",
-      "title": "string (5-8 words, MUST include a real module name from the list above)",
-      "priority": "Critical|High|Medium|Watch",
-      "confidence": "High|Medium|Low",
-      "kind": "remediation|evidence-limit",
-      "whyItMatters": "exactly 2 sentences — MUST name specific modules from the list above by exact name",
-      "reviewQuestion": "specific question about this model's structure or findings",
-      "action": "specific action mentioning real module names",
-      "evidenceCount": <integer matching finding counts above>,
-      "examples": ["<ModuleName.LineItemName> — issue description"]
-    }
-  ]
-}
+Return exactly this JSON — exactly 3 workstream objects, no more, no less:
+{"workstreams":[{"id":"ws-1","title":"<6 words citing a real module name>","priority":"Critical|High|Medium|Watch","confidence":"High|Medium|Low","kind":"remediation|evidence-limit","whyItMatters":"<1 sentence naming specific modules>","reviewQuestion":"<1 specific question>","evidenceCount":<int>,"examples":["<ModuleName> — <issue>"]},{"id":"ws-2",...},{"id":"ws-3",...}]}
 
-RULES:
-- Output 3-5 workstream objects
-- Every title and whyItMatters MUST name at least one real module from the list above
-- NEVER use generic phrases like "several modules" or "many line items" — name them specifically
-- Every claim must trace to a real finding from DETERMINISTIC FINDINGS above
-- Return ONLY the JSON object, no prose`;
+RULES: every title and whyItMatters must name a real module above. No generic phrases. Trace every claim to FINDINGS.`;
 
   const response = await Promise.race([
     aiClient.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1000,
+      max_tokens: 800,
       messages: [{ role: 'user', content: prompt }],
     }),
     new Promise((_, rej) => setTimeout(() => rej(new Error('workstreams-timeout')), 20000)),
