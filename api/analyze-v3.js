@@ -297,17 +297,18 @@ ${findingSummary}
 TOP BLAST-RADIUS MODULES:
 ${blastLines}
 
-Generate exactly 3 workstreams. Rules:
-- Every title MUST name a specific module from the formula samples or blast-radius list above
-- Every whyItMatters MUST cite a specific formula pattern (IF depth, SUM-IF member name, unguarded division, etc.) AND its business consequence in a ${domain} context
-- Connect blast radius to operational risk: if a module feeds an export or process, say so
-- No generic phrases like "Fix formulas" or "Review architecture"
+Generate exactly 3 workstreams. Each field is ONE sentence only — no conjunctions chaining multiple issues.
+- title: module name + the specific defect (e.g. "Data Upload — IF depth 12 with hardcoded German months")
+- problem: what the formula does wrong, naming the exact line item and pattern
+- impact: what breaks downstream and where (name the affected module or export)
+- fix: the specific remediation action (MONTHVALUE, COUNTIF, lookup table, guard clause, etc.)
+- No generic phrases. No review questions. No "this may" or "could potentially".
 - Use kind "evidence-limit" only when evidence is genuinely sparse
 
 {"workstreams":[
-{"id":"ws-1","title":"DAT01 Revenue Data — SUM-IF rename risk","priority":"High","confidence":"High","kind":"remediation","whyItMatters":"DAT01 Revenue Data uses SUM-IF referencing list member name 'Revenue' — renaming any account list member silently zeros 14 downstream modules including the Board export.","reviewQuestion":"Have any account list members been renamed in the last 6 months?","evidenceCount":14,"examples":["DAT01 Revenue Data.Net Revenue — SUM-IF on member name"]},
-{"id":"ws-2","title":"CAL03 Margin Calc — unguarded division","priority":"Critical","confidence":"High","kind":"remediation","whyItMatters":"CAL03 Margin Calc divides by a volume driver with no IF ISERROR guard — when the volume module is empty during load, every downstream margin metric returns an error state and corrupts the CFO pack export.","reviewQuestion":"What happens to margin metrics when volume data is not yet loaded?","evidenceCount":8,"examples":["CAL03 Margin Calc.Gross Margin % — division by potentially zero volume"]},
-{"id":"ws-3","title":"SYS02 Config — nested IF depth 6","priority":"Medium","confidence":"Medium","kind":"remediation","whyItMatters":"SYS02 Config contains formulas with IF nesting depth 6 — the deepest branches are untestable without specialist review and will silently return wrong values under edge-case inputs.","reviewQuestion":"Can the nested IF logic be expressed as a LOOKUP against a driver table?","evidenceCount":6,"examples":["SYS02 Config.Override Logic — IF depth 6"]}
+{"id":"ws-1","title":"DAT01 Revenue Data — SUM-IF member name hardcode","priority":"High","confidence":"High","kind":"remediation","problem":"DAT01 Revenue Data.Net Revenue uses SUM-IF on the literal member name 'Revenue', which silently returns zero if the account list member is renamed.","impact":"14 downstream modules including the Board export receive zeroed revenue figures with no error surfaced.","fix":"Replace the hardcoded member name with a driver list lookup or a LOOKUP formula referencing a stable list item ID.","evidenceCount":14,"examples":["DAT01 Revenue Data.Net Revenue"]},
+{"id":"ws-2","title":"CAL03 Margin Calc — unguarded division by volume driver","priority":"Critical","confidence":"High","kind":"remediation","problem":"CAL03 Margin Calc.Gross Margin % divides by a volume driver with no IF ISERROR or IF volume<>0 guard.","impact":"When volume data is not yet loaded, every downstream margin metric returns an error state and corrupts the CFO pack export.","fix":"Wrap the division in IF(volume<>0, numerator/volume, 0) or use IFERROR to return a safe fallback.","evidenceCount":8,"examples":["CAL03 Margin Calc.Gross Margin %"]},
+{"id":"ws-3","title":"SYS02 Config — nested IF depth 6 untestable branches","priority":"Medium","confidence":"Medium","kind":"remediation","problem":"SYS02 Config.Override Logic uses IF nesting depth 6, where the deepest branches cannot be isolated or unit-tested.","impact":"Edge-case inputs silently return wrong override values, propagating incorrect config state to dependent calculation modules.","fix":"Extract the nested conditions into a driver table with a LOOKUP, reducing formula depth to 1-2 levels.","evidenceCount":6,"examples":["SYS02 Config.Override Logic"]}
 ]}`;
 
   const response = await Promise.race([
@@ -579,10 +580,12 @@ export default async function handler(req, res) {
         const KINDS = new Set(['remediation','evidence-limit']);
         const valid = wsResult.value.workstreams.filter(w =>
           w && typeof w.title === 'string' && w.title.length > 3
-          && !w.title.includes('ModuleName') && !w.whyItMatters?.includes('ModuleName')
+          && !w.title.includes('ModuleName')
           && PRIORITIES.has(w.priority) && CONFIDENCES.has(w.confidence)
           && KINDS.has(w.kind)
-          && typeof w.whyItMatters === 'string' && w.whyItMatters.length > 5
+          && typeof w.problem === 'string' && w.problem.length > 5
+          && typeof w.impact === 'string' && w.impact.length > 5
+          && typeof w.fix === 'string' && w.fix.length > 5
         );
         if (valid.length === 0) {
           console.error('[analyze-v3] workstreams failed schema validation — keeping deterministic fallback');
@@ -592,7 +595,7 @@ export default async function handler(req, res) {
           const high = workstreams.filter(w => w.priority === 'High').length;
           assessmentObj = {
             verdict: critical > 0 ? 'Executive Review' : high > 0 ? 'Focused Review' : 'Builder Review',
-            summary: workstreams[0]?.whyItMatters || '',
+            summary: workstreams[0]?.problem || '',
             confidence: 'Qualified evidence',
             posture: 'review',
           };

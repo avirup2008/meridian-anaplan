@@ -5176,7 +5176,7 @@ function confirmModelSelection() {
           kind:         w.kind,
           priority:     w.priority,
           confidence:   w.confidence,
-          reasoning:    w.whyItMatters + (w.reviewQuestion ? ' ' + w.reviewQuestion : ''),
+          reasoning:    [w.problem, w.impact, w.fix].filter(Boolean).join(' ') || w.whyItMatters || '',
           examples:     Array.isArray(w.examples) ? w.examples : [],
           affectedCount: w.evidenceCount,
           domain:       w.kind === 'evidence-limit' ? 'Best Practice' : 'Structural',
@@ -5247,20 +5247,25 @@ function confirmModelSelection() {
       const priorityColor = { Critical: 'var(--neg)', High: 'var(--gold)', Medium: 'var(--accent)', Watch: 'var(--text3)' };
       return ws.map(w => {
         const color = priorityColor[w.priority] || 'var(--text3)';
-        const confColor = w.confidence === 'High' ? 'var(--pos)' : w.confidence === 'Medium' ? 'var(--gold)' : 'var(--neg)';
         const kindBadge = w.kind === 'evidence-limit'
           ? '<span class="badge b-gray" style="font-size:10px;margin-left:6px;">Evidence Limit</span>' : '';
+        // Support both new (problem/impact/fix) and legacy (whyItMatters) shapes
+        const hasNew = w.problem && w.impact && w.fix;
+        const bodyHtml = hasNew
+          ? '<div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">'
+            + '<div style="font-size:12px;"><span style="font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;font-size:10px;">Problem </span>' + escapeHtml(w.problem) + '</div>'
+            + '<div style="font-size:12px;"><span style="font-weight:600;color:var(--neg);text-transform:uppercase;letter-spacing:.04em;font-size:10px;">Impact </span>' + escapeHtml(w.impact) + '</div>'
+            + '<div style="font-size:12px;"><span style="font-weight:600;color:var(--pos);text-transform:uppercase;letter-spacing:.04em;font-size:10px;">Fix </span>' + escapeHtml(w.fix) + '</div>'
+            + '</div>'
+          : '<p style="margin:6px 0 0;font-size:13px;color:var(--text2);">' + escapeHtml(w.whyItMatters || '') + '</p>';
         return '<div class="gen-block" style="margin-bottom:12px;">'
           + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">'
-          + '<div><strong style="font-size:13px;">' + escapeHtml(w.title || '?') + '</strong>' + kindBadge
-          + '<p style="margin:6px 0 0;font-size:13px;color:var(--text2);">' + escapeHtml(w.whyItMatters || '') + '</p></div>'
-          + '<div style="text-align:right;flex-shrink:0;">'
+          + '<div style="min-width:0;flex:1;"><strong style="font-size:13px;">' + escapeHtml(w.title || '?') + '</strong>' + kindBadge
+          + bodyHtml + '</div>'
+          + '<div style="text-align:right;flex-shrink:0;padding-left:12px;">'
           + '<div style="font-size:11px;font-weight:600;color:' + color + ';white-space:nowrap;">' + escapeHtml(w.priority || '') + '</div>'
-          + '<div style="font-size:11px;color:' + confColor + ';white-space:nowrap;margin-top:2px;">' + escapeHtml(w.confidence || '') + ' confidence</div>'
           + '<div style="font-size:11px;color:var(--text3);white-space:nowrap;margin-top:2px;">' + (w.evidenceCount || 0) + ' finding' + (w.evidenceCount === 1 ? '' : 's') + '</div>'
           + '</div></div>'
-          + (w.reviewQuestion ? '<p style="margin:8px 0 0;font-size:12px;color:var(--text3);font-style:italic;">' + escapeHtml(w.reviewQuestion) + '</p>' : '')
-          + (w.examples && w.examples.length ? '<p style="margin:6px 0 0;font-size:11px;color:var(--text4);">Examples: ' + w.examples.map(escapeHtml).join('; ') + '</p>' : '')
           + '</div>';
       }).join('');
     }
