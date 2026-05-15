@@ -911,37 +911,74 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     </div>
 
     <div class="dash-panel" id="dash-panel-model" data-alias="tab-panel-model">
-      <!-- Model tab: populated by _anlOnModelComprehension() when model-comprehension SSE event arrives -->
+      <!-- Model tab: populated by _anlOnModelComprehension() + _anlOnModelComprehensionEnriched() -->
       <div id="model-loading" class="notes-empty">Analysing model architecture — this usually takes a few seconds.</div>
 
-      <!-- Module classification table — hidden until model-comprehension arrives -->
-      <div id="model-classification-section" hidden>
-        <h3 class="step-label">Module Classification</h3>
-        <p class="anl-summary" id="model-classification-subtitle"></p>
-        <div id="model-classification-table-wrap" style="overflow-x:auto;margin-top:12px;">
-          <table id="model-classification-table" class="data-table" style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead>
-              <tr>
-                <th style="text-align:left;padding:6px 10px;">Module</th>
-                <th style="text-align:left;padding:6px 10px;">DISCO</th>
-                <th style="text-align:left;padding:6px 10px;">Confidence</th>
-                <th style="text-align:right;padding:6px 10px;">Formulas</th>
-                <th style="text-align:right;padding:6px 10px;">Inputs</th>
-              </tr>
-            </thead>
-            <tbody id="model-classification-body"></tbody>
-          </table>
+      <!-- D-07: Architecture verdict card (additive, above existing content) -->
+      <div id="model-architecture-section" hidden style="margin-bottom:20px;">
+        <div id="model-architecture-verdict-card" class="verdict-card risk" style="margin-bottom:0;">
+          <div class="verdict-hd"><div class="verdict-icon">⚡</div><div>
+            <div class="verdict-title" id="model-verdict-title">Computing…</div>
+            <div class="verdict-sub" id="model-verdict-sub"></div>
+          </div></div>
+          <div class="verdict-body"><p id="model-architecture-story" style="margin:0;"></p></div>
         </div>
       </div>
 
-      <!-- DISCO architecture map — hidden until model-comprehension arrives -->
-      <div id="model-disco-section" hidden style="margin-top:24px;">
+      <!-- D-03: Blast radius bar chart -->
+      <div id="model-blast-radius-section" hidden style="margin-bottom:20px;">
+        <h3 class="step-label">Blast Radius — Top Modules</h3>
+        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);padding:16px 18px;">
+          <div style="display:flex;flex-direction:column;gap:9px;" id="model-blast-radius-bars"></div>
+          <div style="display:flex;gap:16px;margin-top:12px;padding-top:10px;border-top:1px solid var(--rule);">
+            <div style="display:flex;align-items:center;gap:5px;"><div style="width:18px;height:4px;border-radius:2px;background:var(--neg);"></div><span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);">≥15 downstream</span></div>
+            <div style="display:flex;align-items:center;gap:5px;"><div style="width:18px;height:4px;border-radius:2px;background:var(--gold);"></div><span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);">5–14 downstream</span></div>
+            <div style="display:flex;align-items:center;gap:5px;"><div style="width:18px;height:4px;border-radius:2px;background:var(--pos);"></div><span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);">&lt;5 downstream</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D-02: Domain map (filled by model-comprehension-enriched) -->
+      <div id="model-domain-map-section" hidden style="margin-bottom:20px;">
+        <h3 class="step-label">Planning Domains</h3>
+        <div id="model-domain-map-body" style="display:flex;flex-direction:column;gap:6px;"></div>
+        <div id="model-integration-seams-wrap" hidden style="margin-top:10px;">
+          <div class="step-label" style="margin-bottom:6px;">Integration Seams</div>
+          <ul id="model-integration-seams" style="font-size:13px;margin:0;padding-left:20px;"></ul>
+        </div>
+      </div>
+
+      <!-- Module classification — collapsed by default (too long to lead with) -->
+      <div id="model-classification-section" hidden>
+        <details style="margin-bottom:20px;">
+          <summary style="cursor:pointer;font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);padding:8px 0;list-style:none;display:flex;align-items:center;gap:8px;">
+            <span>▶</span><span id="model-classification-subtitle">Module Classification</span>
+          </summary>
+          <div id="model-classification-table-wrap" style="overflow-x:auto;margin-top:8px;">
+            <table id="model-classification-table" class="data-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+              <thead>
+                <tr>
+                  <th style="text-align:left;padding:6px 10px;">Module</th>
+                  <th style="text-align:left;padding:6px 10px;">DISCO</th>
+                  <th style="text-align:left;padding:6px 10px;">Confidence</th>
+                  <th style="text-align:right;padding:6px 10px;">Formulas</th>
+                  <th style="text-align:right;padding:6px 10px;">Inputs</th>
+                </tr>
+              </thead>
+              <tbody id="model-classification-body"></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <!-- DISCO architecture map -->
+      <div id="model-disco-section" hidden style="margin-bottom:20px;">
         <h3 class="step-label">Architecture Map</h3>
         <div id="model-disco-map" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;"></div>
       </div>
 
       <!-- Limitation cards — shown when gates fail -->
-      <div id="model-limitations-section" hidden style="margin-top:24px;">
+      <div id="model-limitations-section" hidden style="margin-bottom:20px;">
         <h3 class="step-label">Evidence Limitations</h3>
         <div id="model-limitation-cards"></div>
       </div>
@@ -974,10 +1011,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     </div>
 
     <div class="dash-panel active" id="dash-panel-verdict">
-      <div class="anl-score-card" id="anl-score-card" hidden>
+      <!-- Keep anl-score-card hidden — legacy element used by shared-view only -->
+      <div class="anl-score-card" id="anl-score-card" hidden style="display:none!important;">
         <div class="anl-score-main">
-          <div class="step-label">Review Posture</div>
-          <div class="mii-num" id="anl-score-num">Review</div>
           <div id="anl-verdict-chip" class="mii-band-chip"><span class="anl-dot"></span><span id="anl-verdict-text">—</span></div>
           <p class="anl-summary" id="anl-summary"></p>
         </div>
@@ -989,30 +1025,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
           <div class="anl-dim" data-key="governance"><label>Governance</label><div class="prog"><div class="prog-f"></div></div><span class="anl-dim-val">--</span></div>
         </div>
       </div>
-      <div class="intel-card wide" id="anl-intel-preview" hidden></div>
 
-      <!-- Health workstreams — populated by _anlOnHealthWorkstreams() -->
-      <div id="health-workstreams-section" hidden style="margin-top:24px;">
-        <h3 class="step-label">Evidence Workstreams</h3>
-        <p class="anl-summary" id="health-executive-brief"></p>
-        <div id="health-workstreams-list" style="margin-top:16px;"></div>
+      <!-- D-04: Honest limits — FIRST AND PROMINENT -->
+      <div id="health-honest-limits" hidden style="background:var(--gold-pale);border-left:4px solid var(--gold);padding:14px 18px;margin-bottom:16px;border-radius:var(--r-md);">
+        <strong style="font-size:13px;color:var(--gold);">What Meridian cannot tell you</strong>
+        <ul id="health-honest-limits-list" style="margin:8px 0 0;font-size:12px;padding-left:18px;color:var(--text2);"></ul>
       </div>
 
-      <!-- Evidence limits section -->
-      <div id="health-evidence-limits" hidden style="margin-top:24px;">
-        <h3 class="step-label">Evidence Limits</h3>
-        <p style="font-size:13px;color:#666;margin-bottom:12px;">What Meridian can and cannot determine from the fetched blueprint.</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-          <div>
-            <strong style="font-size:12px;color:#2ecc71;">What the evidence supports</strong>
-            <ul id="health-can-say" style="margin-top:8px;font-size:13px;padding-left:18px;"></ul>
+      <!-- D-07 + D-06: Architecture verdict + health score -->
+      <div id="health-verdict-card" hidden class="verdict-card risk" style="margin-bottom:16px;">
+        <div class="verdict-hd" style="align-items:flex-start;">
+          <div class="verdict-icon">⚡</div>
+          <div style="flex:1;">
+            <div class="verdict-title" id="health-verdict-text"></div>
+            <div class="verdict-sub" id="health-score-reasoning" style="margin-top:4px;"></div>
           </div>
-          <div>
-            <strong style="font-size:12px;color:#e74c3c;">What cannot be determined</strong>
-            <ul id="health-cannot-say" style="margin-top:8px;font-size:13px;padding-left:18px;"></ul>
+          <div style="text-align:right;padding-left:20px;flex-shrink:0;">
+            <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Health Score</div>
+            <div id="health-score-num" style="font-size:32px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--text);line-height:1.1;">--</div>
+            <div id="health-score-split" style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:2px;"></div>
           </div>
         </div>
       </div>
+
+      <!-- Format-specific render slot (workstreams / brief / surgical / domain) -->
+      <div id="health-format-slot" hidden></div>
     </div>
 
 

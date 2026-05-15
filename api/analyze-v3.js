@@ -200,8 +200,14 @@ RULES:
   ]);
 
   const raw = response.content?.[0]?.text?.trim() || '{}';
-  const stripped = raw.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '');
-  return JSON.parse(stripped);
+  // Extract JSON robustly: find outermost { } regardless of prose or fences around it
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start < 0 || end <= start) {
+    console.error('[analyze-v3] Sonnet returned non-JSON response (first 200 chars):', raw.slice(0, 200));
+    throw new Error('Sonnet response contained no JSON object');
+  }
+  return JSON.parse(raw.slice(start, end + 1));
 }
 
 export default async function handler(req, res) {
@@ -409,9 +415,9 @@ export default async function handler(req, res) {
         };
       }
     } catch (e) {
-      console.log('[analyze-v3] singleSonnetCall failed, using deterministic fallback:', e.message);
-      architectureVerdict = 'Architectural verdict unavailable — synthesis failed';
-      architectureStory = 'Sonnet domain inference did not complete; deterministic findings only.';
+      console.error('[analyze-v3] singleSonnetCall failed:', e.constructor.name, e.message);
+      architectureVerdict = '';
+      architectureStory = '';
     }
 
     // D-06: blend deterministic base with Sonnet judgment (equal weight)
