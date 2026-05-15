@@ -16,22 +16,28 @@ import {
   detectDaisyChains,
 } from './analysis-core.js';
 
-// parseStateBlob: converts the compact tab-separated state blob (from model-state.js
-// serializeModelState) back into an array of module objects.
+// ─── parseStateBlob ───────────────────────────────────────────────────────────
+// Parses the compact tab-separated blob written by model-state.js.
+// Returns { modules, enrichment } — enrichment contains lists, versions,
+// imports, exports, processes extracted from the header sections.
 //
-// Format:
+// Row types:
+//   LIST\t{name}\t{itemCount}
+//   VERSION\t{name}
+//   IMPORT\t{name}
+//   EXPORT\t{name}
+//   PROCESS\t{name}
 //   MODULE\t{id}\t{name}\t{prefix}
 //   CALC\t{name}\t{format}\t{summary}\t{formula}
 //   INPUT\t{name}\t{format}\t{summary}\t
 //   ITEM\t{name}\t{format}\t{summary}\t
-//   <blank line between modules>
 function parseStateBlob(text) {
   const modules = [];
+  const enrichment = { lists: [], versions: [], imports: [], exports: [], processes: [] };
   let current = null;
 
   for (const rawLine of text.split('\n')) {
     const line = rawLine.trimEnd();
-    // Blank line ends the current module block
     if (!line) {
       current = null;
       continue;
@@ -58,7 +64,7 @@ function parseStateBlob(text) {
         formula,
         hasFormula: rowType === 'CALC' && formula.length > 0,
         isInput: rowType === 'INPUT',
-        formulaTruncated: formula.endsWith('…'), // '…'
+        formulaTruncated: formula.endsWith('…'),
         dimensions: [],
         dimensionCount: 0,
         notes: '',
@@ -68,15 +74,23 @@ function parseStateBlob(text) {
         hasHardcodedSelect: hasHardcodedSelect(formula),
         hasUnguardedDivision: hasUnguardedDivision(formula),
       });
+    } else if (rowType === 'LIST') {
+      enrichment.lists.push({ name: parts[1] || '', itemCount: parseInt(parts[2] || '0', 10) });
+    } else if (rowType === 'VERSION') {
+      enrichment.versions.push({ name: parts[1] || '' });
+    } else if (rowType === 'IMPORT') {
+      enrichment.imports.push({ name: parts[1] || '' });
+    } else if (rowType === 'EXPORT') {
+      enrichment.exports.push({ name: parts[1] || '' });
+    } else if (rowType === 'PROCESS') {
+      enrichment.processes.push({ name: parts[1] || '' });
     }
-    // Unknown row types are silently skipped (T-07-01-02: never throws on malformed input)
+    // Unknown row types silently skipped — forward-compatible
   }
 
-  return modules;
+  return { modules, enrichment };
 }
 
-// toNormalized: wraps a modules array into the shape that buildDependencyGraph() and
-// all other analysis-core.js functions expect.
 function toNormalized(modules) {
   return {
     modelId: '',
@@ -93,12 +107,10 @@ function toNormalized(modules) {
   };
 }
 
-// Derives confidence score for module classification per RESEARCH.md methodology
 function moduleConfidence(mod, declaredLayer) {
   if (declaredLayer === 'unknown') {
     return { score: 0.40, label: 'Low', reason: 'No DISCO prefix recognised' };
   }
-  // Check if behavior inferred from line item ratios matches declared layer
   const formulaRatio = mod.lineItems && mod.lineItems.length > 0
     ? mod.lineItems.filter(li => li.hasFormula).length / mod.lineItems.length
     : 0;
@@ -115,10 +127,8 @@ const DISCO_LABEL = {
   data: 'DAT', system: 'SYS', calculation: 'CAL', planning: 'INP', output: 'REP', unknown: 'UNKNOWN',
 };
 
-// D-05: which health output format Sonnet produces (matches 07-MOCKUP-DECISION.md choice)
 const HEALTH_FORMAT = 'workstreams';
 
-// D-04: fixed list of what Meridian cannot assess — always emitted verbatim
 const HONEST_LIMITS = [
   'Calculation execution speed',
   'Data load runtimes',
@@ -128,7 +138,74 @@ const HONEST_LIMITS = [
   'Workspace utilization',
 ];
 
-// D-06: deterministic health score — finding severity weighted by host module blast radius
+// ─── Domain classifier ────────────────────────────────────────────────────────
+// Mirrors the classifier in model-state.js — used when enrichment is parsed from the blob.
+
+function classifyModelDomain(listNames) {
+  const lower = listNames.join(' ').toLowerCase();
+  if (/employee|headcount|fte|job.grade|position|workforce|personnel|hcm/.test(lower)) return 'Workforce Planning';
+  if (/product|sku|channel|customer|territory|quota|pipeline|opportunity|crm/.test(lower)) return 'Sales & Revenue Planning';
+  if (/supplier|warehouse|inventory|demand|lead.time|procurement|logistics|distribution/.test(lower)) return 'Supply Chain Planning';
+  if (/project|milestone|capex|initiative|program|phase|deliverable/.test(lower)) return 'Project & Capex Planning';
+  if (/entity|subsidiary|elimination|intercompany|consolidat|group/.test(lower)) return 'Financial Consolidation';
+  if (/account|cost.center|gl|general.ledger|budget|forecast/.test(lower)) return 'Financial Planning & Analysis';
+  return 'General Planning';
+}
+
+// ─── Formula sample extractor ─────────────────────────────────────────────────
+// Selects up to maxSamples formula strings from the highest blast-radius modules.
+// Prioritises formulas with the most risk flags (IF depth, SUM-IF, unguarded division).
+// These are the examples passed verbatim to the AI so it can generate specific advisory.
+
+function extractFormulaSamples(modules, blastRadiusById, maxSamples = 12) {
+  const byBlast = [...modules].sort(
+    (a, b) => (blastRadiusById.get(b.id) || 0) - (blastRadiusById.get(a.id) || 0),
+  );
+
+  const samples = [];
+
+  for (const mod of byBlast) {
+    if (samples.length >= maxSamples) break;
+
+    const risky = mod.lineItems
+      .filter(li => li.hasFormula && li.formula.length > 20)
+      .map(li => ({
+        ...li,
+        riskScore:
+          (li.ifDepth > 3 ? 4 : li.ifDepth > 1 ? 2 : 0) +
+          (li.hasSumLookup ? 3 : 0) +
+          (li.hasUnguardedDivision ? 3 : 0) +
+          (li.hasHardcodedSelect ? 2 : 0) +
+          Math.min(2, li.formula.length / 200),
+      }))
+      .sort((a, b) => b.riskScore - a.riskScore)
+      .slice(0, 2);
+
+    for (const li of risky) {
+      const flags = [];
+      if (li.ifDepth > 3) flags.push(`nested IF depth ${li.ifDepth}`);
+      else if (li.ifDepth > 1) flags.push(`IF depth ${li.ifDepth}`);
+      if (li.hasSumLookup) flags.push('SUM-IF on list member name — rename risk');
+      if (li.hasUnguardedDivision) flags.push('unguarded division — zero-data risk');
+      if (li.hasHardcodedSelect) flags.push('hardcoded SELECT');
+      if (li.formulaTruncated) flags.push('formula truncated at 600 chars');
+      if (!flags.length) flags.push('complex formula');
+
+      samples.push({
+        module: mod.name,
+        lineItem: li.name,
+        formula: li.formula,
+        blast: blastRadiusById.get(mod.id) || 0,
+        flags,
+      });
+    }
+  }
+
+  return samples;
+}
+
+// ─── Deterministic health score ────────────────────────────────────────────────
+
 function computeDeterministicHealthScore(findings, blastRadiusById, moduleCount) {
   const SEVERITY_WEIGHT = { critical: 4, warning: 2, info: 1 };
   let penalty = 0;
@@ -138,12 +215,13 @@ function computeDeterministicHealthScore(findings, blastRadiusById, moduleCount)
     penalty += w * (1 + blast * 0.25);
   }
   const score = Math.max(0, 100 - (penalty / Math.max(moduleCount, 1)) * 8);
-  return Math.round(Math.min(95, score)); // 95 cap: perfect models still show 95 — signals Meridian cannot verify all dimensions
+  // 95 cap: even clean models show 95 — Meridian cannot verify all quality dimensions
+  return Math.round(Math.min(95, score));
 }
 
-// Deterministic architecture verdict — computed from DISCO coverage + blast radius + finding counts.
-// Used as primary verdict (no Sonnet dependency for this field).
-function buildDeterministicVerdict(discoMap, blastRadiusTop10, findings, moduleCount) {
+// ─── Deterministic architecture verdict ───────────────────────────────────────
+
+function buildDeterministicVerdict(discoMap, blastRadiusTop10, findings, moduleCount, domain) {
   const unknown = discoMap.UNKNOWN || 0;
   const namingPct = moduleCount > 0 ? Math.round((1 - unknown / moduleCount) * 100) : 0;
   const criticalCount = findings.filter(f => f.severity === 'critical').length;
@@ -164,42 +242,77 @@ function buildDeterministicVerdict(discoMap, blastRadiusTop10, findings, moduleC
     : topBlast > 20 ? 'high blast-radius concentration'
     : 'low detected risk';
 
-  return `${modelType}, ${namingLabel}, ${riskLabel}`;
+  const domainSuffix = domain && domain !== 'General Planning' ? ` (${domain})` : '';
+  return `${modelType}${domainSuffix}, ${namingLabel}, ${riskLabel}`;
 }
 
-// Call 1: Sonnet — workstream cards only.
-// Focused prompt with real module names forces model-specific output.
-async function callWorkstreams({ aiClient, modules, findingSummary, blastRadiusTop10 }) {
-  const moduleNames = modules.slice(0, 50).map(m => m.name).join('\n')
-    + (modules.length > 50 ? `\n… and ${modules.length - 50} more` : '');
+// ─── AI call: workstreams ──────────────────────────────────────────────────────
+// Uses full formula samples + domain + integration context for model-specific advisory.
+
+async function callWorkstreams({ aiClient, modules, findingSummary, blastRadiusTop10, domain, formulaSamples, enrichment }) {
   const blastLines = blastRadiusTop10
     .map(b => `  ${b.moduleName}: ${b.downstreamCount} downstream modules`)
     .join('\n');
 
-  const prompt = `You are a senior Anaplan model reviewer. Your response MUST begin with { and end with }. No markdown fences. No preamble. No trailing text. Raw JSON only.
+  const formulaBlock = formulaSamples.length
+    ? formulaSamples.map(s =>
+        `[${s.module}].'${s.lineItem}' (blast radius: ${s.blast}):\n  ${s.formula}\n  ⚠ ${s.flags.join(', ')}`
+      ).join('\n\n')
+    : 'No formula samples available — model may not expose formula text.';
 
-MODULE NAMES (cite by exact name):
-${moduleNames}
+  const integrationLines = [
+    enrichment.imports.length
+      ? `Receives data from: ${enrichment.imports.slice(0, 5).map(i => i.name).join(', ')}`
+      : '',
+    enrichment.exports.length
+      ? `Feeds downstream: ${enrichment.exports.slice(0, 5).map(e => e.name).join(', ')}`
+      : '',
+    enrichment.processes.length
+      ? `Operational processes: ${enrichment.processes.slice(0, 3).map(p => p.name).join(', ')}`
+      : '',
+    enrichment.versions.length
+      ? `Planning versions: ${enrichment.versions.map(v => v.name).join(', ')}`
+      : '',
+  ].filter(Boolean).join('\n');
 
-TOP BLAST-RADIUS:
-${blastLines}
+  const listContext = enrichment.lists.length
+    ? `Key dimensions: ${enrichment.lists.slice(0, 10).map(l => `${l.name} (${l.itemCount})`).join(', ')}`
+    : '';
 
-FINDINGS:
+  const prompt = `You are a senior Anaplan architect writing a model review for a ${domain} model.
+Your response MUST begin with { and end with }. No markdown fences. No preamble. Raw JSON only.
+
+MODEL CONTEXT:
+Domain: ${domain}
+${listContext}
+${integrationLines}
+
+HIGH-RISK FORMULA SAMPLES — cite these directly, using the exact module and line item names:
+${formulaBlock}
+
+FINDINGS SUMMARY:
 ${findingSummary}
 
-Return exactly 3 workstream objects. Output valid JSON only:
-{"workstreams":[
-{"id":"ws-1","title":"Fix formulas in ModuleName","priority":"High","confidence":"High","kind":"remediation","whyItMatters":"ModuleName has 23 SUM-IF issues.","reviewQuestion":"Are these formulas intentional?","evidenceCount":23,"examples":["ModuleName — nested SUM-IF"]},
-{"id":"ws-2","title":"Review rollup errors in ModuleName","priority":"Medium","confidence":"Medium","kind":"remediation","whyItMatters":"ModuleName uses invalid rate rollups.","reviewQuestion":"Should these rates be summed?","evidenceCount":8,"examples":["ModuleName — rate sum"]},
-{"id":"ws-3","title":"Naming gaps limit architecture review","priority":"Watch","confidence":"Low","kind":"evidence-limit","whyItMatters":"ModuleName lacks DISCO prefix.","reviewQuestion":"Is naming intentional?","evidenceCount":40,"examples":["ModuleName — no prefix"]}
-]}
+TOP BLAST-RADIUS MODULES:
+${blastLines}
 
-RULES: every title and whyItMatters MUST name a real module from the list above. No generic phrases. Trace every claim to FINDINGS.`;
+Generate exactly 3 workstreams. Rules:
+- Every title MUST name a specific module from the formula samples or blast-radius list above
+- Every whyItMatters MUST cite a specific formula pattern (IF depth, SUM-IF member name, unguarded division, etc.) AND its business consequence in a ${domain} context
+- Connect blast radius to operational risk: if a module feeds an export or process, say so
+- No generic phrases like "Fix formulas" or "Review architecture"
+- Use kind "evidence-limit" only when evidence is genuinely sparse
+
+{"workstreams":[
+{"id":"ws-1","title":"<ModuleName> — <specific issue>","priority":"Critical|High|Medium|Watch","confidence":"High|Medium|Low","kind":"remediation","whyItMatters":"<business consequence citing formula pattern and downstream impact>","reviewQuestion":"<specific testable question for the model builder>","evidenceCount":<int>,"examples":["<ModuleName.LineItemName — specific finding>"]},
+{"id":"ws-2","title":"...","priority":"...","confidence":"...","kind":"remediation","whyItMatters":"...","reviewQuestion":"...","evidenceCount":<int>,"examples":["..."]},
+{"id":"ws-3","title":"...","priority":"...","confidence":"...","kind":"remediation|evidence-limit","whyItMatters":"...","reviewQuestion":"...","evidenceCount":<int>,"examples":["..."]}
+]}`;
 
   const response = await Promise.race([
     aiClient.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 800,
+      max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }],
     }),
     new Promise((_, rej) => setTimeout(() => rej(new Error('workstreams-timeout')), 20000)),
@@ -215,38 +328,55 @@ RULES: every title and whyItMatters MUST name a real module from the list above.
   return JSON.parse(raw.slice(start, end + 1));
 }
 
-// Call 2: Haiku — domain map + architecture story only.
-// Lighter model, smaller token budget, fewer failure modes.
-async function callArchitecture({ aiClient, modules }) {
+// ─── AI call: architecture ─────────────────────────────────────────────────────
+// Uses domain + list names + integration context for grounded architecture description.
+
+async function callArchitecture({ aiClient, modules, domain, enrichment }) {
   const moduleNames = modules.slice(0, 60).map(m => m.name).join('\n')
     + (modules.length > 60 ? `\n… and ${modules.length - 60} more` : '');
 
-  const prompt = `You are an Anaplan architect. Your response MUST begin with { and end with }. No markdown fences. No preamble. Raw JSON only.
+  const listContext = enrichment.lists.length
+    ? enrichment.lists.slice(0, 15).map(l => `${l.name} (${l.itemCount} members)`).join(', ')
+    : 'not available';
 
-MODULE NAMES IN THIS MODEL:
+  const importContext = enrichment.imports.length
+    ? enrichment.imports.slice(0, 5).map(i => i.name).join(', ')
+    : '';
+  const exportContext = enrichment.exports.length
+    ? enrichment.exports.slice(0, 5).map(e => e.name).join(', ')
+    : '';
+
+  const prompt = `You are an Anaplan architect. Your response MUST begin with { and end with }. No markdown fences. Raw JSON only.
+
+MODEL: ${domain}
+DIMENSION LISTS: ${listContext}
+${importContext ? `DATA SOURCES: ${importContext}` : ''}
+${exportContext ? `DOWNSTREAM CONSUMERS: ${exportContext}` : ''}
+
+MODULE NAMES:
 ${moduleNames}
 
-Return a JSON object with exactly this shape:
+Return exactly this JSON shape:
 {
   "domainMap": [
-    { "domainName": "string", "description": "1 sentence", "moduleCount": <int> }
+    { "domainName": "string", "description": "1 sentence — use actual list and module names, not generic terms", "moduleCount": <int> }
   ],
   "integrationSeams": [
-    { "moduleName": "string (must be from the list above)", "reason": "1 phrase" }
+    { "moduleName": "string (must be from the module list above)", "reason": "1 phrase" }
   ],
-  "architectureStory": "exactly 2 sentences describing the model type and architecture maturity"
+  "architectureStory": "2 sentences: first describes what this ${domain} model calculates, naming real lists and modules; second assesses architecture maturity from naming patterns and structure"
 }
 
 RULES:
-- 2-4 domains, inferred from module name prefixes and naming patterns
-- 1-3 integration seams (cross-domain boundary modules)
-- All module names cited must come from the list above
-- Return ONLY the JSON object`;
+- 2-4 domains inferred from module prefixes and naming
+- 1-3 integration seams at cross-domain boundaries
+- architectureStory must name at least 2 specific lists or modules — no generic statements
+- All module names cited must appear in the module list above`;
 
   const response = await Promise.race([
     aiClient.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 600,
+      max_tokens: 700,
       messages: [{ role: 'user', content: prompt }],
     }),
     new Promise((_, rej) => setTimeout(() => rej(new Error('architecture-timeout')), 20000)),
@@ -262,23 +392,22 @@ RULES:
   return JSON.parse(raw.slice(start, end + 1));
 }
 
+// ─── Main handler ─────────────────────────────────────────────────────────────
+
 export default async function handler(req, res) {
   applyCors(req, res);
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // T-07-01-01: Validate stateUrl before any network call (SSRF guard)
   const stateUrl = req.body?.stateUrl;
   if (!stateUrl) return res.status(400).json({ error: 'Missing stateUrl' });
   if (!isAllowedBlobUrl(stateUrl)) {
     return res.status(400).json({ error: 'Invalid stateUrl — must be a Vercel Blob URL' });
   }
 
-  // evidencePack is optional — older callers may omit it; downstream plans consume it
   const evidencePack = req.body?.evidencePack || null;
 
-  // SSE headers MUST be set and flushed before the first await (SSE ordering requirement)
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
@@ -299,23 +428,23 @@ export default async function handler(req, res) {
 
     sendEvent({ type: 'stage', stage: 'classifying', label: 'Parsing model state…' });
 
-    const modules = parseStateBlob(stateText);
+    const { modules, enrichment } = parseStateBlob(stateText);
     if (!modules.length) {
       throw new Error('State blob contains no modules — re-fetch model state');
     }
 
+    // Classify domain from list names (available after enrichment fetch in model-state.js)
+    const domain = classifyModelDomain(enrichment.lists.map(l => l.name));
+
     const normalized = toNormalized(modules);
 
-    // Build dependency graph
     sendEvent({ type: 'stage', stage: 'graph', label: 'Building dependency graph…' });
     const graph = buildDependencyGraph(normalized);
 
-    // Build architecture classification
     sendEvent({ type: 'stage', stage: 'classifying', label: 'Classifying modules…' });
     const architecture = buildArchitectureClassification(normalized, graph);
     const diagnostics = buildEvidenceDiagnostics(normalized, graph, architecture);
 
-    // Build module classification payload with DISCO labels and confidence
     const classifiedModules = architecture.modules.map(archMod => {
       const rawMod = normalized.modules.find(m => m.id === archMod.moduleId) || {};
       const discoLabel = DISCO_LABEL[archMod.declaredLayer] || 'UNKNOWN';
@@ -333,22 +462,19 @@ export default async function handler(req, res) {
       };
     });
 
-    // Build DISCO prefix count map
     const discoMap = { SYS: 0, DAT: 0, CAL: 0, REP: 0, INP: 0, UNKNOWN: 0 };
     for (const m of classifiedModules) {
       discoMap[m.discoLabel] = (discoMap[m.discoLabel] || 0) + 1;
     }
 
-    // Dead logic detection
     sendEvent({ type: 'stage', stage: 'dead-logic', label: 'Detecting dead logic…' });
     const deadLogic = detectDeadLogic(normalized.modules, graph);
     const cycles = detectCircularDependencies(graph);
     const daisyChains = detectDaisyChains(graph);
 
-    // Limitation cards from diagnostics blocked conclusions
     const limitationCards = diagnostics.blockedClaims || [];
 
-    // D-03: Blast radius — downstream module count per module
+    // Blast radius — downstream module count per module
     const downstreamByModule = new Map();
     for (const edge of graph.edges) {
       if (!downstreamByModule.has(edge.fromModuleId)) downstreamByModule.set(edge.fromModuleId, new Set());
@@ -362,7 +488,9 @@ export default async function handler(req, res) {
     const blastRadiusTop10 = blastRadius.slice(0, 10);
     const blastRadiusById = new Map(blastRadius.map(b => [b.moduleId, b.downstreamCount]));
 
-    // Emit model-comprehension event (fast — pre-AI)
+    // Extract formula samples from highest blast-radius modules — passed verbatim to AI
+    const formulaSamples = extractFormulaSamples(normalized.modules, blastRadiusById);
+
     sendEvent({
       type: 'model-comprehension',
       modules: classifiedModules,
@@ -374,21 +502,19 @@ export default async function handler(req, res) {
       discoMap,
       blastRadiusTop10,
       limitationCards,
+      domain,
     });
 
-    // ── Health engine ────────────────────────────────────────────────────────────
     sendEvent({ type: 'stage', stage: 'health', label: 'Synthesizing model intelligence…' });
 
-    // Run deterministic findings
     const findings = [
       ...scanDeterministicFindings(normalized),
       ...scanArchitectureFindings(normalized),
     ];
 
-    // Get deterministic structure (workstream groupings, examples, evidence items)
     const intelligence = buildEvidenceBackedIntelligence(normalized, findings);
 
-    // Build per-rule example map for Sonnet prompt
+    // Build finding summary — module + line item evidence per rule category
     const byRule = {};
     for (const f of findings) {
       if (!byRule[f.ruleId]) byRule[f.ruleId] = [];
@@ -408,9 +534,7 @@ export default async function handler(req, res) {
     const NAMING_RULES  = ['MODULE_NAMING_PATTERN','BOOLEAN_NAME_WEAK','TEXT_FORMAT_USED'];
     const ROLLUP_RULES  = ['RATE_SUMMARY_SUM','BOOLEAN_SUMMARY_INVALID'];
     const ARCH_RULES    = ['ARCH_OUTPUT_READS_RAW_LAYER','ARCH_DATA_MODULE_HAS_FORMULAS','MODULE_DATA_HAS_CALC','ARCH_CALC_MODULE_STORES_INPUTS'];
-    const totalFormulas = normalized.modules.reduce((s,m)=>s+m.lineItems.filter(li=>li.hasFormula).length,0);
-    const totalLIs      = normalized.modules.reduce((s,m)=>s+m.lineItems.length,0);
-    const namingPct     = evidencePack?.namingCoverage != null ? `${(evidencePack.namingCoverage*100).toFixed(0)}%` : 'unknown';
+    const namingPct = evidencePack?.namingCoverage != null ? `${(evidencePack.namingCoverage*100).toFixed(0)}%` : 'unknown';
 
     const findingSummary = [
       `FORMULA issues (${findings.filter(f=>FORMULA_RULES.includes(f.ruleId)).length} total):\n${ruleLines(FORMULA_RULES) || '  none detected'}`,
@@ -419,29 +543,25 @@ export default async function handler(req, res) {
       `ARCHITECTURE signals (${findings.filter(f=>ARCH_RULES.includes(f.ruleId)).length} total):\n${ruleLines(ARCH_RULES) || '  none detected — naming coverage ${namingPct} limits architecture detection'}`,
     ].join('\n\n');
 
-    // Deterministic verdict and health score — primary outputs, no AI dependency
-    const architectureVerdict = buildDeterministicVerdict(discoMap, blastRadiusTop10, findings, normalized.modules.length);
+    const architectureVerdict = buildDeterministicVerdict(discoMap, blastRadiusTop10, findings, normalized.modules.length, domain);
     const healthScore = computeDeterministicHealthScore(findings, blastRadiusById, normalized.modules.length);
 
-    // Defaults — used if AI calls fail
     let workstreams = intelligence.workstreams;
     let domainMap = [];
     let integrationSeams = [];
     let architectureStory = '';
     let assessmentObj = intelligence.assessment;
 
-    // Two parallel AI calls — workstreams (Sonnet) + architecture/domain (Haiku)
     try {
       const Anthropic = (await import('@anthropic-ai/sdk')).default;
       const aiClient = new Anthropic();
 
       const [wsResult, archResult] = await Promise.allSettled([
-        callWorkstreams({ aiClient, modules: normalized.modules, findingSummary, blastRadiusTop10 }),
-        callArchitecture({ aiClient, modules: normalized.modules }),
+        callWorkstreams({ aiClient, modules: normalized.modules, findingSummary, blastRadiusTop10, domain, formulaSamples, enrichment }),
+        callArchitecture({ aiClient, modules: normalized.modules, domain, enrichment }),
       ]);
 
       if (wsResult.status === 'fulfilled' && Array.isArray(wsResult.value?.workstreams) && wsResult.value.workstreams.length) {
-        // Validate schema — reject malformed AI output rather than replacing good deterministic fallback
         const PRIORITIES = new Set(['Critical','High','Medium','Watch']);
         const CONFIDENCES = new Set(['High','Medium','Low']);
         const KINDS = new Set(['remediation','evidence-limit']);
@@ -456,18 +576,18 @@ export default async function handler(req, res) {
           console.error('[analyze-v3] workstreams failed schema validation — keeping deterministic fallback');
         } else {
           workstreams = valid;
-        const critical = workstreams.filter(w => w.priority === 'Critical').length;
-        const high = workstreams.filter(w => w.priority === 'High').length;
-        assessmentObj = {
-          verdict: critical > 0 ? 'Executive Review' : high > 0 ? 'Focused Review' : 'Builder Review',
-          summary: workstreams[0]?.whyItMatters || '',
-          confidence: 'Qualified evidence',
-          posture: 'review',
-        };
+          const critical = workstreams.filter(w => w.priority === 'Critical').length;
+          const high = workstreams.filter(w => w.priority === 'High').length;
+          assessmentObj = {
+            verdict: critical > 0 ? 'Executive Review' : high > 0 ? 'Focused Review' : 'Builder Review',
+            summary: workstreams[0]?.whyItMatters || '',
+            confidence: 'Qualified evidence',
+            posture: 'review',
+          };
         }
       } else if (wsResult.status === 'rejected') {
         const we = wsResult.reason;
-        console.error('[analyze-v3] workstreams failed:', we?.constructor?.name, we?.message, 'status:', we?.status, 'errType:', we?.error?.type, 'errBody:', JSON.stringify(we?.error || {}).slice(0, 300));
+        console.error('[analyze-v3] workstreams failed:', we?.constructor?.name, we?.message, 'status:', we?.status, 'errBody:', JSON.stringify(we?.error || {}).slice(0, 300));
       }
 
       if (archResult.status === 'fulfilled') {
@@ -476,22 +596,21 @@ export default async function handler(req, res) {
         architectureStory = String(archResult.value?.architectureStory || '');
       } else {
         const ae = archResult.reason;
-        console.error('[analyze-v3] architecture failed:', ae?.constructor?.name, ae?.message, 'status:', ae?.status, 'errType:', ae?.error?.type);
+        console.error('[analyze-v3] architecture failed:', ae?.constructor?.name, ae?.message, 'status:', ae?.status);
       }
     } catch (e) {
       console.error('[analyze-v3] AI calls failed:', e.constructor.name, e.message);
     }
 
-    // Emit enriched architecture fields after AI (Model tab merges both events)
     sendEvent({
       type: 'model-comprehension-enriched',
       domainMap,
       integrationSeams,
       architectureStory,
       architectureVerdict,
+      domain,
     });
 
-    // Emit health-workstreams with final payload
     sendEvent({
       type: 'health-workstreams',
       format: HEALTH_FORMAT,
@@ -520,6 +639,8 @@ export default async function handler(req, res) {
       workstreamCount: workstreams.length,
       deadLogicCount: deadLogic.length,
       cycleCount: cycles.length,
+      domain,
+      formulaSampleCount: formulaSamples.length,
     });
   } catch (err) {
     console.error('[analyze-v3] error:', err.constructor.name, err.message);

@@ -4,8 +4,6 @@ import { isDecorativeModuleName } from './analysis-core.js';
 
 export const config = { maxDuration: 60 };
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const GATE_THRESHOLDS = {
   fetchCompleteness: 0.95,
   formulaCoverage: 0.50,
@@ -13,22 +11,16 @@ const GATE_THRESHOLDS = {
   namingCoverage: 0.60,
 };
 
-const FORMULA_TRUNCATE_LEN = 150; // chars
+// 600 chars preserves most real Anaplan formulas (raised from 150 which was too short for AI analysis)
+const FORMULA_TRUNCATE_LEN = 600;
 
-// Matches DISCO-style prefixes: e.g. "SYS01 ", "DAT02 ", "REP10 "
 const DISCO_PREFIX_REGEX = /^[A-Z]{2,5}\d{2}\s/;
-
-// ─── Security helpers ─────────────────────────────────────────────────────────
 
 const SENSITIVE_KEYS = new Set([
   'authorization', 'password', 'token', 'tokenvalue',
   'x-anaplan-user', 'x-anaplan-pass',
 ]);
 
-/**
- * Strips sensitive fields before logging. Recurses one level into nested objects.
- * NEVER call with raw req.headers, req.body if it may contain credentials, or the auth token.
- */
 function safeLog(label, obj) {
   if (obj === null || obj === undefined || typeof obj !== 'object') {
     console.log(label, obj);
@@ -51,15 +43,56 @@ function safeLog(label, obj) {
   console.log(label, cleaned);
 }
 
+// ─── Domain classifier ────────────────────────────────────────────────────────
+// Infers model purpose from list (dimension) names — lists are the clearest semantic signal.
+
+function classifyModelDomain(listNames) {
+  const lower = listNames.join(' ').toLowerCase();
+  if (/employee|headcount|fte|job.grade|position|workforce|personnel|hcm/.test(lower)) return 'Workforce Planning';
+  if (/product|sku|channel|customer|territory|quota|pipeline|opportunity|crm/.test(lower)) return 'Sales & Revenue Planning';
+  if (/supplier|warehouse|inventory|demand|lead.time|procurement|logistics|distribution/.test(lower)) return 'Supply Chain Planning';
+  if (/project|milestone|capex|initiative|program|phase|deliverable/.test(lower)) return 'Project & Capex Planning';
+  if (/entity|subsidiary|elimination|intercompany|consolidat|group/.test(lower)) return 'Financial Consolidation';
+  if (/account|cost.center|gl|general.ledger|budget|forecast/.test(lower)) return 'Financial Planning & Analysis';
+  return 'General Planning';
+}
 
 // ─── Serialization ────────────────────────────────────────────────────────────
+// Enrichment sections (LIST/VERSION/IMPORT/EXPORT/PROCESS) are written before MODULE sections.
+// analyze-v3 parseStateBlob reads all row types in a single pass.
 
-/**
- * Produces compact tab-separated text: one MODULE header + one line per line item per module.
- * Decorators must be excluded BEFORE calling this function (pass only functional modules).
- */
-function serializeModelState(functionalModules) {
+function serializeModelState(functionalModules, enrichment = {}) {
   const lines = [];
+
+  if (enrichment.lists?.length) {
+    for (const l of enrichment.lists) {
+      lines.push(`LIST\t${l.name.replace(/[\t\n]/g, ' ')}\t${l.itemCount || 0}`);
+    }
+    lines.push('');
+  }
+  if (enrichment.versions?.length) {
+    for (const v of enrichment.versions) {
+      lines.push(`VERSION\t${v.name.replace(/[\t\n]/g, ' ')}`);
+    }
+    lines.push('');
+  }
+  if (enrichment.imports?.length) {
+    for (const i of enrichment.imports) {
+      lines.push(`IMPORT\t${i.name.replace(/[\t\n]/g, ' ')}`);
+    }
+  }
+  if (enrichment.exports?.length) {
+    for (const e of enrichment.exports) {
+      lines.push(`EXPORT\t${e.name.replace(/[\t\n]/g, ' ')}`);
+    }
+  }
+  if (enrichment.processes?.length) {
+    for (const p of enrichment.processes) {
+      lines.push(`PROCESS\t${p.name.replace(/[\t\n]/g, ' ')}`);
+    }
+    lines.push('');
+  }
+
   for (const mod of functionalModules) {
     const prefix = DISCO_PREFIX_REGEX.test(mod.name)
       ? mod.name.match(/^([A-Z]{2,5})\d{2}\s/)[1]
@@ -71,7 +104,6 @@ function serializeModelState(functionalModules) {
       const format = (li.formatType ?? li.format ?? '').replace(/[\t\n]/g, ' ');
       const summary = (li.summaryMethod ?? li.summary ?? '').replace(/[\t\n]/g, ' ');
 
-      // Determine type label
       let typeLabel;
       if (typeof li.formula === 'string' && li.formula.trim().length > 0) {
         typeLabel = 'CALC';
@@ -81,7 +113,6 @@ function serializeModelState(functionalModules) {
         typeLabel = 'ITEM';
       }
 
-      // Truncate formula
       let formula = '';
       if (typeLabel === 'CALC') {
         const raw = li.formula.replace(/[\t\n]/g, ' ');
@@ -93,7 +124,6 @@ function serializeModelState(functionalModules) {
       lines.push(`${typeLabel}\t${name}\t${format}\t${summary}\t${formula}`);
     }
 
-    // Blank line between modules
     lines.push('');
   }
   return lines.join('\n');
@@ -101,10 +131,6 @@ function serializeModelState(functionalModules) {
 
 // ─── Dependency edge count ─────────────────────────────────────────────────────
 
-/**
- * Counts deduplicated directed cross-module formula reference edges.
- * Caps formula scan at 10K characters for performance on large models.
- */
 function computeDependencyEdges(functionalModules) {
   const nameToId = new Map(functionalModules.map((m) => [m.name, m.id]));
   let totalEdges = 0;
@@ -116,8 +142,8 @@ function computeDependencyEdges(functionalModules) {
       const formulaText = li.formula.length > 10_000 ? li.formula.slice(0, 10_000) : li.formula;
 
       for (const [refName, refId] of nameToId) {
-        if (refId === mod.id) continue; // skip self-references
-        if (referencedModules.has(refId)) continue; // already counted
+        if (refId === mod.id) continue;
+        if (referencedModules.has(refId)) continue;
         try {
           const escaped = refName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           if (new RegExp(escaped).test(formulaText)) {
@@ -136,12 +162,6 @@ function computeDependencyEdges(functionalModules) {
 
 // ─── Evidence pack ────────────────────────────────────────────────────────────
 
-/**
- * Computes admissibility gates and blocked-conclusions list.
- * @param {Array} functionalModules - modules after decorator exclusion
- * @param {Set} fetchedModuleIds - IDs of modules that were successfully fetched (no fetchError)
- * @param {number} totalModuleCount - total modules returned by the /modules call
- */
 function computeEvidencePack(functionalModules, fetchedModuleIds, totalModuleCount) {
   const functional = functionalModules;
   const withFormulas = functional.filter((m) =>
@@ -208,11 +228,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing credentials' });
   }
 
-  // Preserve ID casing — Anaplan API is case-sensitive on model IDs in some paths
   const wsId = workspaceId;
   const mId = modelId;
 
-  // CRITICAL: SSE headers BEFORE first await — X-Accel-Buffering prevents proxy buffering
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
@@ -223,8 +241,6 @@ export default async function handler(req, res) {
     res.write(`data: ${JSON.stringify(obj)}\n\n`);
     if (typeof res.flush === 'function') res.flush();
   }
-
-  const startMs = Date.now();
 
   try {
     // ── Stage 1: Auth ──────────────────────────────────────────────────────────
@@ -247,17 +263,34 @@ export default async function handler(req, res) {
       return;
     }
 
-    // ── Stage 2: Load model structure ──────────────────────────────────────────
-    // Two parallel calls: module list (workspace path) + all line items (model-only path).
-    // The model-level /lineItems endpoint is at /2/0/models/{mId}/lineItems — no workspace prefix.
-    // Confirmed via MCP spike: 2383 line items returned for 228-module model in one call.
-    sendEvent({ type: 'stage', stage: 'loading', label: 'Loading model structure…' });
+    // ── Stage 2: Wave 1 + Wave 2 in parallel ──────────────────────────────────
+    // Wave 1 (required): modules + all line items with formulas.
+    // Wave 2 (enrichment): lists, imports, exports, processes, versions — fires simultaneously,
+    //   uses allSettled so individual failures never block the core analysis.
+    sendEvent({ type: 'stage', stage: 'loading', label: 'Loading model intelligence…' });
 
     const authHeader = { 'Authorization': `AnaplanAuthToken ${token}` };
 
-    const [modRes, liRes] = await Promise.all([
-      fetch(`https://api.anaplan.com/2/0/workspaces/${wsId}/models/${mId}/modules`, { headers: authHeader }),
-      fetch(`https://api.anaplan.com/2/0/models/${mId}/lineItems?includeAll=true`, { headers: authHeader }),
+    const [
+      [modRes, liRes],
+      [listsResult, importsResult, exportsResult, processesResult, versionsResult],
+    ] = await Promise.all([
+      Promise.all([
+        fetch(`https://api.anaplan.com/2/0/workspaces/${wsId}/models/${mId}/modules`, { headers: authHeader }),
+        fetch(`https://api.anaplan.com/2/0/models/${mId}/lineItems?includeAll=true`, { headers: authHeader }),
+      ]),
+      Promise.allSettled([
+        fetch(`https://api.anaplan.com/2/0/workspaces/${wsId}/models/${mId}/lists`, { headers: authHeader })
+          .then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`https://api.anaplan.com/2/0/workspaces/${wsId}/models/${mId}/imports`, { headers: authHeader })
+          .then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`https://api.anaplan.com/2/0/workspaces/${wsId}/models/${mId}/exports`, { headers: authHeader })
+          .then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`https://api.anaplan.com/2/0/workspaces/${wsId}/models/${mId}/processes`, { headers: authHeader })
+          .then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`https://api.anaplan.com/2/0/models/${mId}/versions`, { headers: authHeader })
+          .then(r => r.ok ? r.json() : null).catch(() => null),
+      ]),
     ]);
 
     if (!modRes.ok) {
@@ -273,9 +306,35 @@ export default async function handler(req, res) {
     const modules = modData.modules || [];
     const allLineItems = liData.items || liData.lineItems || [];
 
-    safeLog('[model-state] fetch complete', { modules: modules.length, lineItems: allLineItems.length });
+    // Unpack enrichment — each may be null if Anaplan returned an error for that call
+    const listsData     = listsResult.status     === 'fulfilled' ? listsResult.value     : null;
+    const importsData   = importsResult.status   === 'fulfilled' ? importsResult.value   : null;
+    const exportsData   = exportsResult.status   === 'fulfilled' ? exportsResult.value   : null;
+    const processesData = processesResult.status === 'fulfilled' ? processesResult.value : null;
+    const versionsData  = versionsResult.status  === 'fulfilled' ? versionsResult.value  : null;
 
-    // Group line items by module name (the model-level endpoint returns moduleName as a string)
+    const enrichment = {
+      lists:     (listsData?.lists     || listsData?.items     || []).map(l => ({ name: l.name, itemCount: l.itemCount ?? l.membersCount ?? 0 })),
+      imports:   (importsData?.imports || importsData?.items   || []).map(i => ({ name: i.name })),
+      exports:   (exportsData?.exports || exportsData?.items   || []).map(e => ({ name: e.name })),
+      processes: (processesData?.processes || processesData?.items || []).map(p => ({ name: p.name })),
+      versions:  (versionsData?.versions || versionsData?.items || []).map(v => ({ name: v.name })),
+    };
+
+    const domain = classifyModelDomain(enrichment.lists.map(l => l.name));
+
+    safeLog('[model-state] fetch complete', {
+      modules: modules.length,
+      lineItems: allLineItems.length,
+      lists: enrichment.lists.length,
+      imports: enrichment.imports.length,
+      exports: enrichment.exports.length,
+      processes: enrichment.processes.length,
+      versions: enrichment.versions.length,
+      domain,
+    });
+
+    // Group line items by module name (model-level endpoint returns moduleName as a string)
     const lisByModule = new Map();
     for (const li of allLineItems) {
       const modName = li.moduleName || li.module || '';
@@ -283,14 +342,12 @@ export default async function handler(req, res) {
       lisByModule.get(modName).push(li);
     }
 
-    // Merge with module list to preserve module IDs
     const assembled = modules.map((mod) => ({
       id: mod.id,
       name: mod.name,
       lineItems: lisByModule.get(mod.name) || [],
     }));
 
-    // All modules fetched in one call — fetchedModuleIds covers the full set
     const fetchedModuleIds = new Set(assembled.map((m) => m.id));
 
     // ── Stage 3: Serialize + filter decorators + compute evidence pack ─────────
@@ -299,7 +356,7 @@ export default async function handler(req, res) {
     const functional = assembled.filter((m) => !isDecorativeModuleName(m.name));
     const decorators = assembled.filter((m) => isDecorativeModuleName(m.name));
 
-    const stateText = serializeModelState(functional);
+    const stateText = serializeModelState(functional, enrichment);
     const evidencePack = computeEvidencePack(functional, fetchedModuleIds, modules.length);
 
     safeLog('[model-state] serialization complete', {
@@ -307,6 +364,7 @@ export default async function handler(req, res) {
       decoratorModules: decorators.length,
       stateBytes: stateText.length,
       lineItems: allLineItems.length,
+      domain,
     });
 
     // ── Stage 4: Write to Blob ─────────────────────────────────────────────────
@@ -327,7 +385,15 @@ export default async function handler(req, res) {
       moduleCount: functional.length,
       excludedCount: decorators.length,
       lineItemCount,
-      tokenEstimate: Math.round(stateText.length / 4), // rough chars/4 estimate
+      tokenEstimate: Math.round(stateText.length / 4),
+      domain,
+      enrichment: {
+        lists: enrichment.lists.length,
+        imports: enrichment.imports.length,
+        exports: enrichment.exports.length,
+        processes: enrichment.processes.length,
+        versions: enrichment.versions.length,
+      },
     });
 
   } catch (err) {
