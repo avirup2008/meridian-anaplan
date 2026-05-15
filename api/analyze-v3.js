@@ -1,3 +1,5 @@
+export const config = { maxDuration: 60 };
+
 import { applyCors } from './_cors.js';
 import { isAllowedBlobUrl } from './analyze.js';
 import {
@@ -254,10 +256,12 @@ async function callWorkstreams({ aiClient, modules, findingSummary, blastRadiusT
     .map(b => `  ${b.moduleName}: ${b.downstreamCount} downstream modules`)
     .join('\n');
 
+  // Cap at 5 samples, 150 chars per formula — enough for AI to identify patterns without timeout
   const formulaBlock = formulaSamples.length
-    ? formulaSamples.map(s =>
-        `[${s.module}].'${s.lineItem}' (blast radius: ${s.blast}):\n  ${s.formula}\n  ⚠ ${s.flags.join(', ')}`
-      ).join('\n\n')
+    ? formulaSamples.slice(0, 5).map(s => {
+        const fShort = s.formula.length > 150 ? s.formula.slice(0, 150) + '…' : s.formula;
+        return `[${s.module}].'${s.lineItem}' (blast: ${s.blast}): ${fShort}\n  ⚠ ${s.flags.join(', ')}`;
+      }).join('\n\n')
     : 'No formula samples available — model may not expose formula text.';
 
   const integrationLines = [
@@ -304,9 +308,9 @@ Generate exactly 3 workstreams. Rules:
 - Use kind "evidence-limit" only when evidence is genuinely sparse
 
 {"workstreams":[
-{"id":"ws-1","title":"<ModuleName> — <specific issue>","priority":"Critical|High|Medium|Watch","confidence":"High|Medium|Low","kind":"remediation","whyItMatters":"<business consequence citing formula pattern and downstream impact>","reviewQuestion":"<specific testable question for the model builder>","evidenceCount":<int>,"examples":["<ModuleName.LineItemName — specific finding>"]},
-{"id":"ws-2","title":"...","priority":"...","confidence":"...","kind":"remediation","whyItMatters":"...","reviewQuestion":"...","evidenceCount":<int>,"examples":["..."]},
-{"id":"ws-3","title":"...","priority":"...","confidence":"...","kind":"remediation|evidence-limit","whyItMatters":"...","reviewQuestion":"...","evidenceCount":<int>,"examples":["..."]}
+{"id":"ws-1","title":"DAT01 Revenue Data — SUM-IF rename risk","priority":"High","confidence":"High","kind":"remediation","whyItMatters":"DAT01 Revenue Data uses SUM-IF referencing list member name 'Revenue' — renaming any account list member silently zeros 14 downstream modules including the Board export.","reviewQuestion":"Have any account list members been renamed in the last 6 months?","evidenceCount":14,"examples":["DAT01 Revenue Data.Net Revenue — SUM-IF on member name"]},
+{"id":"ws-2","title":"CAL03 Margin Calc — unguarded division","priority":"Critical","confidence":"High","kind":"remediation","whyItMatters":"CAL03 Margin Calc divides by a volume driver with no IF ISERROR guard — when the volume module is empty during load, every downstream margin metric returns an error state and corrupts the CFO pack export.","reviewQuestion":"What happens to margin metrics when volume data is not yet loaded?","evidenceCount":8,"examples":["CAL03 Margin Calc.Gross Margin % — division by potentially zero volume"]},
+{"id":"ws-3","title":"SYS02 Config — nested IF depth 6","priority":"Medium","confidence":"Medium","kind":"remediation","whyItMatters":"SYS02 Config contains formulas with IF nesting depth 6 — the deepest branches are untestable without specialist review and will silently return wrong values under edge-case inputs.","reviewQuestion":"Can the nested IF logic be expressed as a LOOKUP against a driver table?","evidenceCount":6,"examples":["SYS02 Config.Override Logic — IF depth 6"]}
 ]}`;
 
   const response = await Promise.race([
@@ -315,7 +319,7 @@ Generate exactly 3 workstreams. Rules:
       max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }],
     }),
-    new Promise((_, rej) => setTimeout(() => rej(new Error('workstreams-timeout')), 20000)),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('workstreams-timeout')), 30000)),
   ]);
 
   const raw = response.content?.[0]?.text?.trim() || '{}';
@@ -379,7 +383,7 @@ RULES:
       max_tokens: 700,
       messages: [{ role: 'user', content: prompt }],
     }),
-    new Promise((_, rej) => setTimeout(() => rej(new Error('architecture-timeout')), 20000)),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('architecture-timeout')), 30000)),
   ]);
 
   const raw = response.content?.[0]?.text?.trim() || '{}';
