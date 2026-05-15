@@ -143,7 +143,9 @@ function computeDeterministicHealthScore(findings, blastRadiusById, moduleCount)
 
 // D-05: single combined Sonnet call — domain inference + health findings in one round-trip
 async function singleSonnetCall({ aiClient, modules, findingSummary, blastRadiusTop10, healthFormat, modelStats }) {
-  const moduleNames = modules.map(m => m.name).join('\n');
+  // Cap at 100 modules for prompt size; blast radius top-10 already surfaces the key ones
+  const moduleNames = modules.slice(0, 100).map(m => m.name).join('\n')
+    + (modules.length > 100 ? `\n… and ${modules.length - 100} more modules` : '');
   const blastLines = blastRadiusTop10.map(b => `  ${b.moduleName} → ${b.downstreamCount} downstream modules`).join('\n');
 
   const formatInstructions = {
@@ -191,7 +193,7 @@ RULES:
   const response = await Promise.race([
     aiClient.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 3000,
+      max_tokens: 5000,
       messages: [{ role: 'user', content: prompt }],
     }),
     new Promise((_, rej) => setTimeout(() => rej(new Error('sonnet-timeout')), 40000)),

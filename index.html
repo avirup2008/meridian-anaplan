@@ -5280,25 +5280,6 @@ function confirmModelSelection() {
         slot.hidden = false;
       }
 
-      // ── Evidence limits (canSay / cannotSay) ──────────────────────────────────
-      const evSection = _anl$('health-evidence-limits');
-      const canSayEl = _anl$('health-can-say');
-      const cannotSayEl = _anl$('health-cannot-say');
-      if (evSection && canSayEl && cannotSayEl && evt.evidenceLimits) {
-        canSayEl.innerHTML = (evt.evidenceLimits.canSay || []).map(s => '<li style="margin-bottom:4px;">' + escapeHtml(s) + '</li>').join('');
-        cannotSayEl.innerHTML = (evt.evidenceLimits.cannotSay || []).map(s => '<li style="margin-bottom:4px;">' + escapeHtml(s) + '</li>').join('');
-        evSection.hidden = false;
-      }
-
-      // ── Legacy score card (kept for anl-score-card header area) ───────────────
-      if (evt.assessment) {
-        const verdictText = _anl$('anl-verdict-text');
-        const summary = _anl$('anl-summary');
-        if (verdictText) verdictText.textContent = evt.assessment.verdict || '';
-        if (summary) summary.textContent = evt.assessment.summary || '';
-        const scoreCard = _anl$('anl-score-card');
-        if (scoreCard) scoreCard.hidden = false;
-      }
     }
 
     function _renderHealthFormat(evt) {
