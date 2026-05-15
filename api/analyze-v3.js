@@ -256,12 +256,10 @@ async function callWorkstreams({ aiClient, modules, findingSummary, blastRadiusT
     .map(b => `  ${b.moduleName}: ${b.downstreamCount} downstream modules`)
     .join('\n');
 
-  // Cap at 5 samples, 150 chars per formula — enough for AI to identify patterns without timeout
   const formulaBlock = formulaSamples.length
-    ? formulaSamples.slice(0, 5).map(s => {
-        const fShort = s.formula.length > 150 ? s.formula.slice(0, 150) + '…' : s.formula;
-        return `[${s.module}].'${s.lineItem}' (blast: ${s.blast}): ${fShort}\n  ⚠ ${s.flags.join(', ')}`;
-      }).join('\n\n')
+    ? formulaSamples.slice(0, 5).map(s =>
+        `[${s.module}].'${s.lineItem}' (blast: ${s.blast}):\n  ${s.formula}\n  ⚠ ${s.flags.join(', ')}`
+      ).join('\n\n')
     : 'No formula samples available — model may not expose formula text.';
 
   const integrationLines = [
