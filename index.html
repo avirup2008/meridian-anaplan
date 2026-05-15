@@ -5061,7 +5061,6 @@ function confirmModelSelection() {
         dimsRoot.innerHTML = ''
           + '<div class="intel-kpi"><div class="intel-kpi-val">' + _anlEsc(s.confidence || 'Evidence-backed') + '</div><div class="intel-kpi-lbl">Assessment Basis</div></div>'
           + '<div class="intel-kpi"><div class="intel-kpi-val">No score</div><div class="intel-kpi-lbl">Synthetic Precision Removed</div></div>';
-        _anl$('anl-score-card').hidden = false;
         return;
       }
       const keys = ['architecture','naming','formulas','dataHygiene','governance'];
@@ -5072,7 +5071,6 @@ function confirmModelSelection() {
         row.querySelector('.prog-f').style.width = v + '%';
         row.querySelector('.anl-dim-val').textContent = v;
       }
-      _anl$('anl-score-card').hidden = false;
     }
 
     function _anlOnIntelligence(evt) {
