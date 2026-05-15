@@ -5244,28 +5244,28 @@ function confirmModelSelection() {
 
       // 'workstreams' format (default)
       if (!ws.length) return '<p style="color:var(--text3);font-size:13px;">No workstreams available.</p>';
-      const priorityColor = { Critical: 'var(--neg)', High: 'var(--gold)', Medium: 'var(--accent)', Watch: 'var(--text3)' };
+      const priorityColor = { Critical: '#c0392b', High: '#b8860b', Medium: '#2471a3', Watch: '#7f8c8d' };
+      const priorityBg    = { Critical: '#fdf0ef', High: '#fef9ec', Medium: '#eaf4fb', Watch: '#f4f4f4' };
       return ws.map(w => {
-        const color = priorityColor[w.priority] || 'var(--text3)';
-        const kindBadge = w.kind === 'evidence-limit'
-          ? '<span class="badge b-gray" style="font-size:10px;margin-left:6px;">Evidence Limit</span>' : '';
-        // Support both new (problem/impact/fix) and legacy (whyItMatters) shapes
+        const borderCol = priorityColor[w.priority] || '#ccc';
+        const bgCol     = priorityBg[w.priority]    || '#fafafa';
         const hasNew = w.problem && w.impact && w.fix;
+        const row = (label, col, text) =>
+          '<div style="display:grid;grid-template-columns:64px 1fr;gap:8px;padding:8px 0;border-top:1px solid #f0ece4;">'
+          + '<span style="font-size:10px;font-weight:700;letter-spacing:.07em;color:' + col + ';text-transform:uppercase;padding-top:2px;">' + label + '</span>'
+          + '<span style="font-size:13px;color:#333;line-height:1.55;">' + escapeHtml(text) + '</span>'
+          + '</div>';
         const bodyHtml = hasNew
-          ? '<div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">'
-            + '<div style="font-size:12px;"><span style="font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;font-size:10px;">Problem </span>' + escapeHtml(w.problem) + '</div>'
-            + '<div style="font-size:12px;"><span style="font-weight:600;color:var(--neg);text-transform:uppercase;letter-spacing:.04em;font-size:10px;">Impact </span>' + escapeHtml(w.impact) + '</div>'
-            + '<div style="font-size:12px;"><span style="font-weight:600;color:var(--pos);text-transform:uppercase;letter-spacing:.04em;font-size:10px;">Fix </span>' + escapeHtml(w.fix) + '</div>'
-            + '</div>'
-          : '<p style="margin:6px 0 0;font-size:13px;color:var(--text2);">' + escapeHtml(w.whyItMatters || '') + '</p>';
-        return '<div class="gen-block" style="margin-bottom:12px;">'
-          + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">'
-          + '<div style="min-width:0;flex:1;"><strong style="font-size:13px;">' + escapeHtml(w.title || '?') + '</strong>' + kindBadge
-          + bodyHtml + '</div>'
-          + '<div style="text-align:right;flex-shrink:0;padding-left:12px;">'
-          + '<div style="font-size:11px;font-weight:600;color:' + color + ';white-space:nowrap;">' + escapeHtml(w.priority || '') + '</div>'
-          + '<div style="font-size:11px;color:var(--text3);white-space:nowrap;margin-top:2px;">' + (w.evidenceCount || 0) + ' finding' + (w.evidenceCount === 1 ? '' : 's') + '</div>'
+          ? row('Problem', '#888', w.problem) + row('Impact', '#c0392b', w.impact) + row('Fix', '#27ae60', w.fix)
+          : '<div style="padding:10px 0;border-top:1px solid #f0ece4;font-size:13px;color:#555;line-height:1.6;">' + escapeHtml(w.whyItMatters || '') + '</div>';
+        return '<div style="background:' + bgCol + ';border:1px solid #e8e2d8;border-left:4px solid ' + borderCol + ';border-radius:8px;padding:14px 16px;margin-bottom:12px;">'
+          + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">'
+          + '<strong style="font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.4;">' + escapeHtml(w.title || '?') + '</strong>'
+          + '<div style="text-align:right;flex-shrink:0;">'
+          + '<div style="font-size:12px;font-weight:700;color:' + borderCol + ';white-space:nowrap;">' + escapeHtml(w.priority || '') + '</div>'
+          + '<div style="font-size:11px;color:#999;white-space:nowrap;margin-top:2px;">' + (w.evidenceCount || 0) + ' finding' + (w.evidenceCount === 1 ? '' : 's') + '</div>'
           + '</div></div>'
+          + bodyHtml
           + '</div>';
       }).join('');
     }

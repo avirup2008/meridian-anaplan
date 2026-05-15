@@ -204,8 +204,14 @@ function extractFormulaSamples(modules, blastRadiusById, maxSamples = 12) {
 
 function computeDeterministicHealthScore(findings, blastRadiusById, moduleCount) {
   const SEVERITY_WEIGHT = { critical: 4, warning: 2, info: 1 };
+  // Cap each rule at 10 occurrences so a single repeated pattern (e.g. 331×
+  // BOOLEAN_SUMMARY_INVALID) can't dominate the score by itself.
+  const ruleCount = new Map();
   let penalty = 0;
   for (const f of findings) {
+    const seen = (ruleCount.get(f.ruleId) || 0) + 1;
+    ruleCount.set(f.ruleId, seen);
+    if (seen > 10) continue;
     const w = SEVERITY_WEIGHT[f.severity] || 1;
     const blast = blastRadiusById.get(f.moduleId) || 0;
     penalty += w * (1 + blast * 0.25);
