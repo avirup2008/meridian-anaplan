@@ -712,15 +712,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 #s-shared .notes-story { font-size:14px; line-height:1.72; color:var(--text); white-space:pre-wrap; padding:18px 22px; background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:18px; font-weight:300; }
 
 /* ══════════════════════════════════════════════════════════════
-   MERIDIAN · PREMIUM VISUAL SYSTEM v2
-   Overrides legacy #s-analysis rules with cohesive design tokens
-   and adds .ws-card component for workstream cards.
+   MERIDIAN · OPTION A REDESIGN — 4 TABS
+   Design reference: /tmp/meridian-mockups/a.html
 ══════════════════════════════════════════════════════════════ */
 
 /* ─── ANALYSIS SHELL ────────────────────────────────────────── */
-#s-analysis .anl-shell{max-width:860px;margin:0 auto;padding:32px 28px 80px}
-#s-analysis .anl-title{font-size:22px;font-weight:700;letter-spacing:-.03em;margin:0 0 4px;color:var(--text)}
-#s-analysis .anl-sub{font-size:11px;color:var(--text3);margin-bottom:22px;font-family:'IBM Plex Mono',monospace;font-weight:500;letter-spacing:.02em}
+#s-analysis .anl-shell{max-width:780px;margin:0 auto;padding:28px 24px 80px}
+#s-analysis .anl-title{display:none}
+#s-analysis .step-label{display:none}
+#s-analysis .anl-sub{font-size:11px;color:var(--text3);margin-bottom:18px;font-family:'IBM Plex Mono',monospace;font-weight:500;letter-spacing:.02em}
+
+/* ─── DARK HEADER (analysis screen only) ────────────────────── */
+#s-analysis>.hdr{background:var(--text);backdrop-filter:none;border-bottom:1px solid rgba(255,255,255,.07)}
+#s-analysis>.hdr .hdr-logo{color:#fff}
+#s-analysis>.hdr .hdr-logo em{color:#4A9AE8}
+#s-analysis>.hdr .hdr-icon{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.08)}
+#s-analysis>.hdr .hdr-status{color:rgba(255,255,255,.55)}
+#s-analysis>.hdr .hdr-status .spinner{border-color:rgba(255,255,255,.2);border-top-color:rgba(255,255,255,.7)}
+#s-analysis>.hdr .btn.btn-ghost{border-color:rgba(255,255,255,.22);color:rgba(255,255,255,.80)}
+#s-analysis>.hdr .btn.btn-ghost:hover{border-color:rgba(255,255,255,.45);color:#fff;background:rgba(255,255,255,.06)}
+.anl-hdr-center{position:absolute;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none}
+.anl-hdr-model{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;color:rgba(255,255,255,.75);letter-spacing:.005em}
+.anl-hdr-meta{font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(255,255,255,.38);letter-spacing:.02em;margin-top:1px}
 
 /* ─── PROGRESS WRAP ─────────────────────────────────────────── */
 #s-analysis .anl-progress-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 20px;margin-bottom:18px}
@@ -729,23 +742,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 
 /* ─── TAB BAR ───────────────────────────────────────────────── */
 #s-analysis .dash-tab-bar{display:flex;gap:0;border-bottom:1.5px solid var(--rule);margin:22px 0 0;padding:0}
-#s-analysis .dash-tab{background:transparent;border:0;padding:11px 20px;font-size:12.5px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;display:inline-flex;align-items:center;gap:7px;transition:color .13s;white-space:nowrap;font-family:'IBM Plex Sans',system-ui,sans-serif}
+#s-analysis .dash-tab{background:transparent;border:0;padding:11px 22px;font-size:12.5px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;display:inline-flex;align-items:center;gap:7px;transition:color .13s;white-space:nowrap;font-family:'IBM Plex Sans',system-ui,sans-serif}
 #s-analysis .dash-tab:hover{color:var(--text2)}
-#s-analysis .dash-tab.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
-#s-analysis .dash-tab-badge{background:var(--accent);color:#fff;font-size:9.5px;font-weight:700;font-family:'IBM Plex Mono',monospace;padding:1.5px 7px;border-radius:100px;min-width:20px;text-align:center;line-height:1.65}
+#s-analysis .dash-tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
 #s-analysis .dash-panel{display:none;padding:24px 0 80px}
 #s-analysis .dash-panel.active{display:block}
 
-/* ─── HEALTH VERDICT CARD ───────────────────────────────────── */
-#health-verdict-card{border-radius:var(--r-xl);padding:28px 32px;margin-bottom:18px;box-shadow:var(--sh)}
-#health-score-num{font-size:48px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1;letter-spacing:-.04em}
-#health-verdict-domain{font-size:22px;font-weight:700;letter-spacing:-.025em;line-height:1.2;margin-bottom:4px}
-#health-verdict-text{font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:2px;line-height:1.55}
+/* ─── VERDICT CARD (3-col grid) ──────────────────────────────── */
+#health-verdict-card{border-radius:20px;padding:26px 30px 22px;box-shadow:var(--sh);margin-bottom:16px}
+.anl-verdict-grid{display:grid;grid-template-columns:48px 1fr auto;gap:0 18px;align-items:center;margin-bottom:14px}
+.anl-verdict-icon{width:48px;height:48px;border-radius:16px;background:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(191,128,30,.30)}
+.anl-verdict-icon svg{display:block}
+#health-verdict-domain{font-size:22px;font-weight:700;color:var(--gold);letter-spacing:-.025em;line-height:1.1;margin-bottom:3px}
+#health-verdict-text{font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:0;line-height:1.55}
+.anl-score-right{text-align:right}
+.anl-score-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+#health-score-num{font-size:52px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1;letter-spacing:-.05em;color:var(--text)}
+.anl-score-denom{font-family:'IBM Plex Mono',monospace;font-size:16px;color:var(--text4)}
 
-/* ─── MODEL TAB VERDICT CARD ────────────────────────────────── */
-#model-architecture-verdict-card{border-radius:var(--r-xl);padding:26px 30px;box-shadow:var(--sh)}
-#model-verdict-title{font-size:20px;font-weight:700;letter-spacing:-.025em;line-height:1.2}
-#model-verdict-sub{font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:4px}
+/* Chips row */
+.anl-chips-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.anl-chip{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:100px;display:inline-flex;align-items:center}
+.anl-chip-sep{color:var(--text4);font-size:12px;line-height:1}
+.anl-chip-neg{background:var(--neg-pale);color:var(--neg);border:1px solid var(--neg-bd)}
+.anl-chip-go{background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-bd)}
+.anl-chip-neutral{background:var(--bg2);color:var(--text3);border:1px solid var(--rule)}
 
 /* ─── WORKSTREAM CARDS (.ws-card) ───────────────────────────── */
 .ws-card{background:var(--surface);border:1px solid var(--border2);border-left:3px solid var(--accent-bd);border-radius:var(--r-lg);padding:16px 18px 14px;margin-bottom:10px;box-shadow:var(--sh-sm);transition:box-shadow .15s}
@@ -771,69 +792,77 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .ws-label-why{color:var(--text3)}
 .ws-row-text{font-size:13px;color:var(--text);line-height:1.58}
 
-/* ─── EVIDENCE / INTELLIGENCE TAB ──────────────────────────── */
-#s-analysis .intel-summary{font-size:14px;line-height:1.65;color:var(--text2);margin-bottom:18px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);font-weight:300;box-shadow:var(--sh-sm)}
-#s-analysis .intel-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}
-#s-analysis .intel-kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;box-shadow:var(--sh-sm)}
-#s-analysis .intel-kpi-val{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:var(--text);line-height:1;margin-bottom:5px}
-#s-analysis .intel-kpi-lbl{font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.9px;font-weight:600}
-#s-analysis .intel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}
-#s-analysis .intel-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--sh-sm);min-width:0}
-#s-analysis .intel-card.wide{grid-column:1 / -1}
-#s-analysis .intel-card h3{font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
-#s-analysis .intel-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-#s-analysis .intel-list li{font-size:13px;line-height:1.5;color:var(--text);border-bottom:1px solid var(--border);padding:10px 0}
-#s-analysis .intel-list li:last-child{border-bottom:0;padding-bottom:0}
-#s-analysis .intel-list li:first-child{padding-top:0}
-#s-analysis .intel-meta{display:block;color:var(--text3);font-size:10.5px;margin-top:3px;font-family:'IBM Plex Mono',monospace;line-height:1.5}
-#s-analysis .intel-pill{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);background:var(--accent-pale);border:1px solid var(--accent-bd);border-radius:4px;padding:2px 6px;margin-right:6px}
+/* ─── SECTION LABEL ──────────────────────────────────────────── */
+.anl-section-label{display:flex;align-items:center;gap:10px;margin:28px 0 14px}
+.anl-section-label-text{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);white-space:nowrap}
+.anl-section-label-line{flex:1;height:1px;background:var(--text4)}
 
-/* ─── WORKSTREAMS TAB (suggestion cards) ────────────────────── */
-#s-analysis .domain-group{border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:10px;background:var(--surface);box-shadow:var(--sh-sm);overflow:hidden}
-#s-analysis .domain-hd{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none;transition:background .12s}
-#s-analysis .domain-hd:hover{background:var(--bg2)}
-#s-analysis .domain-name{font-size:13px;font-weight:600;color:var(--text);flex:1;letter-spacing:-.01em}
-#s-analysis .domain-count{background:var(--accent-pale);color:var(--accent);font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;padding:2px 9px;border-radius:100px;border:1px solid var(--accent-bd)}
-#s-analysis .domain-chev{color:var(--text3);font-size:10px}
-#s-analysis .domain-body{padding:0 18px 16px;border-top:1px solid var(--rule)}
-#s-analysis .sugg-card{padding:16px 0;border-bottom:1px solid var(--border)}
-#s-analysis .sugg-card:last-child{border-bottom:0;padding-bottom:0}
-#s-analysis .sugg-triage{display:inline-block;font-size:9px;font-weight:700;font-family:'IBM Plex Mono',monospace;padding:3px 8px;border-radius:100px;text-transform:uppercase;letter-spacing:.08em;margin-right:6px}
-#s-analysis .sugg-triage.fix{background:var(--neg-pale);color:var(--neg);border:1px solid var(--neg-bd)}
-#s-analysis .sugg-triage.consider{background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-bd)}
-#s-analysis .sugg-triage.monitor{background:var(--accent-pale);color:var(--accent);border:1px solid var(--accent-bd)}
-#s-analysis .sugg-module{font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace;margin-right:6px}
-#s-analysis .sugg-title{font-size:14px;font-weight:600;color:var(--text);margin:8px 0 6px;line-height:1.35;letter-spacing:-.01em}
-#s-analysis .sugg-reasoning{font-size:13px;color:var(--text2);line-height:1.62;margin-bottom:8px;font-weight:300}
-#s-analysis .sugg-action{font-size:13px;padding:10px 14px;background:var(--accent-pale);border-left:2px solid var(--accent);border-radius:0 var(--r) var(--r) 0;color:var(--text2);font-weight:300}
+/* ─── ARCHITECTURE CARD (Model tab hero) ─────────────────────── */
+#model-architecture-section{margin-bottom:20px}
+#model-architecture-verdict-card{background:var(--gold-pale);border:1px solid var(--gold-bd);border-radius:20px;padding:26px 30px 22px;box-shadow:var(--sh)}
+#model-verdict-title{font-size:22px;font-weight:700;color:var(--gold);letter-spacing:-.025em;line-height:1.1}
+#model-verdict-sub{font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--text3);letter-spacing:.02em;margin-top:4px}
+#model-architecture-story{font-size:13.5px;color:var(--text2);line-height:1.65;margin-top:16px}
 
-/* ─── FILTER BAR ────────────────────────────────────────────── */
-#s-analysis .filter-bar{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--sh-sm)}
-#s-analysis .filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-#s-analysis .filter-label{font-size:9px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;min-width:52px}
-#s-analysis .pill{background:var(--bg2);border:1px solid var(--border);color:var(--text3);padding:5px 12px;border-radius:100px;font-size:11px;font-weight:500;cursor:pointer;transition:all .12s}
-#s-analysis .pill:hover{border-color:var(--accent-bd);color:var(--text2)}
-#s-analysis .pill.on{background:var(--text);border-color:var(--text);color:#fff}
+/* ─── DOMAIN GRID (Model tab) ────────────────────────────────── */
+#model-domain-map-body{display:grid!important;grid-template-columns:1fr 1fr;gap:10px;flex-direction:unset!important}
+.anl-domain-card{background:var(--surface);border:1px solid var(--border);border-left:2px solid var(--accent);border-radius:var(--r);padding:12px 16px;box-shadow:var(--sh-sm)}
+.anl-domain-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.anl-domain-count{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);margin-bottom:6px}
+.anl-domain-desc{font-size:12px;color:var(--text2);line-height:1.52}
 
-/* ─── NOTES / EXPORT ────────────────────────────────────────── */
-#s-analysis .notes-story{font-size:14px;line-height:1.75;color:var(--text);white-space:pre-wrap;padding:24px 28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:18px;font-weight:300;box-shadow:var(--sh-sm)}
+/* ─── INTEGRATION SEAMS (Model tab) ─────────────────────────── */
+#model-integration-seams{list-style:none!important;padding-left:0!important;display:flex;flex-direction:column;gap:8px}
+#model-integration-seams-wrap .step-label{display:flex}
+.anl-seam-item{display:flex;gap:10px;align-items:baseline;font-size:13px;color:var(--text2);line-height:1.55}
+.anl-seam-bullet{color:var(--accent);font-size:16px;line-height:1;flex-shrink:0;margin-top:-1px}
+.anl-seam-label{font-weight:600;color:var(--text);margin-right:4px}
+
+/* ─── NOTES TAB ──────────────────────────────────────────────── */
+.anl-notes-heading{font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;letter-spacing:-.02em}
+.anl-notes-sub{font-size:13px;color:var(--text2);margin-bottom:4px}
+.anl-notes-ts{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);margin-bottom:28px}
+.anl-notes-body{font-size:14px;color:var(--text2);line-height:1.7}
+.anl-notes-body p{margin-bottom:16px}
+.anl-notes-body h3{font-size:14px;font-weight:600;color:var(--text);margin:24px 0 8px;letter-spacing:-.01em}
+.anl-notes-body ol{padding-left:20px;margin-bottom:16px}
+.anl-notes-body li{margin-bottom:18px;line-height:1.65}
+.anl-notes-body dt{font-weight:600;color:var(--text);font-size:13px;margin-top:10px;margin-bottom:2px}
+.anl-notes-body dd{margin-left:0;font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:6px}
+.anl-notes-body dl{margin:8px 0 0}
 .notes-empty{font-size:13px;color:var(--text3);padding:40px 24px;text-align:center;font-style:normal;display:flex;flex-direction:column;align-items:center;gap:10px;line-height:1.55}
-#s-analysis .export-sect{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:22px 26px;margin-bottom:12px;box-shadow:var(--sh-sm)}
-#s-analysis .export-sect h3{font-size:14px;font-weight:700;margin:0 0 5px;color:var(--text);letter-spacing:-.01em}
-#s-analysis .export-sect p.export-help{font-size:12px;color:var(--text3);margin:0 0 16px;line-height:1.5}
-#s-analysis .export-options{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
-#s-analysis .export-options label{font-size:13px;color:var(--text);display:flex;align-items:center;gap:9px;cursor:pointer}
+
+/* ─── EXPORT TAB ─────────────────────────────────────────────── */
+.anl-export-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.anl-export-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px;box-shadow:var(--sh-sm)}
+.anl-export-card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+.anl-export-card-sub{font-size:12px;color:var(--text3);margin-bottom:18px;line-height:1.5}
+.anl-checkbox-list{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:20px;padding:0}
+.anl-checkbox-item label{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text2);cursor:pointer;width:100%}
+.anl-checkbox-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+.anl-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 18px;background:var(--accent);border:none;border-radius:8px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;font-weight:600;color:#fff;cursor:pointer;letter-spacing:.01em;width:100%;transition:background .15s,transform .1s;box-shadow:0 1px 4px rgba(23,90,166,.25)}
+.anl-btn-primary:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px)}
+.anl-btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.anl-link-preview{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:9px 12px;margin-bottom:14px;letter-spacing:.01em;word-break:break-all}
+.anl-export-hint{font-size:11px;color:var(--text4);line-height:1.55;margin-top:12px}
+
+/* ─── MISC ───────────────────────────────────────────────────── */
+#s-analysis .intel-meta{display:block;color:var(--text3);font-size:10.5px;margin-top:3px;font-family:'IBM Plex Mono',monospace;line-height:1.5}
+#s-analysis .notes-story{font-size:14px;line-height:1.75;color:var(--text);white-space:pre-wrap;padding:24px 28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:18px;font-weight:300;box-shadow:var(--sh-sm)}
+
+@media(max-width:700px){
+  .anl-verdict-grid{grid-template-columns:48px 1fr}
+  .anl-score-right{display:none}
+  #model-domain-map-body{grid-template-columns:1fr!important}
+  .anl-export-grid{grid-template-columns:1fr}
+  #s-analysis .anl-shell{padding:20px 16px 80px}
+}
 
 /* ─── SHARED REPORT triage badges ───────────────────────────── */
 #s-shared .sugg-triage{display:inline-block;font-size:9px;font-weight:700;font-family:'IBM Plex Mono',monospace;padding:3px 8px;border-radius:100px;text-transform:uppercase;letter-spacing:.08em;margin-right:6px}
 #s-shared .sugg-triage.fix{background:var(--neg-pale);color:var(--neg);border:1px solid var(--neg-bd)}
 #s-shared .sugg-triage.consider{background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-bd)}
 #s-shared .sugg-triage.monitor{background:var(--accent-pale);color:var(--accent);border:1px solid var(--accent-bd)}
-
-@media(max-width:760px){
-  #s-analysis .intel-grid,#s-analysis .intel-kpis{grid-template-columns:1fr}
-  #s-analysis .anl-shell{padding:20px 16px 80px}
-}
 
 </style>
 </head>
@@ -993,11 +1022,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 <!-- ════════ S4: ANALYSIS ════════ -->
 <!-- SECTION: ANALYSIS -->
 <div id="s-analysis" class="screen">
-  <div class="hdr"><div class="hdr-inner">
+  <div class="hdr"><div class="hdr-inner" style="position:relative">
     <div class="hdr-logo" onclick="startOver()"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="anl-hdr-center">
+      <div class="anl-hdr-model" id="anl-hdr-model">Analysing model…</div>
+      <div class="anl-hdr-meta" id="anl-hdr-meta"></div>
+    </div>
     <div class="hdr-sp"></div>
-    <div class="hdr-status" id="anl-hdr-status"><span class="spinner"></span>Preparing analysis…</div>
-    <button class="btn btn-ghost btn-sm" onclick="startOver()" style="margin-left:12px;">New model</button>
+    <div class="hdr-status" id="anl-hdr-status" style="display:none"><span class="spinner"></span>Preparing analysis…</div>
+    <button class="btn btn-ghost btn-sm" onclick="startOver()">← New model</button>
   </div></div>
 
   <div class="anl-shell">
@@ -1022,9 +1055,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 
     <div class="dash-tab-bar" id="dash-tab-bar" hidden>
       <button class="dash-tab" data-tab="model" id="tab-btn-model" onclick="switchTab('model')">Model</button>
-      <button class="dash-tab on" data-tab="verdict" onclick="switchTab('verdict')">Assessment</button>
-      <button class="dash-tab" data-tab="suggestions" onclick="switchTab('suggestions')">Workstreams <span class="dash-tab-badge" id="dash-badge-suggestions">0</span></button>
-      <button class="dash-tab" data-tab="intelligence" onclick="switchTab('intelligence')">Evidence <span class="dash-tab-badge" id="dash-badge-intelligence">0</span></button>
+      <button class="dash-tab on" data-tab="assessment" onclick="switchTab('assessment')">Assessment</button>
       <button class="dash-tab" data-tab="notes" onclick="switchTab('notes')">Notes</button>
       <button class="dash-tab" data-tab="export" onclick="switchTab('export')">Export</button>
     </div>
@@ -1092,8 +1123,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 
     </div>
 
-    <div class="dash-panel active" id="dash-panel-verdict">
-      <!-- Keep anl-score-card hidden — legacy element used by shared-view only -->
+    <div class="dash-panel active" id="dash-panel-assessment">
+      <!-- Keep anl-score-card hidden — legacy shared-view only -->
       <div class="anl-score-card" id="anl-score-card" hidden style="display:none!important;">
         <div class="anl-score-main">
           <div id="anl-verdict-chip" class="mii-band-chip"><span class="anl-dot"></span><span id="anl-verdict-text">—</span></div>
@@ -1108,78 +1139,66 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
         </div>
       </div>
 
-
-      <!-- D-07 + D-06: Architecture verdict + health score -->
-      <div id="health-verdict-card" hidden class="verdict-card risk" style="margin-bottom:16px;">
-        <div class="verdict-hd" style="align-items:flex-start;">
-          <div class="verdict-icon">⚡</div>
-          <div style="flex:1;min-width:0;">
-            <div class="verdict-title" id="health-verdict-domain" style="font-size:19px;font-weight:700;letter-spacing:-.02em;"></div>
-            <div id="health-verdict-text" style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:4px;"></div>
+      <!-- Health verdict card: populated by _anlOnHealthWorkstreams -->
+      <div id="health-verdict-card" hidden class="verdict-card risk">
+        <div class="anl-verdict-grid">
+          <div class="anl-verdict-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M12.5 2.5L5.5 12H10.5L8 19.5L17 9.5H12L12.5 2.5Z" fill="white" stroke="white" stroke-width=".5" stroke-linejoin="round"/></svg>
           </div>
-          <div style="text-align:right;padding-left:20px;flex-shrink:0;">
-            <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Health Score</div>
-            <div id="health-score-num" style="font-size:32px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--text);line-height:1.1;">--</div>
+          <div>
+            <div id="health-verdict-domain"></div>
+            <div id="health-verdict-text"></div>
+          </div>
+          <div class="anl-score-right">
+            <div class="anl-score-lbl">Health Score</div>
+            <div id="health-score-num">--<span class="anl-score-denom">/100</span></div>
           </div>
         </div>
+        <div class="anl-chips-row" id="anl-chips-row"></div>
       </div>
 
-      <!-- Format-specific render slot (workstreams / brief / surgical / domain) -->
+      <!-- Workstream cards: populated by _anlOnHealthWorkstreams via _renderHealthFormat -->
       <div id="health-format-slot" hidden></div>
     </div>
 
 
-    <div class="dash-panel" id="dash-panel-intelligence">
-      <div id="dash-intelligence-body">
-        <div class="notes-empty"><span style="font-size:22px;opacity:.35;">◎</span><span>Evidence detail appears here after analysis completes.</span></div>
-      </div>
-    </div>
 
-    <div class="dash-panel" id="dash-panel-suggestions">
-      <div class="filter-bar">
-        <div class="filter-row">
-          <span class="filter-label">Triage</span>
-          <button class="pill on" data-pill="triage" data-val="All" onclick="setSuggPill('triage','All')">All</button>
-          <button class="pill" data-pill="triage" data-val="Fix Now" onclick="setSuggPill('triage','Fix Now')">Fix Now</button>
-          <button class="pill" data-pill="triage" data-val="Consider" onclick="setSuggPill('triage','Consider')">Consider</button>
-          <button class="pill" data-pill="triage" data-val="Monitor" onclick="setSuggPill('triage','Monitor')">Monitor</button>
-        </div>
-        <div class="filter-row">
-          <span class="filter-label">Domain</span>
-          <button class="pill on" data-pill="domain" data-val="All" onclick="setSuggPill('domain','All')">All</button>
-          <button class="pill" data-pill="domain" data-val="Structural" onclick="setSuggPill('domain','Structural')">Structural</button>
-          <button class="pill" data-pill="domain" data-val="Formula" onclick="setSuggPill('domain','Formula')">Formula</button>
-          <button class="pill" data-pill="domain" data-val="Best Practice" onclick="setSuggPill('domain','Best Practice')">Best Practice</button>
-          <button class="pill" data-pill="domain" data-val="Naming" onclick="setSuggPill('domain','Naming')">Naming</button>
-        </div>
-      </div>
-      <div id="dash-suggestions-list"></div>
-    </div>
 
     <div class="dash-panel" id="dash-panel-notes">
       <div id="dash-notes-body">
-        <div class="notes-empty"><span style="font-size:22px;opacity:.35;">✎</span><span>Model overview appears here after analysis completes.</span></div>
+        <div class="notes-empty"><span style="font-size:22px;opacity:.35;">✎</span><span>Model review report appears here after analysis completes.</span></div>
       </div>
     </div>
 
     <div class="dash-panel" id="dash-panel-export">
-      <div class="export-sect">
-        <h3>Download PDF</h3>
-        <p class="export-help">Compose a PDF report and download it locally.</p>
-        <div class="export-options">
-          <label><input type="checkbox" id="pdf-opt-verdict" checked> Verdict (score + dimensions + summary)</label>
-          <label><input type="checkbox" id="pdf-opt-suggestions" checked> Improvement buckets (filtered by current pills)</label>
-          <label><input type="checkbox" id="pdf-opt-notes" checked> Notes (model overview)</label>
+      <div class="anl-export-grid">
+        <div class="anl-export-card">
+          <div class="anl-export-card-title">Download PDF</div>
+          <div class="anl-export-card-sub">Generate a formatted report including selected sections from this analysis.</div>
+          <ul class="anl-checkbox-list">
+            <li class="anl-checkbox-item"><label><input type="checkbox" id="pdf-opt-verdict" checked> Assessment &amp; Findings</label></li>
+            <li class="anl-checkbox-item"><label><input type="checkbox" id="pdf-opt-notes" checked> Model Architecture</label></li>
+            <li class="anl-checkbox-item"><label><input type="checkbox" id="pdf-opt-suggestions"> Narrative Report</label></li>
+          </ul>
+          <button class="anl-btn-primary" id="pdf-download-btn" onclick="exportAnalysisPDF()" disabled>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Generate PDF
+          </button>
+          <div class="anl-export-hint">PDF includes Meridian branding. Estimated 3–5 pages depending on selected sections.</div>
         </div>
-        <button class="btn" id="pdf-download-btn" onclick="exportAnalysisPDF()" disabled>Generate PDF</button>
-      </div>
-      <div class="export-sect">
-        <h3>Share read-only link</h3>
-        <p class="export-help">Creates a public link to this analysis. Recipients do not need an Anaplan account. Links expire after 7 days.</p>
-        <button class="btn" id="share-create-btn" onclick="createShareLink()" disabled>Generate shareable link</button>
-        <div class="share-output" id="share-output">
-          <input type="text" id="share-url-input" readonly>
-          <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="copyShareUrl()">Copy</button>
+        <div class="anl-export-card">
+          <div class="anl-export-card-title">Share read-only link</div>
+          <div class="anl-export-card-sub">Create a shareable link for view-only access to this analysis. Links expire after 7 days.</div>
+          <div class="share-output" id="share-output">
+            <div class="anl-link-preview" id="share-url-preview" style="display:none"></div>
+            <input type="text" id="share-url-input" readonly style="display:none">
+            <button class="btn btn-ghost btn-sm" id="share-copy-btn" style="margin-top:8px;display:none" onclick="copyShareUrl()">Copy link</button>
+          </div>
+          <button class="anl-btn-primary" id="share-create-btn" onclick="createShareLink()" disabled>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="4" width="8" height="9" rx="1.5" stroke="white" stroke-width="1.4"/><path d="M5 4V3a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-1" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
+            Generate &amp; Copy Link
+          </button>
+          <div class="anl-export-hint">Recipients can view the full analysis. Link is invalidated if the model is re-analysed.</div>
         </div>
       </div>
     </div>
@@ -2521,15 +2540,14 @@ function buildAnalysisScreen(){
   suggData = localSuggestions;
   narrativeStory = '';
   suggFilter = { triage: 'All', domain: 'All' };
-  activeTab = 'verdict';
-  noteScrollPos = { verdict: 0, intelligence: 0, suggestions: 0, notes: 0, export: 0 };
+  activeTab = 'assessment';
+  noteScrollPos = { assessment: 0, model: 0, notes: 0, export: 0 };
   document.querySelectorAll('#s-analysis .dash-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('dash-panel-verdict')?.classList.add('active');
-  document.querySelectorAll('#s-analysis .dash-tab').forEach(t => t.classList.toggle('on', t.getAttribute('data-tab') === 'verdict'));
+  document.getElementById('dash-panel-assessment')?.classList.add('active');
+  document.querySelectorAll('#s-analysis .dash-tab').forEach(t => t.classList.toggle('on', t.getAttribute('data-tab') === 'assessment'));
   document.getElementById('dash-tab-bar')?.removeAttribute('hidden');
   document.getElementById('anl-progress-wrap').style.display = 'none';
-  document.getElementById('anl-hdr-status').innerHTML = 'Analysis complete';
-  document.getElementById('dash-badge-suggestions').textContent = String(localSuggestions.length);
+  document.getElementById('anl-hdr-status').style.display = 'none';
   document.querySelectorAll('#s-analysis .pill').forEach(p => {
     p.classList.toggle('on', p.getAttribute('data-val') === 'All');
   });
@@ -4385,9 +4403,9 @@ function confirmModelSelection() {
     let _anlGen = 0;             // monotonic run ID — stale readers check this before acting
 
     // ════ Phase 5: Dashboard tab + filter state ════
-    let activeTab = 'verdict';
+    let activeTab = 'assessment';
     let suggFilter = { triage: 'All', domain: 'All' };
-    let noteScrollPos = { verdict: 0, intelligence: 0, suggestions: 0, notes: 0, export: 0 };
+    let noteScrollPos = { assessment: 0, model: 0, notes: 0, export: 0 };
     let suggData = []; // flat array of all suggestions across domains for filtering
     let narrativeStory = ''; // populated by _anlOnNarrative
 
@@ -4423,34 +4441,24 @@ function confirmModelSelection() {
       suggData = [];
       narrativeStory = '';
       suggFilter = { triage: 'All', domain: 'All' };
-      activeTab = 'verdict';
-      noteScrollPos = { verdict: 0, intelligence: 0, suggestions: 0, notes: 0, export: 0 };
-      // Reset pill UI to "All" selected
-      document.querySelectorAll('#s-analysis .pill').forEach(p => {
-        p.classList.toggle('on', p.getAttribute('data-val') === 'All');
-      });
-      // Reset tab UI to verdict
+      activeTab = 'assessment';
+      noteScrollPos = { assessment: 0, model: 0, notes: 0, export: 0 };
+      // Reset tab UI to assessment
       document.querySelectorAll('#s-analysis .dash-panel').forEach(p => p.classList.remove('active'));
-      const vPanel = document.getElementById('dash-panel-verdict');
+      const vPanel = document.getElementById('dash-panel-assessment');
       if (vPanel) vPanel.classList.add('active');
-      document.querySelectorAll('#s-analysis .dash-tab').forEach(t => t.classList.toggle('on', t.getAttribute('data-tab') === 'verdict'));
+      document.querySelectorAll('#s-analysis .dash-tab').forEach(t => t.classList.toggle('on', t.getAttribute('data-tab') === 'assessment'));
       // Hide tab bar until first data arrives
       const tabBar = document.getElementById('dash-tab-bar');
       if (tabBar) tabBar.hidden = true;
-      // Reset suggestions list and notes
-      const suggList = document.getElementById('dash-suggestions-list');
-      if (suggList) suggList.innerHTML = '';
-      const badge = document.getElementById('dash-badge-suggestions');
-      if (badge) badge.textContent = '0';
-      const intelBadge = document.getElementById('dash-badge-intelligence');
-      if (intelBadge) intelBadge.textContent = '0';
-      const intelBody = document.getElementById('dash-intelligence-body');
-      if (intelBody) intelBody.innerHTML = '<div class="notes-empty">Model intelligence will appear after deterministic analysis completes.</div>';
-      const intelPreview = document.getElementById('anl-intel-preview');
-      if (intelPreview) {
-        intelPreview.hidden = true;
-        intelPreview.innerHTML = '';
-      }
+      // Reset header center
+      const hdrModel = document.getElementById('anl-hdr-model');
+      if (hdrModel) hdrModel.textContent = 'Analysing model…';
+      const hdrMeta = document.getElementById('anl-hdr-meta');
+      if (hdrMeta) hdrMeta.textContent = '';
+      // Reset chips row
+      const chipsRow = document.getElementById('anl-chips-row');
+      if (chipsRow) chipsRow.innerHTML = '';
       renderNotesStory();
       // Disable Export buttons at start of each analysis; _anlOnComplete re-enables them
       const _pdfBtn = document.getElementById('pdf-download-btn');
@@ -4543,12 +4551,8 @@ function confirmModelSelection() {
     // Alias used by the fetch complete handler (D-09) so the SSE handler can
     // request the Model tab without knowing about the dash-panel internals.
     function activateTab(name) {
-      // Show the tab bar first (it is hidden until analysis data arrives, but
-      // on the v3.0 path the user lands here directly from fetch, not analysis).
       const tabBar = document.getElementById('dash-tab-bar');
       if (tabBar) tabBar.removeAttribute('hidden');
-      // switchTab guards against same-tab no-ops; force activeTab so the guard
-      // doesn't skip the switch when the dashboard was just reset to 'verdict'.
       activeTab = activeTab === name ? name + '_' : activeTab;
       switchTab(name);
     }
@@ -4654,11 +4658,54 @@ function confirmModelSelection() {
     function renderNotesStory() {
       const panel = document.getElementById('dash-notes-body');
       if (!panel) return;
-      if (!narrativeStory) {
-        panel.innerHTML = '<div class="notes-empty">Model overview will appear after analysis completes.</div>';
+      const ws = (_anlState && _anlState.intelligence && _anlState.intelligence.workstreams) || [];
+      const score = _anlState && _anlState.score;
+      const healthScore = (score && score.healthScore) || (ws.length ? '—' : null);
+      const domain = (score && score.verdict) || '';
+      if (!ws.length && !narrativeStory) {
+        panel.innerHTML = '<div class="notes-empty"><span style="font-size:22px;opacity:.35;">✎</span><span>Model review report appears here after analysis completes.</span></div>';
         return;
       }
-      panel.innerHTML = '<div class="notes-story">' + _anlEsc(narrativeStory) + '</div>';
+      if (ws.length) {
+        const critCount = ws.filter(w => w.priority === 'Critical').length;
+        const highCount = ws.filter(w => w.priority === 'High').length;
+        const now = new Date().toISOString().split('T')[0];
+        const moduleCount = (_anlState && _anlState.intelligence && _anlState.intelligence.footprint && _anlState.intelligence.footprint.functionalModuleCount) || '';
+        const domainLabel = _anlState.modelName || domain || 'Model';
+        const prioritySummary = [
+          critCount ? critCount + ' critical' : '',
+          highCount ? highCount + ' high-severity' : '',
+        ].filter(Boolean).join(', ');
+        const findingsList = ws.map(w => {
+          const priorityLabel = w.priority || 'Medium';
+          return '<li>'
+            + '<strong>' + _anlEsc(w.title || '?') + ' (' + _anlEsc(priorityLabel) + ')</strong>'
+            + '<dl>'
+            + (w.problem ? '<dt>Problem</dt><dd>' + _anlEsc(w.problem) + '</dd>' : '')
+            + (w.impact  ? '<dt>Impact</dt><dd>'   + _anlEsc(w.impact)  + '</dd>' : '')
+            + (w.fix     ? '<dt>Fix</dt><dd>'      + _anlEsc(w.fix)    + '</dd>' : '')
+            + '</dl>'
+            + '</li>';
+        }).join('');
+        const intro = prioritySummary
+          ? ws.length + ' issue' + (ws.length !== 1 ? 's' : '') + ' identified (' + prioritySummary + ').'
+            + (critCount ? ' ' + critCount + ' critical finding' + (critCount !== 1 ? 's' : '') + ' require immediate attention before production use.' : '')
+          : ws.length + ' issues identified.';
+        panel.innerHTML = '<h1 class="anl-notes-heading">Model Review Report</h1>'
+          + '<div class="anl-notes-sub">' + _anlEsc(domainLabel)
+          + (healthScore !== null ? ' · Health Score ' + healthScore : '')
+          + ' · ' + ws.length + ' issue' + (ws.length !== 1 ? 's' : '') + ' identified</div>'
+          + '<div class="anl-notes-ts">Generated ' + now + ' · Meridian · Analysis complete</div>'
+          + '<div class="anl-notes-body">'
+          + '<p>' + intro + '</p>'
+          + '<h3>Findings</h3>'
+          + '<ol>' + findingsList + '</ol>'
+          + '</div>';
+        return;
+      }
+      if (narrativeStory) {
+        panel.innerHTML = '<div class="notes-story">' + _anlEsc(narrativeStory) + '</div>';
+      }
     }
 
     function renderIntelList(items, renderItem, emptyText) {
@@ -5095,6 +5142,12 @@ function confirmModelSelection() {
         const out = document.getElementById('share-output');
         if (input) input.value = absoluteUrl;
         if (out) out.classList.add('on');
+        const previewEl = document.getElementById('share-url-preview');
+        if (previewEl) { previewEl.textContent = absoluteUrl; previewEl.style.display = ''; }
+        const copyBtn = document.getElementById('share-copy-btn');
+        if (copyBtn) copyBtn.style.display = '';
+        const inp = document.getElementById('share-url-input');
+        if (inp) inp.style.display = 'none';
         btn.textContent = 'Generate another link';
       } catch (err) {
         alert('Share failed: ' + (err.message || err));
@@ -5106,10 +5159,14 @@ function confirmModelSelection() {
 
     function copyShareUrl() {
       const input = document.getElementById('share-url-input');
-      if (!input || !input.value) return;
-      input.select();
-      try { document.execCommand('copy'); } catch (e) {}
-      if (navigator.clipboard) navigator.clipboard.writeText(input.value).catch(() => {});
+      const previewEl = document.getElementById('share-url-preview');
+      const url = (input && input.value) || (previewEl && previewEl.textContent) || '';
+      if (!url) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).catch(() => {});
+      } else {
+        if (input) { input.style.display = ''; input.select(); try { document.execCommand('copy'); } catch (e) {} input.style.display = 'none'; }
+      }
     }
 
     function _anlOnScore(s) {
@@ -5156,6 +5213,12 @@ function confirmModelSelection() {
     }
 
     function _anlOnModelComprehension(evt) {
+      // Update header center with model name
+      const hdrModel = document.getElementById('anl-hdr-model');
+      if (hdrModel && evt.modelName) hdrModel.textContent = evt.modelName;
+      const hdrMeta = document.getElementById('anl-hdr-meta');
+      if (hdrMeta && evt.moduleCount) hdrMeta.textContent = evt.moduleCount + ' modules';
+
       // Hide loading placeholder
       const loading = _anl$('model-loading');
       if (loading) loading.hidden = true;
@@ -5243,10 +5306,10 @@ function confirmModelSelection() {
       if (domainSection && domainBody && Array.isArray(evt.domainMap) && evt.domainMap.length) {
         domainBody.innerHTML = evt.domainMap.map(d => {
           const count = Number.isFinite(d.moduleCount) ? d.moduleCount : (Array.isArray(d.moduleIds) ? d.moduleIds.length : 0);
-          return '<div style="padding:10px 14px;border-left:3px solid var(--accent);background:var(--accent-pale,#EEF4FB);border-radius:0 var(--r-md) var(--r-md) 0;margin-bottom:6px;">'
-            + '<strong style="font-size:13px;">' + escapeHtml(d.domainName || 'Unnamed domain') + '</strong>'
-            + ' <span style="font-size:11px;color:var(--text3);">(' + count + ' modules)</span>'
-            + (d.description ? '<p style="margin:4px 0 0;font-size:12px;color:var(--text2);">' + escapeHtml(d.description) + '</p>' : '')
+          return '<div class="anl-domain-card">'
+            + '<div class="anl-domain-name">' + escapeHtml(d.domainName || 'Unnamed domain') + '</div>'
+            + '<div class="anl-domain-count">' + count + ' module' + (count !== 1 ? 's' : '') + '</div>'
+            + (d.description ? '<div class="anl-domain-desc">' + escapeHtml(d.description) + '</div>' : '')
             + '</div>';
         }).join('');
         domainSection.hidden = false;
@@ -5257,8 +5320,11 @@ function confirmModelSelection() {
       const seamsEl = _anl$('model-integration-seams');
       if (seamsWrap && seamsEl && Array.isArray(evt.integrationSeams) && evt.integrationSeams.length) {
         seamsEl.innerHTML = evt.integrationSeams.map(s =>
-          '<li style="font-size:12px;margin-bottom:4px;"><strong>' + escapeHtml(s.moduleName || s.moduleId || '?') + '</strong>'
-          + (s.reason ? ' — ' + escapeHtml(s.reason) : '') + '</li>'
+          '<li class="anl-seam-item">'
+          + '<span class="anl-seam-bullet">·</span>'
+          + '<span><span class="anl-seam-label">' + escapeHtml(s.moduleName || s.moduleId || '?') + '</span>'
+          + (s.reason ? escapeHtml(s.reason) : '') + '</span>'
+          + '</li>'
         ).join('');
         seamsWrap.hidden = false;
       }
@@ -5336,22 +5402,24 @@ function confirmModelSelection() {
         renderNotesStory();
       }
 
-      // ── Workstreams tab badge + list ──────────────────────────────────────────
-      const wsBadge = document.getElementById('dash-badge-suggestions');
-      if (ws.length) {
-        if (wsBadge) wsBadge.textContent = String(ws.length);
-        renderSuggestionsList(ws.map(w => ({
-          text:         w.title,
-          triage:       w.priority === 'Critical' || w.priority === 'High' ? 'Fix Now' : w.priority === 'Medium' ? 'Consider' : 'Monitor',
-          kind:         w.kind,
-          priority:     w.priority,
-          confidence:   w.confidence,
-          reasoning:    [w.problem, w.impact, w.fix].filter(Boolean).join(' ') || w.whyItMatters || '',
-          examples:     Array.isArray(w.examples) ? w.examples : [],
-          affectedCount: w.evidenceCount,
-          domain:       w.kind === 'evidence-limit' ? 'Best Practice' : 'Structural',
-        })));
+      // ── Chips row in verdict card ─────────────────────────────────────────────
+      const chipsRow = document.getElementById('anl-chips-row');
+      if (chipsRow && ws.length) {
+        const critCount = ws.filter(w => w.priority === 'Critical').length;
+        const highCount = ws.filter(w => w.priority === 'High').length;
+        const moduleCount = evt.moduleCount || 0;
+        let chips = '';
+        if (critCount) chips += '<span class="anl-chip anl-chip-neg">' + critCount + ' Critical</span><span class="anl-chip-sep">·</span>';
+        if (highCount) chips += '<span class="anl-chip anl-chip-go">' + highCount + ' High</span>';
+        if (moduleCount) {
+          if (critCount || highCount) chips += '<span class="anl-chip-sep">·</span>';
+          chips += '<span class="anl-chip anl-chip-neutral">' + moduleCount + ' modules</span>';
+        }
+        chipsRow.innerHTML = chips;
       }
+      // Also update header meta with module count
+      const hdrMeta = document.getElementById('anl-hdr-meta');
+      if (hdrMeta && evt.moduleCount) hdrMeta.textContent = evt.moduleCount + ' modules · Analysis complete';
     }
 
     function _renderHealthFormat(evt) {
@@ -5463,10 +5531,7 @@ function confirmModelSelection() {
       // Phase 5: ensure tab bar is visible
       const tabBar = document.getElementById('dash-tab-bar');
       if (tabBar && tabBar.hasAttribute('hidden')) tabBar.removeAttribute('hidden');
-      // For v2: switch to workstreams if populated. For v3: stay on Assessment.
-      if (_anlState.suggestionCount > 0 && activeTab === 'verdict') {
-        switchTab('suggestions');
-      }
+      // v3 stays on Assessment; v2 had workstreams tab (removed)
       // Phase 5: Enable Export buttons now that analysis state is complete
       const pdfBtn = document.getElementById('pdf-download-btn');
       const shareBtn = document.getElementById('share-create-btn');
