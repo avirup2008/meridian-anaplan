@@ -96,7 +96,7 @@ Keep: SSE plumbing, parseStateBlob(), SSRF guards, deterministic rule scanning (
 Replace/redesign: Sonnet call structure (single call per D-05), SSE event payload shapes, Health tab UI rendering, Model tab layout (after mockup review).
 
 ### Claude's Discretion
-- Health score display format (numeric vs label vs both — recommendation: tier label headline, score on expand)
+- Health score display format: plain numeric score 0–100, no letter grade
 - Exact Sonnet prompt engineering for the single combined call
 - Fallback behavior when Sonnet domain inference times out or returns malformed output
 - Whether to cache the architecture story in Vercel Blob alongside the state blob (recommended: yes, to avoid re-running Sonnet on repeated analysis of the same model)
