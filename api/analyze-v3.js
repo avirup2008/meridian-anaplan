@@ -170,8 +170,8 @@ function buildDeterministicVerdict(discoMap, blastRadiusTop10, findings, moduleC
 // Call 1: Sonnet — workstream cards only.
 // Focused prompt with real module names forces model-specific output.
 async function callWorkstreams({ aiClient, modules, findingSummary, blastRadiusTop10 }) {
-  const moduleNames = modules.slice(0, 80).map(m => m.name).join('\n')
-    + (modules.length > 80 ? `\n… and ${modules.length - 80} more` : '');
+  const moduleNames = modules.slice(0, 50).map(m => m.name).join('\n')
+    + (modules.length > 50 ? `\n… and ${modules.length - 50} more` : '');
   const blastLines = blastRadiusTop10
     .map(b => `  ${b.moduleName}: ${b.downstreamCount} downstream modules`)
     .join('\n');
@@ -214,11 +214,11 @@ RULES:
 
   const response = await Promise.race([
     aiClient.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }],
     }),
-    new Promise((_, rej) => setTimeout(() => rej(new Error('workstreams-timeout')), 35000)),
+    new Promise((_, rej) => setTimeout(() => rej(new Error('workstreams-timeout')), 20000)),
   ]);
 
   const raw = response.content?.[0]?.text?.trim() || '{}';

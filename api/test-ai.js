@@ -20,8 +20,8 @@ export default async function handler(req, res) {
     const t0 = Date.now();
     const resp = await Promise.race([
       client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
         messages: [{ role: 'user', content: `You are a senior Anaplan model reviewer. Respond with VALID JSON only.\n\nREAL MODULE NAMES:\n${fakeModules}\n\nFINDINGS:\n${fakeFindings}\n\nReturn JSON: {"workstreams":[{"id":"ws-1","title":"Test workstream citing CAL01","priority":"High","confidence":"Medium","kind":"remediation","whyItMatters":"CAL01 has 23 SUM-IF issues affecting downstream modules. This creates recalculation risk.","reviewQuestion":"Are SUM-IF formulas in CAL01 intentional?","action":"Review CAL01 formula patterns","evidenceCount":23,"examples":["CAL01.Revenue Forecast — nested SUM-IF"]}]}` }],
       }),
       new Promise((_, rej) => setTimeout(() => rej(new Error('timeout-35s')), 35000)),
