@@ -334,18 +334,34 @@ export default async function handler(req, res) {
       domain,
     });
 
-    // Group line items by module name (model-level endpoint returns moduleName as a string)
-    const lisByModule = new Map();
+    // Group line items by module — try name first, fall back to moduleId
+    // Anaplan returns moduleName on the model-level lineItems endpoint; moduleId is the safe fallback
+    const lisByModuleName = new Map();
+    const lisByModuleId   = new Map();
     for (const li of allLineItems) {
       const modName = li.moduleName || li.module || '';
-      if (!lisByModule.has(modName)) lisByModule.set(modName, []);
-      lisByModule.get(modName).push(li);
+      const modId   = li.moduleId   || li.moduleID || '';
+      if (modName) {
+        if (!lisByModuleName.has(modName)) lisByModuleName.set(modName, []);
+        lisByModuleName.get(modName).push(li);
+      }
+      if (modId) {
+        if (!lisByModuleId.has(modId)) lisByModuleId.set(modId, []);
+        lisByModuleId.get(modId).push(li);
+      }
     }
+
+    // Prefer name-keyed map; if it produced nothing, use id-keyed map
+    const nameHits = modules.filter(m => lisByModuleName.get(m.name)?.length).length;
+    const idHits   = modules.filter(m => lisByModuleId.get(m.id)?.length).length;
+    const lisByModule = nameHits >= idHits ? lisByModuleName : lisByModuleId;
+    const groupKey    = nameHits >= idHits ? (m) => m.name : (m) => m.id;
+    console.log(`[model-state] lineItem grouping: nameHits=${nameHits} idHits=${idHits} using=${nameHits >= idHits ? 'name' : 'id'}`);
 
     const assembled = modules.map((mod) => ({
       id: mod.id,
       name: mod.name,
-      lineItems: lisByModule.get(mod.name) || [],
+      lineItems: lisByModule.get(groupKey(mod)) || [],
     }));
 
     const fetchedModuleIds = new Set(assembled.map((m) => m.id));
@@ -377,6 +393,10 @@ export default async function handler(req, res) {
     });
 
     const lineItemCount = functional.reduce((s, m) => s + m.lineItems.length, 0);
+    const formulaCount  = functional.reduce((s, m) =>
+      s + m.lineItems.filter(li => typeof li.formula === 'string' && li.formula.trim().length > 0).length, 0);
+
+    safeLog('[model-state] formula count', { formulaCount, lineItemCount, modulesWithFormulas: functional.filter(m => m.lineItems.some(li => typeof li.formula === 'string' && li.formula.trim().length > 0)).length });
 
     sendEvent({
       type: 'complete',
@@ -385,6 +405,7 @@ export default async function handler(req, res) {
       moduleCount: functional.length,
       excludedCount: decorators.length,
       lineItemCount,
+      formulaCount,
       tokenEstimate: Math.round(stateText.length / 4),
       domain,
       enrichment: {
