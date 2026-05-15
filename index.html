@@ -709,7 +709,131 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 #s-shared .sugg-title { font-size:13px; font-weight:500; color:var(--text); margin:6px 0; line-height:1.4; }
 #s-shared .sugg-reasoning { font-size:12.5px; color:var(--text2); line-height:1.6; margin-bottom:8px; }
 #s-shared .sugg-action { font-size:12.5px; padding:8px 12px; background:var(--accent-pale); border-left:3px solid var(--accent-bd); border-radius:0 4px 4px 0; color:var(--text); }
-#s-shared .notes-story { font-size:14px; line-height:1.72; color:var(--text); white-space:pre-wrap; padding:18px 22px; background:#fff; border:1px solid #E5DFD0; border-radius:10px; margin-bottom:18px; font-weight:300; }
+#s-shared .notes-story { font-size:14px; line-height:1.72; color:var(--text); white-space:pre-wrap; padding:18px 22px; background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:18px; font-weight:300; }
+
+/* ══════════════════════════════════════════════════════════════
+   MERIDIAN · PREMIUM VISUAL SYSTEM v2
+   Overrides legacy #s-analysis rules with cohesive design tokens
+   and adds .ws-card component for workstream cards.
+══════════════════════════════════════════════════════════════ */
+
+/* ─── ANALYSIS SHELL ────────────────────────────────────────── */
+#s-analysis .anl-shell{max-width:860px;margin:0 auto;padding:32px 28px 80px}
+#s-analysis .anl-title{font-size:22px;font-weight:700;letter-spacing:-.03em;margin:0 0 4px;color:var(--text)}
+#s-analysis .anl-sub{font-size:11px;color:var(--text3);margin-bottom:22px;font-family:'IBM Plex Mono',monospace;font-weight:500;letter-spacing:.02em}
+
+/* ─── PROGRESS WRAP ─────────────────────────────────────────── */
+#s-analysis .anl-progress-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 20px;margin-bottom:18px}
+#s-analysis .anl-progress-label{display:flex;justify-content:space-between;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-bottom:9px;font-weight:500}
+#s-analysis .anl-progress-detail{font-size:10px;color:var(--text4);margin-top:7px;min-height:14px;font-family:'IBM Plex Mono',monospace}
+
+/* ─── TAB BAR ───────────────────────────────────────────────── */
+#s-analysis .dash-tab-bar{display:flex;gap:0;border-bottom:1.5px solid var(--rule);margin:22px 0 0;padding:0}
+#s-analysis .dash-tab{background:transparent;border:0;padding:11px 20px;font-size:12.5px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;display:inline-flex;align-items:center;gap:7px;transition:color .13s;white-space:nowrap;font-family:'IBM Plex Sans',system-ui,sans-serif}
+#s-analysis .dash-tab:hover{color:var(--text2)}
+#s-analysis .dash-tab.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+#s-analysis .dash-tab-badge{background:var(--accent);color:#fff;font-size:9.5px;font-weight:700;font-family:'IBM Plex Mono',monospace;padding:1.5px 7px;border-radius:100px;min-width:20px;text-align:center;line-height:1.65}
+#s-analysis .dash-panel{display:none;padding:24px 0 80px}
+#s-analysis .dash-panel.active{display:block}
+
+/* ─── HEALTH VERDICT CARD ───────────────────────────────────── */
+#health-verdict-card{border-radius:var(--r-xl);padding:28px 32px;margin-bottom:18px;box-shadow:var(--sh)}
+#health-score-num{font-size:48px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1;letter-spacing:-.04em}
+#health-verdict-domain{font-size:22px;font-weight:700;letter-spacing:-.025em;line-height:1.2;margin-bottom:4px}
+#health-verdict-text{font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:2px;line-height:1.55}
+
+/* ─── MODEL TAB VERDICT CARD ────────────────────────────────── */
+#model-architecture-verdict-card{border-radius:var(--r-xl);padding:26px 30px;box-shadow:var(--sh)}
+#model-verdict-title{font-size:20px;font-weight:700;letter-spacing:-.025em;line-height:1.2}
+#model-verdict-sub{font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:4px}
+
+/* ─── WORKSTREAM CARDS (.ws-card) ───────────────────────────── */
+.ws-card{background:var(--surface);border:1px solid var(--border2);border-left:3px solid var(--accent-bd);border-radius:var(--r-lg);padding:16px 18px 14px;margin-bottom:10px;box-shadow:var(--sh-sm);transition:box-shadow .15s}
+.ws-card:hover{box-shadow:var(--sh)}
+.ws-card-crit{background:var(--neg-pale);border-color:var(--neg-bd);border-left-color:var(--neg)}
+.ws-card-high{background:var(--gold-pale);border-color:var(--gold-bd);border-left-color:var(--gold)}
+.ws-card-med{border-left-color:var(--accent)}
+.ws-card-watch{border-left-color:var(--text3)}
+.ws-card-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px}
+.ws-card-title{font-size:15px;font-weight:600;color:var(--text);line-height:1.35;letter-spacing:-.015em}
+.ws-card-meta{text-align:right;flex-shrink:0}
+.ws-card-priority{font-size:9.5px;font-weight:700;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.08em;padding:3px 9px;border-radius:100px;display:inline-block}
+.ws-pri-crit{background:var(--neg-pale);color:var(--neg);border:1px solid var(--neg-bd)}
+.ws-pri-high{background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-bd)}
+.ws-pri-med{background:var(--accent-pale);color:var(--accent);border:1px solid var(--accent-bd)}
+.ws-pri-watch{background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
+.ws-card-count{font-size:9.5px;color:var(--text4);font-family:'IBM Plex Mono',monospace;margin-top:4px}
+.ws-card-row{display:grid;grid-template-columns:52px 1fr;gap:10px;padding:9px 0;border-top:1px solid var(--border);align-items:baseline}
+.ws-row-label{font-size:9px;font-weight:700;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.1em;padding-top:1px}
+.ws-label-problem{color:var(--text3)}
+.ws-label-impact{color:var(--neg)}
+.ws-label-fix{color:var(--pos)}
+.ws-label-why{color:var(--text3)}
+.ws-row-text{font-size:13px;color:var(--text);line-height:1.58}
+
+/* ─── EVIDENCE / INTELLIGENCE TAB ──────────────────────────── */
+#s-analysis .intel-summary{font-size:14px;line-height:1.65;color:var(--text2);margin-bottom:18px;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);font-weight:300;box-shadow:var(--sh-sm)}
+#s-analysis .intel-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}
+#s-analysis .intel-kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;box-shadow:var(--sh-sm)}
+#s-analysis .intel-kpi-val{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:700;color:var(--text);line-height:1;margin-bottom:5px}
+#s-analysis .intel-kpi-lbl{font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.9px;font-weight:600}
+#s-analysis .intel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}
+#s-analysis .intel-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--sh-sm);min-width:0}
+#s-analysis .intel-card.wide{grid-column:1 / -1}
+#s-analysis .intel-card h3{font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+#s-analysis .intel-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+#s-analysis .intel-list li{font-size:13px;line-height:1.5;color:var(--text);border-bottom:1px solid var(--border);padding:10px 0}
+#s-analysis .intel-list li:last-child{border-bottom:0;padding-bottom:0}
+#s-analysis .intel-list li:first-child{padding-top:0}
+#s-analysis .intel-meta{display:block;color:var(--text3);font-size:10.5px;margin-top:3px;font-family:'IBM Plex Mono',monospace;line-height:1.5}
+#s-analysis .intel-pill{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);background:var(--accent-pale);border:1px solid var(--accent-bd);border-radius:4px;padding:2px 6px;margin-right:6px}
+
+/* ─── WORKSTREAMS TAB (suggestion cards) ────────────────────── */
+#s-analysis .domain-group{border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:10px;background:var(--surface);box-shadow:var(--sh-sm);overflow:hidden}
+#s-analysis .domain-hd{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none;transition:background .12s}
+#s-analysis .domain-hd:hover{background:var(--bg2)}
+#s-analysis .domain-name{font-size:13px;font-weight:600;color:var(--text);flex:1;letter-spacing:-.01em}
+#s-analysis .domain-count{background:var(--accent-pale);color:var(--accent);font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;padding:2px 9px;border-radius:100px;border:1px solid var(--accent-bd)}
+#s-analysis .domain-chev{color:var(--text3);font-size:10px}
+#s-analysis .domain-body{padding:0 18px 16px;border-top:1px solid var(--rule)}
+#s-analysis .sugg-card{padding:16px 0;border-bottom:1px solid var(--border)}
+#s-analysis .sugg-card:last-child{border-bottom:0;padding-bottom:0}
+#s-analysis .sugg-triage{display:inline-block;font-size:9px;font-weight:700;font-family:'IBM Plex Mono',monospace;padding:3px 8px;border-radius:100px;text-transform:uppercase;letter-spacing:.08em;margin-right:6px}
+#s-analysis .sugg-triage.fix{background:var(--neg-pale);color:var(--neg);border:1px solid var(--neg-bd)}
+#s-analysis .sugg-triage.consider{background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-bd)}
+#s-analysis .sugg-triage.monitor{background:var(--accent-pale);color:var(--accent);border:1px solid var(--accent-bd)}
+#s-analysis .sugg-module{font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace;margin-right:6px}
+#s-analysis .sugg-title{font-size:14px;font-weight:600;color:var(--text);margin:8px 0 6px;line-height:1.35;letter-spacing:-.01em}
+#s-analysis .sugg-reasoning{font-size:13px;color:var(--text2);line-height:1.62;margin-bottom:8px;font-weight:300}
+#s-analysis .sugg-action{font-size:13px;padding:10px 14px;background:var(--accent-pale);border-left:2px solid var(--accent);border-radius:0 var(--r) var(--r) 0;color:var(--text2);font-weight:300}
+
+/* ─── FILTER BAR ────────────────────────────────────────────── */
+#s-analysis .filter-bar{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--sh-sm)}
+#s-analysis .filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#s-analysis .filter-label{font-size:9px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;min-width:52px}
+#s-analysis .pill{background:var(--bg2);border:1px solid var(--border);color:var(--text3);padding:5px 12px;border-radius:100px;font-size:11px;font-weight:500;cursor:pointer;transition:all .12s}
+#s-analysis .pill:hover{border-color:var(--accent-bd);color:var(--text2)}
+#s-analysis .pill.on{background:var(--text);border-color:var(--text);color:#fff}
+
+/* ─── NOTES / EXPORT ────────────────────────────────────────── */
+#s-analysis .notes-story{font-size:14px;line-height:1.75;color:var(--text);white-space:pre-wrap;padding:24px 28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);margin-bottom:18px;font-weight:300;box-shadow:var(--sh-sm)}
+.notes-empty{font-size:13px;color:var(--text3);padding:40px 24px;text-align:center;font-style:normal;display:flex;flex-direction:column;align-items:center;gap:10px;line-height:1.55}
+#s-analysis .export-sect{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:22px 26px;margin-bottom:12px;box-shadow:var(--sh-sm)}
+#s-analysis .export-sect h3{font-size:14px;font-weight:700;margin:0 0 5px;color:var(--text);letter-spacing:-.01em}
+#s-analysis .export-sect p.export-help{font-size:12px;color:var(--text3);margin:0 0 16px;line-height:1.5}
+#s-analysis .export-options{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+#s-analysis .export-options label{font-size:13px;color:var(--text);display:flex;align-items:center;gap:9px;cursor:pointer}
+
+/* ─── SHARED REPORT triage badges ───────────────────────────── */
+#s-shared .sugg-triage{display:inline-block;font-size:9px;font-weight:700;font-family:'IBM Plex Mono',monospace;padding:3px 8px;border-radius:100px;text-transform:uppercase;letter-spacing:.08em;margin-right:6px}
+#s-shared .sugg-triage.fix{background:var(--neg-pale);color:var(--neg);border:1px solid var(--neg-bd)}
+#s-shared .sugg-triage.consider{background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-bd)}
+#s-shared .sugg-triage.monitor{background:var(--accent-pale);color:var(--accent);border:1px solid var(--accent-bd)}
+
+@media(max-width:760px){
+  #s-analysis .intel-grid,#s-analysis .intel-kpis{grid-template-columns:1fr}
+  #s-analysis .anl-shell{padding:20px 16px 80px}
+}
 
 </style>
 </head>
@@ -1007,7 +1131,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 
     <div class="dash-panel" id="dash-panel-intelligence">
       <div id="dash-intelligence-body">
-        <div class="notes-empty">Model intelligence will appear after deterministic analysis completes.</div>
+        <div class="notes-empty"><span style="font-size:22px;opacity:.35;">◎</span><span>Evidence detail appears here after analysis completes.</span></div>
       </div>
     </div>
 
@@ -1034,7 +1158,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 
     <div class="dash-panel" id="dash-panel-notes">
       <div id="dash-notes-body">
-        <div class="notes-empty">Model overview will appear after analysis completes.</div>
+        <div class="notes-empty"><span style="font-size:22px;opacity:.35;">✎</span><span>Model overview appears here after analysis completes.</span></div>
       </div>
     </div>
 
@@ -5288,27 +5412,30 @@ function confirmModelSelection() {
       }
 
       // 'workstreams' format (default)
-      if (!ws.length) return '<p style="color:var(--text3);font-size:13px;">No workstreams available.</p>';
-      const priorityColor = { Critical: '#c0392b', High: '#b8860b', Medium: '#2471a3', Watch: '#7f8c8d' };
-      const priorityBg    = { Critical: '#fdf0ef', High: '#fef9ec', Medium: '#eaf4fb', Watch: '#f4f4f4' };
+      if (!ws.length) return '<div class="notes-empty"><span>No workstreams available.</span></div>';
+      const priCardClass  = { Critical: 'ws-card-crit', High: 'ws-card-high', Medium: 'ws-card-med', Watch: 'ws-card-watch' };
+      const priLabelClass = { Critical: 'ws-pri-crit',  High: 'ws-pri-high',  Medium: 'ws-pri-med',  Watch: 'ws-pri-watch' };
       return ws.map(w => {
-        const borderCol = priorityColor[w.priority] || '#ccc';
-        const bgCol     = priorityBg[w.priority]    || '#fafafa';
+        const cc = priCardClass[w.priority]  || 'ws-card-watch';
+        const lc = priLabelClass[w.priority] || 'ws-pri-watch';
         const hasNew = w.problem && w.impact && w.fix;
-        const row = (label, col, text) =>
-          '<div style="display:grid;grid-template-columns:64px 1fr;gap:8px;padding:8px 0;border-top:1px solid #f0ece4;">'
-          + '<span style="font-size:10px;font-weight:700;letter-spacing:.07em;color:' + col + ';text-transform:uppercase;padding-top:2px;">' + label + '</span>'
-          + '<span style="font-size:13px;color:#333;line-height:1.55;">' + escapeHtml(text) + '</span>'
+        const row = (labelClass, label, text) =>
+          '<div class="ws-card-row">'
+          + '<span class="ws-row-label ' + labelClass + '">' + label + '</span>'
+          + '<span class="ws-row-text">' + escapeHtml(text) + '</span>'
           + '</div>';
         const bodyHtml = hasNew
-          ? row('Problem', '#888', w.problem) + row('Impact', '#c0392b', w.impact) + row('Fix', '#27ae60', w.fix)
-          : '<div style="padding:10px 0;border-top:1px solid #f0ece4;font-size:13px;color:#555;line-height:1.6;">' + escapeHtml(w.whyItMatters || '') + '</div>';
-        return '<div style="background:' + bgCol + ';border:1px solid #e8e2d8;border-left:4px solid ' + borderCol + ';border-radius:8px;padding:14px 16px;margin-bottom:12px;">'
-          + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">'
-          + '<strong style="font-size:15px;font-weight:600;color:#1a1a1a;line-height:1.4;">' + escapeHtml(w.title || '?') + '</strong>'
-          + '<div style="text-align:right;flex-shrink:0;">'
-          + '<div style="font-size:12px;font-weight:700;color:' + borderCol + ';white-space:nowrap;">' + escapeHtml(w.priority || '') + '</div>'
-          + '<div style="font-size:11px;color:#999;white-space:nowrap;margin-top:2px;">' + (w.evidenceCount || 0) + ' finding' + (w.evidenceCount === 1 ? '' : 's') + '</div>'
+          ? row('ws-label-problem', 'Problem', w.problem)
+          + row('ws-label-impact',  'Impact',  w.impact)
+          + row('ws-label-fix',     'Fix',     w.fix)
+          : (w.whyItMatters ? row('ws-label-why', 'Why', w.whyItMatters) : '');
+        const count = w.evidenceCount ? w.evidenceCount + ' finding' + (w.evidenceCount === 1 ? '' : 's') : '';
+        return '<div class="ws-card ' + cc + '">'
+          + '<div class="ws-card-hd">'
+          + '<span class="ws-card-title">' + escapeHtml(w.title || '?') + '</span>'
+          + '<div class="ws-card-meta">'
+          + '<span class="ws-card-priority ' + lc + '">' + escapeHtml(w.priority || '—') + '</span>'
+          + (count ? '<div class="ws-card-count">' + count + '</div>' : '')
           + '</div></div>'
           + bodyHtml
           + '</div>';
@@ -5336,11 +5463,9 @@ function confirmModelSelection() {
       // Phase 5: ensure tab bar is visible
       const tabBar = document.getElementById('dash-tab-bar');
       if (tabBar && tabBar.hasAttribute('hidden')) tabBar.removeAttribute('hidden');
-      // Surface workstreams first; evidence view is supporting material.
+      // For v2: switch to workstreams if populated. For v3: stay on Assessment.
       if (_anlState.suggestionCount > 0 && activeTab === 'verdict') {
         switchTab('suggestions');
-      } else if (_anlState.intelligence && activeTab === 'verdict') {
-        switchTab('intelligence');
       }
       // Phase 5: Enable Export buttons now that analysis state is complete
       const pdfBtn = document.getElementById('pdf-download-btn');
