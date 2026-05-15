@@ -131,15 +131,6 @@ const DISCO_LABEL = {
 
 const HEALTH_FORMAT = 'workstreams';
 
-const HONEST_LIMITS = [
-  'Calculation execution speed',
-  'Data load runtimes',
-  'User experience / dashboard design',
-  'ALM governance (dev/test/prod hygiene)',
-  'Whether formulas are logically correct (only that they exist)',
-  'Workspace utilization',
-];
-
 // ─── Domain classifier ────────────────────────────────────────────────────────
 // Mirrors the classifier in model-state.js — used when enrichment is parsed from the blob.
 
@@ -492,8 +483,6 @@ export default async function handler(req, res) {
     const cycles = detectCircularDependencies(graph);
     const daisyChains = detectDaisyChains(graph);
 
-    const limitationCards = diagnostics.blockedClaims || [];
-
     // Blast radius — downstream module count per module
     const downstreamByModule = new Map();
     for (const edge of graph.edges) {
@@ -521,7 +510,6 @@ export default async function handler(req, res) {
       daisyChains,
       discoMap,
       blastRadiusTop10,
-      limitationCards,
       domain,
     });
 
@@ -640,7 +628,6 @@ export default async function handler(req, res) {
       format: HEALTH_FORMAT,
       healthScore,
       architectureVerdict,
-      honestLimits: HONEST_LIMITS,
       workstreams,
       assessment: {
         verdict: assessmentObj.verdict,

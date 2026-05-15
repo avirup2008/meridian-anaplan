@@ -905,12 +905,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
       <button class="dash-tab" data-tab="export" onclick="switchTab('export')">Export</button>
     </div>
 
-    <div id="evidence-limit-warning" role="alert" hidden class="evidence-warning">
-      <strong>Evidence Limits</strong>
-      <p>This fetch is incomplete. The following conclusions are blocked:</p>
-      <ul id="blocked-conclusions-list"></ul>
-    </div>
-
     <div class="dash-panel" id="dash-panel-model" data-alias="tab-panel-model">
       <!-- Model tab: populated by _anlOnModelComprehension() + _anlOnModelComprehensionEnriched() -->
       <div id="model-loading" class="notes-empty">Analysing model architecture — this usually takes a few seconds.</div>
@@ -926,18 +920,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
         </div>
       </div>
 
-      <!-- D-03: Blast radius bar chart -->
-      <div id="model-blast-radius-section" hidden style="margin-bottom:20px;">
-        <h3 class="step-label">Blast Radius — Top Modules</h3>
-        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-lg);padding:16px 18px;">
-          <div style="display:flex;flex-direction:column;gap:9px;" id="model-blast-radius-bars"></div>
-          <div style="display:flex;gap:16px;margin-top:12px;padding-top:10px;border-top:1px solid var(--rule);">
-            <div style="display:flex;align-items:center;gap:5px;"><div style="width:18px;height:4px;border-radius:2px;background:var(--neg);"></div><span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);">≥15 downstream</span></div>
-            <div style="display:flex;align-items:center;gap:5px;"><div style="width:18px;height:4px;border-radius:2px;background:var(--gold);"></div><span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);">5–14 downstream</span></div>
-            <div style="display:flex;align-items:center;gap:5px;"><div style="width:18px;height:4px;border-radius:2px;background:var(--pos);"></div><span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);">&lt;5 downstream</span></div>
-          </div>
-        </div>
-      </div>
 
       <!-- D-02: Domain map (filled by model-comprehension-enriched) -->
       <div id="model-domain-map-section" hidden style="margin-bottom:20px;">
@@ -1027,11 +1009,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
         </div>
       </div>
 
-      <!-- D-04: Honest limits — FIRST AND PROMINENT -->
-      <div id="health-honest-limits" hidden style="background:var(--gold-pale);border-left:4px solid var(--gold);padding:14px 18px;margin-bottom:16px;border-radius:var(--r-md);">
-        <strong style="font-size:13px;color:var(--gold);">What Meridian cannot tell you</strong>
-        <ul id="health-honest-limits-list" style="margin:8px 0 0;font-size:12px;padding-left:18px;color:var(--text2);"></ul>
-      </div>
 
       <!-- D-07 + D-06: Architecture verdict + health score -->
       <div id="health-verdict-card" hidden class="verdict-card risk" style="margin-bottom:16px;">
@@ -4476,22 +4453,8 @@ function confirmModelSelection() {
       switchTab(name);
     }
 
-    function renderEvidenceLimits(evidencePack) {
-      const panel = document.getElementById('evidence-limit-warning');
-      const list = document.getElementById('blocked-conclusions-list');
-      if (!panel || !list) return;
-      const blocked = (evidencePack && Array.isArray(evidencePack.blockedConclusions)) ? evidencePack.blockedConclusions : [];
-      if (!blocked.length) {
-        panel.hidden = true;
-        list.innerHTML = '';
-        return;
-      }
-      // Escape user-derived strings (defence in depth — these come from our own server but still)
-      list.innerHTML = blocked.map(c => {
-        const esc = String(c).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return '<li>' + esc + '</li>';
-      }).join('');
-      panel.hidden = false;
+    function renderEvidenceLimits(_evidencePack) {
+      // removed — evidence limits section deleted
     }
 
     function setSuggPill(group, val) {
@@ -5097,24 +5060,6 @@ function confirmModelSelection() {
       const loading = _anl$('model-loading');
       if (loading) loading.hidden = true;
 
-      // ── D-03: Blast radius bar chart ─────────────────────────────────────────
-      const blastSection = _anl$('model-blast-radius-section');
-      const blastBars = _anl$('model-blast-radius-bars');
-      if (blastSection && blastBars && evt.blastRadiusTop10 && evt.blastRadiusTop10.length) {
-        const maxDown = evt.blastRadiusTop10[0].downstreamCount || 1;
-        blastBars.innerHTML = evt.blastRadiusTop10.map(b => {
-          const pct = Math.round((b.downstreamCount / maxDown) * 100);
-          const color = b.downstreamCount >= 15 ? 'var(--neg)' : b.downstreamCount >= 5 ? 'var(--gold)' : 'var(--pos)';
-          const numColor = b.downstreamCount >= 15 ? 'var(--neg)' : b.downstreamCount >= 5 ? 'var(--gold)' : 'var(--text3)';
-          return '<div style="display:grid;grid-template-columns:160px 1fr 28px;align-items:center;gap:10px;">'
-            + '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtml(b.moduleName) + '">' + escapeHtml(b.moduleName) + '</div>'
-            + '<div class="prog" style="height:10px;border-radius:3px;"><div class="prog-f" style="width:' + pct + '%;background:' + color + ';border-radius:3px;height:100%;"></div></div>'
-            + '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;font-weight:700;color:' + numColor + ';text-align:right;">' + b.downstreamCount + '</div>'
-            + '</div>';
-        }).join('');
-        blastSection.hidden = false;
-      }
-
       // Show architecture section with "Computing…" placeholder (enriched event fills it)
       const archSection = _anl$('model-architecture-section');
       if (archSection) archSection.hidden = false;
@@ -5292,14 +5237,6 @@ function confirmModelSelection() {
     }
 
     function _anlOnHealthWorkstreams(evt) {
-      // ── D-04: Honest limits — FIRST AND PROMINENT ────────────────────────────
-      const limitsBox = _anl$('health-honest-limits');
-      const limitsList = _anl$('health-honest-limits-list');
-      if (limitsBox && limitsList && Array.isArray(evt.honestLimits) && evt.honestLimits.length) {
-        limitsList.innerHTML = evt.honestLimits.map(h => '<li>' + escapeHtml(h) + '</li>').join('');
-        limitsBox.hidden = false;
-      }
-
       // ── D-07 + D-06: Architecture verdict + health score ──────────────────────
       const verdictCard = _anl$('health-verdict-card');
       if (verdictCard) {
