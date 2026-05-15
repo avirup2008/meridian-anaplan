@@ -467,7 +467,8 @@ export default async function handler(req, res) {
           posture: 'review',
         };
       } else if (wsResult.status === 'rejected') {
-        console.error('[analyze-v3] workstreams failed:', wsResult.reason?.constructor?.name, wsResult.reason?.message);
+        const we = wsResult.reason;
+        console.error('[analyze-v3] workstreams failed:', we?.constructor?.name, we?.message, 'status:', we?.status, 'errType:', we?.error?.type, 'errBody:', JSON.stringify(we?.error || {}).slice(0, 300));
       }
 
       if (archResult.status === 'fulfilled') {
@@ -475,7 +476,8 @@ export default async function handler(req, res) {
         integrationSeams = Array.isArray(archResult.value?.integrationSeams) ? archResult.value.integrationSeams : [];
         architectureStory = String(archResult.value?.architectureStory || '');
       } else {
-        console.error('[analyze-v3] architecture failed:', archResult.reason?.constructor?.name, archResult.reason?.message);
+        const ae = archResult.reason;
+        console.error('[analyze-v3] architecture failed:', ae?.constructor?.name, ae?.message, 'status:', ae?.status, 'errType:', ae?.error?.type);
       }
     } catch (e) {
       console.error('[analyze-v3] AI calls failed:', e.constructor.name, e.message);
