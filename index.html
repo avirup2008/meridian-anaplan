@@ -979,6 +979,83 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .chat-typing span:nth-child(3){animation-delay:.4s}
 @keyframes chatBounce{from{opacity:.3;transform:translateY(0)}to{opacity:1;transform:translateY(-3px)}}
 
+/* ─── BUILD TAB ──────────────────────────────────────────────── */
+.build-container{display:grid;grid-template-columns:1fr 1fr;height:calc(100vh - 280px);min-height:450px;max-height:750px;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;background:var(--surface)}
+.build-left{display:flex;flex-direction:column;border-right:1px solid var(--rule)}
+.build-left-header{padding:20px 22px 14px}
+.build-left-title{font-size:15px;font-weight:600;letter-spacing:-.01em;margin-bottom:3px}
+.build-left-sub{font-size:11.5px;color:var(--text3);line-height:1.5}
+.build-context-bar{padding:8px 22px;background:var(--bg2);border-bottom:1px solid var(--border);border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;min-height:32px}
+.build-context-pill{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 9px;border-radius:4px;background:var(--surface);color:var(--text3);border:1px solid var(--border)}
+.build-context-pill strong{color:var(--text2);font-weight:600}
+.build-chat-area{flex:1;overflow-y:auto;padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.build-welcome{text-align:center;padding:32px 16px;color:var(--text3)}
+.build-welcome-icon{margin-bottom:10px;opacity:.6}
+.build-welcome-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
+.build-welcome-sub{font-size:12px;line-height:1.6;max-width:340px;margin:0 auto 16px}
+.build-welcome-examples{display:flex;flex-direction:column;gap:6px;max-width:340px;margin:0 auto}
+.build-example{font-size:11.5px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;text-align:left;transition:border-color .15s}
+.build-example:hover{border-color:var(--accent);color:var(--accent)}
+.build-msg{max-width:88%;padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.6}
+.build-msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:3px}
+.build-msg.ai{align-self:flex-start;background:var(--bg2);border:1px solid var(--border);color:var(--text2);border-bottom-left-radius:3px}
+.build-input-bar{display:flex;align-items:flex-end;gap:8px;padding:12px 22px;border-top:1px solid var(--border)}
+.build-input{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;font-family:'IBM Plex Sans',system-ui,sans-serif;resize:none;max-height:100px;line-height:1.5;color:var(--text);background:var(--surface);transition:border-color .15s}
+.build-input:focus{outline:none;border-color:var(--accent)}
+
+.build-right{display:flex;flex-direction:column;background:var(--bg)}
+.build-right-header{padding:16px 22px 12px;border-bottom:1px solid var(--border)}
+.build-right-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em;font-family:'IBM Plex Mono',monospace;font-size:9px}
+.build-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.build-stat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center}
+.build-stat-val{display:block;font-size:20px;font-weight:700;font-family:'IBM Plex Mono',monospace;letter-spacing:-.02em;color:var(--accent)}
+.build-stat-lbl{display:block;font-size:9px;color:var(--text4);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+.build-output{flex:1;overflow-y:auto;padding:16px 22px}
+.build-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;opacity:.7}
+.build-export-bar{padding:12px 22px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center}
+
+.build-section{margin-bottom:22px;animation:fadeUp .35s ease forwards}
+.build-section-hdr{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.build-section-num{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;background:var(--accent-pale);color:var(--accent);border:1px solid var(--accent-bd)}
+.build-section-title{font-size:12px;font-weight:600;color:var(--text)}
+.build-section-count{font-size:10px;color:var(--text4);margin-left:auto;font-family:'IBM Plex Mono',monospace}
+
+.build-list-table{width:100%;border:1px solid var(--border);border-radius:8px;overflow:hidden;font-size:12px;background:var(--surface)}
+.build-list-table th{background:var(--bg2);padding:7px 12px;text-align:left;font-weight:600;color:var(--text3);font-size:9px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.8px;border-bottom:1.5px solid var(--rule)}
+.build-list-table td{padding:7px 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+.build-list-table tr:last-child td{border-bottom:none}
+.build-list-table .mono{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text)}
+
+.build-mod-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px;box-shadow:var(--sh-sm)}
+.build-mod-hdr{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.build-mod-prefix{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:700;padding:3px 7px;border-radius:4px}
+.build-mod-prefix.DAT{background:var(--accent-pale);color:var(--accent);border:1px solid var(--accent-bd)}
+.build-mod-prefix.INP{background:rgba(107,79,160,.08);color:#6B4FA0;border:1px solid rgba(107,79,160,.20)}
+.build-mod-prefix.CAL{background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-bd)}
+.build-mod-prefix.REP{background:var(--pos-pale);color:var(--pos);border:1px solid var(--pos-bd)}
+.build-mod-prefix.SYS{background:var(--bg2);color:var(--text3);border:1px solid var(--rule)}
+.build-mod-name{font-size:13px;font-weight:500;color:var(--text)}
+.build-mod-dims{font-size:10px;color:var(--text3);margin-left:auto;font-family:'IBM Plex Mono',monospace}
+.build-li-row{display:grid;grid-template-columns:1.2fr 70px 1fr;gap:6px;padding:5px 0;border-top:1px solid var(--border);font-size:11.5px;align-items:center}
+.build-li-row:first-child{border-top:none}
+.build-li-name{color:var(--text);font-weight:400}
+.build-li-fmt{color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:10px}
+.build-li-formula{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.build-seq-flow{display:flex;align-items:center;gap:0;padding:10px 0;flex-wrap:wrap;row-gap:8px}
+.build-seq-node{padding:6px 11px;border-radius:6px;font-size:10px;font-weight:500;font-family:'IBM Plex Mono',monospace;white-space:nowrap;background:var(--accent-pale);color:var(--accent);border:1px solid var(--accent-bd)}
+.build-seq-arrow{color:var(--text4);font-size:14px;margin:0 4px}
+
+.build-conn-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.build-conn-item:last-child{border-bottom:none}
+.build-conn-from{color:var(--text);font-weight:500;min-width:140px}
+.build-conn-arrow{color:var(--text4);font-size:12px}
+.build-conn-to{color:var(--text2)}
+.build-conn-via{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-left:auto;background:var(--bg2);padding:2px 8px;border-radius:4px;border:1px solid var(--border)}
+
+.build-streaming{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;margin-bottom:14px;font-size:11px;color:var(--text3)}
+.build-streaming-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s infinite}
+
 /* ─── EXPORT TAB ─────────────────────────────────────────────── */
 .anl-export-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .anl-export-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px;box-shadow:var(--sh-sm)}
@@ -1228,6 +1305,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
       <button class="dash-tab" data-tab="model" id="tab-btn-model" onclick="switchTab('model')">Model</button>
       <button class="dash-tab on" data-tab="assessment" onclick="switchTab('assessment')">Assessment</button>
       <button class="dash-tab" data-tab="chat" onclick="switchTab('chat')">Chat</button>
+      <button class="dash-tab" data-tab="build" onclick="switchTab('build')">Build</button>
       <button class="dash-tab" data-tab="export" onclick="switchTab('export')">Export</button>
     </div>
 
@@ -1368,6 +1446,56 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
           <button class="chat-send-btn" id="chat-send-btn" onclick="sendChatMessage()">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M14.5 8L1.5 14.5V9.5L8 8L1.5 6.5V1.5L14.5 8Z" fill="currentColor"/></svg>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-panel" id="dash-panel-build">
+      <div class="build-container">
+        <div class="build-left">
+          <div class="build-left-header">
+            <div class="build-left-title">Build</div>
+            <div class="build-left-sub">Describe what you want to add to your model. Meridian generates a complete build specification grounded in your existing structure.</div>
+          </div>
+          <div class="build-context-bar" id="build-context-bar"></div>
+          <div class="build-chat-area" id="build-chat-area">
+            <div class="build-welcome">
+              <div class="build-welcome-icon"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L3 7v6l7 5 7-5V7l-7-5z" stroke="var(--accent)" stroke-width="1.5" fill="none"/><path d="M10 7v6M7 10h6" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+              <div class="build-welcome-title">Build Architect</div>
+              <div class="build-welcome-sub">Describe any new capability, module, or change you need. Meridian will generate a complete, implementation-ready build specification — lists, modules, line items, formulas, build order, and integration points.</div>
+              <div class="build-welcome-examples">
+                <div class="build-example" onclick="setBuildInput(this.textContent)">Add headcount planning with salary bands and benefits burden by department</div>
+                <div class="build-example" onclick="setBuildInput(this.textContent)">Create a revenue waterfall showing new, expansion, churn, and contraction</div>
+                <div class="build-example" onclick="setBuildInput(this.textContent)">Add a driver-based opex forecast with vendor-level detail</div>
+              </div>
+            </div>
+          </div>
+          <div class="build-input-bar">
+            <textarea class="build-input" id="build-input" placeholder="Describe what you want to build..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendBuildMessage();}"></textarea>
+            <button class="btn btn-pri btn-sm" id="build-send-btn" onclick="sendBuildMessage()">Build</button>
+          </div>
+        </div>
+        <div class="build-right" id="build-right">
+          <div class="build-right-header">
+            <div class="build-right-title">Build Specification</div>
+            <div class="build-stats" id="build-stats" style="display:none;">
+              <div class="build-stat"><span class="build-stat-val" id="bs-lists">0</span><span class="build-stat-lbl">Lists</span></div>
+              <div class="build-stat"><span class="build-stat-val" id="bs-modules">0</span><span class="build-stat-lbl">Modules</span></div>
+              <div class="build-stat"><span class="build-stat-val" id="bs-lineitems">0</span><span class="build-stat-lbl">Line Items</span></div>
+              <div class="build-stat"><span class="build-stat-val" id="bs-formulas">0</span><span class="build-stat-lbl">Formulas</span></div>
+            </div>
+          </div>
+          <div class="build-output" id="build-output">
+            <div class="build-empty-state">
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style="opacity:0.3;margin-bottom:12px;"><path d="M20 5L5 13v14l15 8 15-8V13L20 5z" stroke="var(--text3)" stroke-width="1.5" fill="none"/><path d="M5 13l15 8 15-8M20 21v14" stroke="var(--text3)" stroke-width="1.5"/></svg>
+              <div style="font-size:13px;color:var(--text3);">Your build specification will appear here</div>
+            </div>
+          </div>
+          <div class="build-export-bar" id="build-export-bar" style="display:none;">
+            <button class="btn btn-pri btn-sm" onclick="exportBuildGuide('md')">Export Markdown</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportBuildGuide('csv')">CSV (Blueprint)</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportBuildGuide('copy')">Copy JSON</button>
+          </div>
         </div>
       </div>
     </div>
@@ -4916,6 +5044,293 @@ function confirmModelSelection() {
       chatStreaming = false;
       document.getElementById('chat-send-btn').disabled = false;
       input.focus();
+    }
+
+    // ════ Build Interface ══════════════════════════════════════════════════════
+    let buildStreaming = false;
+    let buildHistory = [];
+    let currentBuildSpec = null;
+
+    function setBuildInput(text) {
+      const input = document.getElementById('build-input');
+      if (input) { input.value = text; input.focus(); }
+    }
+
+    function updateBuildContextBar() {
+      const bar = document.getElementById('build-context-bar');
+      if (!bar) return;
+      const mi = _anlState.modelIntelligence;
+      const name = _anlState.modelName || '';
+      let modCount = 0, liCount = 0;
+      if (mi && mi.summary && mi.summary.moduleSummary) modCount = mi.summary.moduleSummary.total;
+      if (mi && mi.summary) liCount = mi.summary.totalLI || 0;
+      if (name || modCount) {
+        bar.innerHTML = (name ? '<span class="build-context-pill"><strong>' + escapeHtml(name) + '</strong></span>' : '')
+          + (modCount ? '<span class="build-context-pill"><strong>' + modCount + '</strong> modules</span>' : '')
+          + (liCount ? '<span class="build-context-pill"><strong>' + liCount + '</strong> line items</span>' : '');
+      }
+    }
+
+    function appendBuildMsg(role, content) {
+      const area = document.getElementById('build-chat-area');
+      const welcome = area.querySelector('.build-welcome');
+      if (welcome) welcome.remove();
+      const div = document.createElement('div');
+      div.className = 'build-msg ' + (role === 'user' ? 'user' : 'ai');
+      div.textContent = content;
+      area.appendChild(div);
+      area.scrollTop = area.scrollHeight;
+      return div;
+    }
+
+    function renderBuildSpec(spec) {
+      currentBuildSpec = spec;
+      const output = document.getElementById('build-output');
+      const stats = document.getElementById('build-stats');
+      const exportBar = document.getElementById('build-export-bar');
+
+      // Calculate stats
+      const listCount = (spec.lists || []).length;
+      const modCount = (spec.modules || []).length;
+      const liCount = (spec.modules || []).reduce((sum, m) => sum + (m.lineItems || []).length, 0);
+      const fCount = (spec.modules || []).reduce((sum, m) => sum + (m.lineItems || []).filter(li => li.formula && li.type === 'CALC').length, 0);
+
+      // Update stats
+      stats.style.display = 'grid';
+      document.getElementById('bs-lists').textContent = listCount;
+      document.getElementById('bs-modules').textContent = modCount;
+      document.getElementById('bs-lineitems').textContent = liCount;
+      document.getElementById('bs-formulas').textContent = fCount;
+      exportBar.style.display = 'flex';
+
+      let html = '';
+
+      // Title & summary
+      if (spec.title || spec.summary) {
+        html += '<div style="margin-bottom:18px;"><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">' + escapeHtml(spec.title || '') + '</div>'
+          + '<div style="font-size:12px;color:var(--text3);line-height:1.5;">' + escapeHtml(spec.summary || '') + '</div></div>';
+      }
+
+      // Section 1: Lists
+      if (spec.lists && spec.lists.length) {
+        html += '<div class="build-section"><div class="build-section-hdr">'
+          + '<div class="build-section-num">1</div>'
+          + '<div class="build-section-title">New Lists</div>'
+          + '<div class="build-section-count">' + spec.lists.length + ' lists</div></div>'
+          + '<table class="build-list-table"><tr><th>Name</th><th>Parent</th><th>Est. Members</th><th>Source</th></tr>';
+        for (const l of spec.lists) {
+          html += '<tr><td class="mono">' + escapeHtml(l.name || '') + '</td>'
+            + '<td>' + escapeHtml(l.parent || '—') + '</td>'
+            + '<td>' + (l.estimatedMembers || '—') + '</td>'
+            + '<td>' + escapeHtml(l.source || '') + '</td></tr>';
+        }
+        html += '</table></div>';
+      }
+
+      // Section 2: Modules
+      if (spec.modules && spec.modules.length) {
+        html += '<div class="build-section"><div class="build-section-hdr">'
+          + '<div class="build-section-num">2</div>'
+          + '<div class="build-section-title">New Modules</div>'
+          + '<div class="build-section-count">' + modCount + ' modules · ' + liCount + ' line items</div></div>';
+        for (const m of spec.modules) {
+          const prefix = (m.prefix || '').toUpperCase();
+          const dims = Array.isArray(m.appliesTo) ? m.appliesTo.join(' × ') : (m.appliesTo || '');
+          html += '<div class="build-mod-card"><div class="build-mod-hdr">'
+            + '<span class="build-mod-prefix ' + prefix + '">' + escapeHtml(prefix) + '</span>'
+            + '<span class="build-mod-name">' + escapeHtml(m.name || '') + '</span>'
+            + '<span class="build-mod-dims">' + escapeHtml(dims) + '</span></div>';
+          if (m.purpose) html += '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;padding-left:2px;">' + escapeHtml(m.purpose) + '</div>';
+          if (m.lineItems && m.lineItems.length) {
+            for (const li of m.lineItems) {
+              const formulaDisplay = li.formula || (li.type === 'INPUT' ? '— (user input)' : '— (import)');
+              html += '<div class="build-li-row">'
+                + '<span class="build-li-name">' + escapeHtml(li.name || '') + '</span>'
+                + '<span class="build-li-fmt">' + escapeHtml(li.format || '') + '</span>'
+                + '<span class="build-li-formula" title="' + escapeHtml(formulaDisplay) + '">' + escapeHtml(formulaDisplay) + '</span></div>';
+            }
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      // Section 3: Build Sequence
+      if (spec.buildSequence && spec.buildSequence.length) {
+        html += '<div class="build-section"><div class="build-section-hdr">'
+          + '<div class="build-section-num">3</div>'
+          + '<div class="build-section-title">Build Sequence</div></div>'
+          + '<div class="build-seq-flow">';
+        for (let i = 0; i < spec.buildSequence.length; i++) {
+          html += '<span class="build-seq-node">' + escapeHtml(spec.buildSequence[i]) + '</span>';
+          if (i < spec.buildSequence.length - 1) html += '<span class="build-seq-arrow">&rarr;</span>';
+        }
+        html += '</div></div>';
+      }
+
+      // Section 4: Connections
+      if (spec.connections && spec.connections.length) {
+        html += '<div class="build-section"><div class="build-section-hdr">'
+          + '<div class="build-section-num">4</div>'
+          + '<div class="build-section-title">Connections to Existing Model</div>'
+          + '<div class="build-section-count">' + spec.connections.length + ' integration points</div></div>';
+        for (const c of spec.connections) {
+          const arrow = c.direction === 'inbound' ? '&larr;' : '&rarr;';
+          html += '<div class="build-conn-item">'
+            + '<span class="build-conn-from">' + escapeHtml(c.from || '') + '</span>'
+            + '<span class="build-conn-arrow">' + arrow + '</span>'
+            + '<span class="build-conn-to">' + escapeHtml(c.to || '') + '</span>'
+            + '<span class="build-conn-via">' + escapeHtml(c.via || '') + '</span></div>';
+        }
+        html += '</div>';
+      }
+
+      // Notes
+      if (spec.notes) {
+        html += '<div class="build-section"><div style="font-size:11.5px;color:var(--text3);line-height:1.6;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;">'
+          + '<strong style="color:var(--text2);">Notes:</strong> ' + escapeHtml(spec.notes) + '</div></div>';
+      }
+
+      output.innerHTML = html;
+    }
+
+    async function sendBuildMessage() {
+      if (buildStreaming) return;
+      const input = document.getElementById('build-input');
+      const message = input.value.trim();
+      if (!message) return;
+
+      input.value = '';
+      updateBuildContextBar();
+      appendBuildMsg('user', message);
+      buildHistory.push({ role: 'user', content: message });
+
+      // Show streaming indicator in output
+      const output = document.getElementById('build-output');
+      output.innerHTML = '<div class="build-streaming"><div class="build-streaming-dot"></div><span>Generating build specification...</span></div>';
+      document.getElementById('build-stats').style.display = 'none';
+      document.getElementById('build-export-bar').style.display = 'none';
+
+      buildStreaming = true;
+      document.getElementById('build-send-btn').disabled = true;
+
+      let fullText = '';
+      try {
+        const resp = await fetch('/api/build', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            history: buildHistory.slice(0, -1).slice(-6),
+            stateUrl: localStorage.getItem('meridian.stateUrl') || undefined,
+          }),
+        });
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const evt = JSON.parse(line.slice(6));
+              if (evt.type === 'status') {
+                output.innerHTML = '<div class="build-streaming"><div class="build-streaming-dot"></div><span>' + escapeHtml(evt.text) + '</span></div>';
+              } else if (evt.type === 'delta') {
+                fullText += evt.text;
+              } else if (evt.type === 'spec') {
+                renderBuildSpec(evt.data);
+                appendBuildMsg('ai', 'Build specification generated — ' + (evt.data.modules || []).length + ' modules, ' + (evt.data.modules || []).reduce((s, m) => s + (m.lineItems || []).length, 0) + ' line items.');
+                buildHistory.push({ role: 'assistant', content: JSON.stringify(evt.data) });
+              } else if (evt.type === 'spec-raw') {
+                output.innerHTML = '<div style="font-size:12px;color:var(--text2);white-space:pre-wrap;font-family:\'IBM Plex Mono\',monospace;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:100%;">' + escapeHtml(evt.text || fullText) + '</div>';
+                appendBuildMsg('ai', 'Specification generated (raw format).');
+              } else if (evt.type === 'error') {
+                output.innerHTML = '<div style="padding:20px;text-align:center;color:var(--neg);font-size:13px;">Error: ' + escapeHtml(evt.message) + '</div>';
+              }
+            } catch {}
+          }
+        }
+      } catch (err) {
+        output.innerHTML = '<div style="padding:20px;text-align:center;color:var(--neg);font-size:13px;">Connection error</div>';
+      }
+
+      buildStreaming = false;
+      document.getElementById('build-send-btn').disabled = false;
+      input.focus();
+    }
+
+    function exportBuildGuide(format) {
+      if (!currentBuildSpec) return;
+      const spec = currentBuildSpec;
+
+      if (format === 'copy') {
+        navigator.clipboard.writeText(JSON.stringify(spec, null, 2));
+        return;
+      }
+
+      if (format === 'md') {
+        let md = '# Build Specification: ' + (spec.title || '') + '\n\n';
+        md += (spec.summary || '') + '\n\n';
+
+        if (spec.lists && spec.lists.length) {
+          md += '## New Lists\n\n| Name | Parent | Est. Members | Source |\n|------|--------|:---:|--------|\n';
+          for (const l of spec.lists) md += '| ' + (l.name||'') + ' | ' + (l.parent||'—') + ' | ' + (l.estimatedMembers||'—') + ' | ' + (l.source||'') + ' |\n';
+          md += '\n';
+        }
+
+        if (spec.modules && spec.modules.length) {
+          md += '## Modules\n\n';
+          for (const m of spec.modules) {
+            md += '### ' + (m.name||'') + '\n';
+            md += '**Applies to:** ' + (Array.isArray(m.appliesTo) ? m.appliesTo.join(' × ') : m.appliesTo||'') + '\n\n';
+            if (m.purpose) md += '_' + m.purpose + '_\n\n';
+            md += '| Line Item | Format | Formula |\n|-----------|--------|--------|\n';
+            for (const li of (m.lineItems||[])) {
+              md += '| ' + (li.name||'') + ' | ' + (li.format||'') + ' | `' + (li.formula || (li.type==='INPUT'?'user input':'import')) + '` |\n';
+            }
+            md += '\n';
+          }
+        }
+
+        if (spec.buildSequence) md += '## Build Sequence\n\n' + spec.buildSequence.join(' → ') + '\n\n';
+        if (spec.connections) {
+          md += '## Integration Points\n\n';
+          for (const c of spec.connections) md += '- **' + (c.from||'') + '** → ' + (c.to||'') + ' (' + (c.via||'') + ')\n';
+          md += '\n';
+        }
+        if (spec.notes) md += '## Notes\n\n' + spec.notes + '\n';
+
+        const blob = new Blob([md], { type: 'text/markdown' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'build-spec-' + (spec.title || 'meridian').replace(/\s+/g, '-').toLowerCase() + '.md';
+        a.click();
+        return;
+      }
+
+      if (format === 'csv') {
+        // Blueprint-compatible CSV for line items
+        let csv = 'Module,Line Item,Format,Summary,Formula,Type\n';
+        for (const m of (spec.modules||[])) {
+          for (const li of (m.lineItems||[])) {
+            csv += '"' + (m.name||'') + '","' + (li.name||'') + '","' + (li.format||'') + '","' + (li.summary||'NONE') + '","' + (li.formula||'').replace(/"/g,'""') + '","' + (li.type||'') + '"\n';
+          }
+        }
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'build-spec-blueprint.csv';
+        a.click();
+      }
     }
 
     function setSuggPill(group, val) {

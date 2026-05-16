@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian — Build Mode Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FAF8F0;
+  --bg1: #FFFDF8;
+  --bg2: #F2EFE8;
+  --bg3: #EBE8E0;
+  --border: rgba(28,33,41,0.08);
+  --border2: rgba(28,33,41,0.13);
+  --rule: #DED9CF;
+  --text: #1C2129;
+  --text2: #4A4F5C;
+  --text3: #6B7080;
+  --text4: #8A8E99;
+  --pri: #175AA6;
+  --pri2: #3B7FC4;
+  --pos: #217348;
+  --pos2: #2a9058;
+  --warn: #BF801E;
+  --neg: #B82E2E;
+  --blue: #175AA6;
+  --purple: #6B4FA0;
+  --cyan: #0E7490;
+  --sh: 0 4px 18px rgba(28,33,41,0.08), 0 2px 6px rgba(28,33,41,0.05);
+  --sh-sm: 0 1px 4px rgba(28,33,41,0.07), 0 1px 2px rgba(28,33,41,0.04);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+.app { display:grid; grid-template-columns:1fr 1fr; height:100vh; }
+
+/* ─── Left: Input Panel ─── */
+.input-panel {
+  border-right:1px solid var(--rule);
+  display:flex;
+  flex-direction:column;
+  background:var(--bg1);
+}
+.input-header {
+  padding:24px 28px 20px;
+  border-bottom:1px solid var(--border);
+}
+.input-header h1 {
+  font-size:18px;
+  font-weight:600;
+  letter-spacing:-0.02em;
+  margin-bottom:4px;
+}
+.input-header p {
+  font-size:12px;
+  color:var(--text3);
+  line-height:1.5;
+}
+.context-bar {
+  padding:12px 28px;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.context-pill {
+  font-size:10px;
+  font-family:'IBM Plex Mono',monospace;
+  padding:4px 10px;
+  border-radius:4px;
+  background:var(--bg2);
+  color:var(--text3);
+  border:1px solid var(--rule);
+}
+.context-pill strong { color:var(--text2); font-weight:600; }
+
+.chat-area {
+  flex:1;
+  overflow-y:auto;
+  padding:24px 28px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.msg {
+  max-width:90%;
+  padding:12px 16px;
+  border-radius:10px;
+  font-size:13px;
+  line-height:1.6;
+}
+.msg-user {
+  align-self:flex-end;
+  background:var(--pri);
+  color:#fff;
+  border-bottom-right-radius:3px;
+}
+.msg-ai {
+  align-self:flex-start;
+  background:var(--bg2);
+  border:1px solid var(--rule);
+  color:var(--text2);
+  border-bottom-left-radius:3px;
+}
+
+.input-box {
+  padding:16px 28px;
+  border-top:1px solid var(--border);
+  display:flex;
+  gap:10px;
+}
+.input-box textarea {
+  flex:1;
+  background:var(--bg1);
+  border:1.5px solid var(--rule);
+  border-radius:8px;
+  padding:12px 16px;
+  font-size:13px;
+  font-family:'IBM Plex Sans',sans-serif;
+  color:var(--text);
+  resize:none;
+  outline:none;
+  min-height:48px;
+  max-height:120px;
+}
+.input-box textarea:focus { border-color:var(--pri); }
+.input-box textarea::placeholder { color:var(--text4); }
+.btn-build {
+  background:var(--pri);
+  border:none;
+  color:#fff;
+  padding:0 20px;
+  border-radius:8px;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.btn-build:hover { background:var(--pri2); }
+
+/* ─── Right: Build Guide Output ─── */
+.output-panel {
+  display:flex;
+  flex-direction:column;
+  background:var(--bg);
+  overflow:hidden;
+}
+.output-header {
+  padding:24px 28px 16px;
+  border-bottom:1px solid var(--border);
+}
+.output-header h2 {
+  font-size:15px;
+  font-weight:600;
+  letter-spacing:-0.01em;
+  margin-bottom:12px;
+  color:var(--text2);
+}
+
+/* Summary cards */
+.build-stats {
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:10px;
+}
+.stat-card {
+  background:var(--bg1);
+  border:1px solid var(--rule);
+  border-radius:10px;
+  padding:14px 16px;
+  text-align:center;
+  box-shadow:var(--sh-sm);
+}
+.stat-val {
+  font-size:24px;
+  font-weight:700;
+  font-family:'IBM Plex Mono',monospace;
+  letter-spacing:-0.03em;
+}
+.stat-val.lists { color:var(--cyan); }
+.stat-val.modules { color:var(--pri); }
+.stat-val.lineitems { color:var(--pos); }
+.stat-val.formulas { color:var(--warn); }
+.stat-lbl {
+  font-size:10px;
+  color:var(--text3);
+  margin-top:4px;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+}
+
+/* Build guide content */
+.output-body {
+  flex:1;
+  overflow-y:auto;
+  padding:24px 28px;
+}
+
+.build-section {
+  margin-bottom:28px;
+  animation: fadeSlide 0.4s ease forwards;
+  opacity:0;
+}
+.build-section.visible { opacity:1; }
+
+@keyframes fadeSlide {
+  from { opacity:0; transform:translateY(8px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+.section-header {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+}
+.section-num {
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  font-weight:600;
+  font-family:'IBM Plex Mono',monospace;
+}
+.section-num.lists { background:rgba(14,116,144,.10); color:var(--cyan); }
+.section-num.modules { background:rgba(23,90,166,.10); color:var(--pri); }
+.section-num.seq { background:rgba(191,128,30,.10); color:var(--warn); }
+.section-num.connect { background:rgba(33,115,72,.10); color:var(--pos); }
+
+.section-title {
+  font-size:13px;
+  font-weight:600;
+  color:var(--text);
+}
+.section-subtitle {
+  font-size:11px;
+  color:var(--text3);
+  margin-left:auto;
+  font-family:'IBM Plex Mono',monospace;
+}
+
+/* List specs */
+.spec-table {
+  width:100%;
+  border:1px solid var(--rule);
+  border-radius:10px;
+  overflow:hidden;
+  font-size:12px;
+  margin-bottom:8px;
+  box-shadow:var(--sh-sm);
+}
+.spec-table th {
+  background:var(--bg2);
+  padding:9px 14px;
+  text-align:left;
+  font-weight:600;
+  color:var(--text3);
+  font-size:9px;
+  font-family:'IBM Plex Mono',monospace;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  border-bottom:2px solid var(--rule);
+}
+.spec-table td {
+  padding:9px 14px;
+  border-bottom:1px solid var(--border);
+  color:var(--text2);
+}
+.spec-table tr:last-child td { border-bottom:none; }
+.spec-table .mono {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--text);
+}
+
+/* Module cards */
+.module-card {
+  background:var(--bg1);
+  border:1px solid var(--rule);
+  border-radius:10px;
+  padding:16px;
+  margin-bottom:10px;
+  box-shadow:var(--sh-sm);
+}
+.module-card-header {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:10px;
+}
+.module-prefix {
+  font-size:10px;
+  font-family:'IBM Plex Mono',monospace;
+  font-weight:600;
+  padding:3px 8px;
+  border-radius:4px;
+}
+.prefix-dat { background:rgba(23,90,166,.08); color:var(--blue); border:1px solid rgba(23,90,166,.20); }
+.prefix-inp { background:rgba(107,79,160,.08); color:var(--purple); border:1px solid rgba(107,79,160,.20); }
+.prefix-cal { background:rgba(191,128,30,.09); color:var(--warn); border:1px solid rgba(191,128,30,.26); }
+.prefix-rep { background:rgba(33,115,72,.08); color:var(--pos); border:1px solid rgba(33,115,72,.20); }
+
+.module-name {
+  font-size:13px;
+  font-weight:500;
+  color:var(--text);
+}
+.module-dims {
+  font-size:11px;
+  color:var(--text3);
+  margin-left:auto;
+  font-family:'IBM Plex Mono',monospace;
+}
+.module-li-list {
+  padding-left:0;
+  list-style:none;
+}
+.module-li {
+  display:grid;
+  grid-template-columns:1fr 80px 180px;
+  gap:8px;
+  padding:6px 0;
+  border-top:1px solid var(--border);
+  font-size:12px;
+  align-items:center;
+}
+.module-li:first-child { border-top:none; }
+.li-name { color:var(--text); font-weight:400; }
+.li-format { color:var(--text3); font-family:'IBM Plex Mono',monospace; font-size:10px; }
+.li-formula {
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  color:var(--text3);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* Build sequence */
+.seq-flow {
+  display:flex;
+  align-items:center;
+  gap:0;
+  padding:12px 0;
+  overflow-x:auto;
+}
+.seq-step {
+  display:flex;
+  align-items:center;
+  gap:0;
+}
+.seq-node {
+  padding:8px 14px;
+  border-radius:6px;
+  font-size:11px;
+  font-weight:500;
+  font-family:'IBM Plex Mono',monospace;
+  white-space:nowrap;
+}
+.seq-arrow {
+  color:var(--text4);
+  font-size:16px;
+  margin:0 6px;
+}
+
+/* Connection map */
+.connect-item {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+  font-size:12px;
+}
+.connect-item:last-child { border-bottom:none; }
+.connect-from { color:var(--text); font-weight:500; min-width:180px; }
+.connect-arrow { color:var(--text4); }
+.connect-to { color:var(--text2); }
+.connect-via {
+  font-size:10px;
+  font-family:'IBM Plex Mono',monospace;
+  color:var(--text3);
+  margin-left:auto;
+  background:var(--bg2);
+  padding:3px 9px;
+  border-radius:4px;
+  border:1px solid var(--border);
+}
+
+/* Export bar */
+.export-bar {
+  padding:16px 28px;
+  border-top:1px solid var(--border);
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.btn-export {
+  padding:8px 16px;
+  border-radius:8px;
+  font-size:12px;
+  font-weight:600;
+  border:1.5px solid var(--rule);
+  background:var(--bg1);
+  color:var(--text2);
+  cursor:pointer;
+  font-family:'IBM Plex Sans',sans-serif;
+}
+.btn-export:hover { border-color:var(--pri); color:var(--pri); }
+.btn-export.primary {
+  background:var(--pri);
+  border-color:var(--pri);
+  color:#fff;
+  box-shadow:0 2px 10px rgba(23,90,166,.22);
+}
+.btn-export.primary:hover { background:var(--pri2); }
+.export-note {
+  font-size:11px;
+  color:var(--text4);
+  margin-left:auto;
+}
+
+/* Streaming indicator */
+.streaming-indicator {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 16px;
+  background:var(--bg2);
+  border:1px solid var(--rule);
+  border-radius:8px;
+  margin-bottom:16px;
+}
+.streaming-dot {
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--pri);
+  animation:pulse 1.2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity:0.4; }
+  50% { opacity:1; }
+}
+.streaming-text {
+  font-size:11px;
+  color:var(--text3);
+}
+
+/* Progress ring */
+.progress-ring {
+  position:relative;
+  width:48px;
+  height:48px;
+}
+.progress-ring svg {
+  transform:rotate(-90deg);
+}
+.progress-ring .bg { stroke:var(--bg3); stroke-opacity:0.5; }
+.progress-ring .fg { stroke:var(--pri); stroke-linecap:round; transition:stroke-dashoffset 0.6s ease; }
+.progress-pct {
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  font-weight:600;
+  font-family:'IBM Plex Mono',monospace;
+  color:var(--text);
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ─── LEFT: Input / Conversation ─── -->
+  <div class="input-panel">
+    <div class="input-header">
+      <h1>Build</h1>
+      <p>Describe what you want to add to your model. Meridian generates a complete build specification grounded in your existing structure.</p>
+    </div>
+    <div class="context-bar">
+      <span class="context-pill"><strong>Model:</strong> FP&A Consolidated v3.2</span>
+      <span class="context-pill"><strong>214</strong> modules</span>
+      <span class="context-pill"><strong>3,847</strong> line items</span>
+    </div>
+
+    <div class="chat-area">
+      <div class="msg msg-user">
+        I need to add headcount planning. We have 12 departments, each has positions with salary bands. I need to forecast FTE costs monthly including benefits burden, track attrition assumptions, and plan new hires against approved headcount. Should connect to our existing GL expense modules for cost roll-up.
+      </div>
+      <div class="msg msg-ai">
+        I can see your existing expense structure — you have CAL03 Expense Allocation and DAT01 GL Actuals. I'll design headcount planning that feeds directly into your cost center dimension.
+
+        Building your spec now...
+      </div>
+    </div>
+
+    <div class="input-box">
+      <textarea placeholder="Describe what you want to build, change, or extend..."></textarea>
+      <button class="btn-build">Build</button>
+    </div>
+  </div>
+
+  <!-- ─── RIGHT: Build Guide Output ─── -->
+  <div class="output-panel">
+    <div class="output-header">
+      <h2>Build Specification</h2>
+      <div class="build-stats">
+        <div class="stat-card">
+          <div class="stat-val lists">3</div>
+          <div class="stat-lbl">New Lists</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val modules">5</div>
+          <div class="stat-lbl">New Modules</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val lineitems">47</div>
+          <div class="stat-lbl">Line Items</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val formulas">31</div>
+          <div class="stat-lbl">Formulas</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="output-body">
+
+      <div class="streaming-indicator">
+        <div class="streaming-dot"></div>
+        <span class="streaming-text">Generating build specification...</span>
+        <div class="progress-ring" style="margin-left:auto;">
+          <svg width="48" height="48">
+            <circle class="bg" cx="24" cy="24" r="20" fill="none" stroke-width="3"/>
+            <circle class="fg" cx="24" cy="24" r="20" fill="none" stroke-width="3" stroke-dasharray="125.6" stroke-dashoffset="25"/>
+          </svg>
+          <div class="progress-pct">80%</div>
+        </div>
+      </div>
+
+      <!-- Section 1: Lists -->
+      <div class="build-section visible" style="animation-delay:0s">
+        <div class="section-header">
+          <div class="section-num lists">1</div>
+          <div class="section-title">New Lists</div>
+          <div class="section-subtitle">3 lists</div>
+        </div>
+        <table class="spec-table">
+          <tr><th>List Name</th><th>Parent</th><th>Members (est.)</th><th>Source</th></tr>
+          <tr>
+            <td class="mono">Department</td>
+            <td class="mono">—</td>
+            <td>12</td>
+            <td>Manual / HRIS import</td>
+          </tr>
+          <tr>
+            <td class="mono">Position</td>
+            <td class="mono">Department</td>
+            <td>~60</td>
+            <td>HRIS import</td>
+          </tr>
+          <tr>
+            <td class="mono">Employee</td>
+            <td class="mono">Position</td>
+            <td>~200</td>
+            <td>HRIS import (optional detail)</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Section 2: Modules -->
+      <div class="build-section visible" style="animation-delay:0.1s">
+        <div class="section-header">
+          <div class="section-num modules">2</div>
+          <div class="section-title">New Modules</div>
+          <div class="section-subtitle">5 modules · 47 line items</div>
+        </div>
+
+        <!-- Module 1: DAT -->
+        <div class="module-card">
+          <div class="module-card-header">
+            <span class="module-prefix prefix-dat">DAT</span>
+            <span class="module-name">DAT04 HC Data Hub</span>
+            <span class="module-dims">Position × Time</span>
+          </div>
+          <div class="module-li-list">
+            <div class="module-li">
+              <span class="li-name">Current Headcount</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">— (import)</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Base Salary</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">— (import)</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Start Date</span>
+              <span class="li-format">DATE</span>
+              <span class="li-formula">— (import)</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Department Mapping</span>
+              <span class="li-format">LIST: Dept</span>
+              <span class="li-formula">— (import)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 2: INP -->
+        <div class="module-card">
+          <div class="module-card-header">
+            <span class="module-prefix prefix-inp">INP</span>
+            <span class="module-name">INP04 HC Assumptions</span>
+            <span class="module-dims">Department × Time</span>
+          </div>
+          <div class="module-li-list">
+            <div class="module-li">
+              <span class="li-name">Benefits Burden %</span>
+              <span class="li-format">%</span>
+              <span class="li-formula">— (user input)</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Annual Raise %</span>
+              <span class="li-format">%</span>
+              <span class="li-formula">— (user input)</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Attrition Rate %</span>
+              <span class="li-format">%</span>
+              <span class="li-formula">— (user input)</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Approved Headcount</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">— (user input)</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Avg Hire Ramp Months</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">— (user input)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 3: CAL -->
+        <div class="module-card">
+          <div class="module-card-header">
+            <span class="module-prefix prefix-cal">CAL</span>
+            <span class="module-name">CAL07 HC Cost Calculation</span>
+            <span class="module-dims">Position × Time</span>
+          </div>
+          <div class="module-li-list">
+            <div class="module-li">
+              <span class="li-name">Monthly Salary</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">DAT04.Base Salary / 12</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Burden Cost</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">Monthly Salary * INP04.Benefits Burden %</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Fully Loaded Cost</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">Monthly Salary + Burden Cost</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">FTE Count</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">DAT04.Current Headcount</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Total HC Cost</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">Fully Loaded Cost * FTE Count</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 4: CAL Forecast -->
+        <div class="module-card">
+          <div class="module-card-header">
+            <span class="module-prefix prefix-cal">CAL</span>
+            <span class="module-name">CAL08 HC Forecast</span>
+            <span class="module-dims">Department × Time</span>
+          </div>
+          <div class="module-li-list">
+            <div class="module-li">
+              <span class="li-name">Opening HC</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">IF ISBLANK(PREVIOUS(Closing HC)) THEN DAT04.Current Headcount ELSE PREVIOUS(Closing HC)</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Attrition</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">-ROUND(Opening HC * INP04.Attrition Rate % / 12, 0)</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">New Hires</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">MAX(INP04.Approved Headcount - Opening HC - Attrition, 0)</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Closing HC</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">Opening HC + Attrition + New Hires</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Vacancy Rate %</span>
+              <span class="li-format">%</span>
+              <span class="li-formula">IF Approved HC <> 0 THEN 1 - Closing HC / Approved HC ELSE 0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Module 5: REP -->
+        <div class="module-card">
+          <div class="module-card-header">
+            <span class="module-prefix prefix-rep">REP</span>
+            <span class="module-name">REP04 HC Summary</span>
+            <span class="module-dims">Department × Time</span>
+          </div>
+          <div class="module-li-list">
+            <div class="module-li">
+              <span class="li-name">Total FTE</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">CAL08.Closing HC</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Total HC Cost</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">SUM(CAL07.Total HC Cost)</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Cost per FTE</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">IF Total FTE <> 0 THEN Total HC Cost / Total FTE ELSE 0</span>
+            </div>
+            <div class="module-li">
+              <span class="li-name">Variance to Budget</span>
+              <span class="li-format">NUMBER</span>
+              <span class="li-formula">Total HC Cost - CAL03.'HC Budget'</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Build Sequence -->
+      <div class="build-section visible" style="animation-delay:0.2s">
+        <div class="section-header">
+          <div class="section-num seq">3</div>
+          <div class="section-title">Build Sequence</div>
+        </div>
+        <div class="seq-flow">
+          <div class="seq-step">
+            <div class="seq-node" style="background:rgba(14,116,144,.08);color:var(--cyan);border:1px solid rgba(14,116,144,.20);">Department</div>
+            <span class="seq-arrow">&rarr;</span>
+          </div>
+          <div class="seq-step">
+            <div class="seq-node" style="background:rgba(14,116,144,.08);color:var(--cyan);border:1px solid rgba(14,116,144,.20);">Position</div>
+            <span class="seq-arrow">&rarr;</span>
+          </div>
+          <div class="seq-step">
+            <div class="seq-node" style="background:rgba(14,116,144,.08);color:var(--cyan);border:1px solid rgba(14,116,144,.20);">Employee</div>
+            <span class="seq-arrow">&rarr;</span>
+          </div>
+          <div class="seq-step">
+            <div class="seq-node" style="background:rgba(23,90,166,.08);color:var(--blue);border:1px solid rgba(23,90,166,.20);">DAT04</div>
+            <span class="seq-arrow">&rarr;</span>
+          </div>
+          <div class="seq-step">
+            <div class="seq-node" style="background:rgba(107,79,160,.08);color:var(--purple);border:1px solid rgba(107,79,160,.20);">INP04</div>
+            <span class="seq-arrow">&rarr;</span>
+          </div>
+          <div class="seq-step">
+            <div class="seq-node" style="background:rgba(191,128,30,.09);color:var(--warn);border:1px solid rgba(191,128,30,.26);">CAL07</div>
+            <span class="seq-arrow">&rarr;</span>
+          </div>
+          <div class="seq-step">
+            <div class="seq-node" style="background:rgba(191,128,30,.09);color:var(--warn);border:1px solid rgba(191,128,30,.26);">CAL08</div>
+            <span class="seq-arrow">&rarr;</span>
+          </div>
+          <div class="seq-step">
+            <div class="seq-node" style="background:rgba(33,115,72,.08);color:var(--pos);border:1px solid rgba(33,115,72,.20);">REP04</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Connections to Existing Model -->
+      <div class="build-section visible" style="animation-delay:0.3s">
+        <div class="section-header">
+          <div class="section-num connect">4</div>
+          <div class="section-title">Connections to Existing Model</div>
+          <div class="section-subtitle">3 integration points</div>
+        </div>
+        <div class="connect-item">
+          <span class="connect-from">REP04 HC Summary</span>
+          <span class="connect-arrow">&rarr;</span>
+          <span class="connect-to">CAL03 Expense Allocation</span>
+          <span class="connect-via">Total HC Cost &rarr; Personnel line</span>
+        </div>
+        <div class="connect-item">
+          <span class="connect-from">DAT04 HC Data Hub</span>
+          <span class="connect-arrow">&larr;</span>
+          <span class="connect-to">HRIS Import (new action)</span>
+          <span class="connect-via">CloudWorks / flat file</span>
+        </div>
+        <div class="connect-item">
+          <span class="connect-from">INP04 HC Assumptions</span>
+          <span class="connect-arrow">&larr;</span>
+          <span class="connect-to">SYS01 Global Parameters</span>
+          <span class="connect-via">Default burden % seed</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Export bar -->
+    <div class="export-bar">
+      <button class="btn-export primary">Export Build Guide</button>
+      <button class="btn-export">CSV (Blueprint Import)</button>
+      <button class="btn-export">Copy Markdown</button>
+      <span class="export-note">Last generated 2s ago</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
