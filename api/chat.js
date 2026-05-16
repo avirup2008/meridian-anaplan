@@ -17,6 +17,31 @@ try {
   console.error('[chat] Failed to load framework:', e.message);
 }
 
+// Parse the TSV blob format back into structured modules
+function parseBlobTSV(text) {
+  const lines = text.split('\n');
+  const modules = [];
+  let current = null;
+
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const cols = line.split('\t');
+    const type = cols[0];
+
+    if (type === 'MODULE') {
+      current = { id: cols[1], name: cols[2], prefix: cols[3] || '', lineItems: [] };
+      modules.push(current);
+    } else if ((type === 'CALC' || type === 'INPUT' || type === 'ITEM') && current) {
+      const li = { name: cols[1] || '', format: cols[2] || '', summary: cols[3] || '' };
+      if (cols[4]) li.appliesTo = cols[4].split('|').filter(Boolean);
+      if (type === 'CALC' && cols[5]) li.formula = cols[5];
+      current.lineItems.push(li);
+    }
+    // Skip LIST, IMPORT, EXPORT, PROCESS, META lines — not needed for chat
+  }
+  return modules.length ? modules : null;
+}
+
 // Mode detection: comprehension vs build
 function detectMode(message) {
   const lower = message.toLowerCase();
@@ -116,14 +141,14 @@ export default async function handler(req, res) {
     const mode = detectMode(message);
     send({ type: 'mode', mode });
 
-    // ─── Fetch actual model data from blob ─────────────────────────────────
+    // ─── Fetch actual model data from blob (TSV format) ─────────────────────
     let fullModules = null;
     if (stateUrl) {
       try {
         const blobResp = await fetch(stateUrl);
         if (blobResp.ok) {
-          const blobData = await blobResp.json();
-          fullModules = blobData.modules || null;
+          const blobText = await blobResp.text();
+          fullModules = parseBlobTSV(blobText);
         }
       } catch (e) {
         console.error('[chat] Failed to fetch state blob:', e.message);
