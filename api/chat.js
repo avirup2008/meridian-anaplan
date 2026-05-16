@@ -17,11 +17,12 @@ try {
   console.error('[chat] Failed to load framework:', e.message);
 }
 
-// Parse the TSV blob format back into structured modules + lists
+// Parse the TSV blob format back into structured modules + lists + members
 function parseBlobTSV(text) {
   const lines = text.split('\n');
   const modules = [];
   const lists = [];
+  const listMembers = new Map(); // name → members[]
   let current = null;
 
   for (const line of lines) {
@@ -39,9 +40,13 @@ function parseBlobTSV(text) {
       current.lineItems.push(li);
     } else if (type === 'LIST') {
       lists.push({ name: cols[1] || '', parent: cols[2] || '' });
+    } else if (type === 'LISTMEMBERS') {
+      const listName = cols[1] || '';
+      const members = (cols[2] || '').split('|').filter(Boolean);
+      if (listName && members.length) listMembers.set(listName, members);
     }
   }
-  return { modules: modules.length ? modules : null, lists };
+  return { modules: modules.length ? modules : null, lists, listMembers };
 }
 
 // Mode detection: comprehension vs build
@@ -125,8 +130,8 @@ function extractRelevantModules(modules, message, maxModules = 12) {
   return result;
 }
 
-// Compute module dependency map for context
-function buildDependencyContext(modules) {
+// Compute module dependency map for context (capped to avoid token explosion)
+function buildDependencyContext(modules, maxLines = 60) {
   const names = new Set(modules.map(m => m.name));
   const deps = [];
 
@@ -143,6 +148,7 @@ function buildDependencyContext(modules) {
     if (refs.size) {
       deps.push(`${mod.name} → reads from: ${[...refs].join(', ')}`);
     }
+    if (deps.length >= maxLines) break;
   }
   return deps.length ? deps.join('\n') : '';
 }
@@ -216,6 +222,7 @@ export default async function handler(req, res) {
     // ─── Fetch actual model data from blob (TSV format) ─────────────────────
     let fullModules = null;
     let modelLists = [];
+    let listMembers = new Map();
     if (stateUrl) {
       try {
         const blobResp = await fetch(stateUrl);
@@ -224,6 +231,7 @@ export default async function handler(req, res) {
           const parsed = parseBlobTSV(blobText);
           fullModules = parsed.modules;
           modelLists = parsed.lists || [];
+          listMembers = parsed.listMembers || new Map();
         }
       } catch (e) {
         console.error('[chat] Failed to fetch state blob:', e.message);
@@ -262,19 +270,29 @@ export default async function handler(req, res) {
     if (fullModules && fullModules.length) {
       const relevant = extractRelevantModules(fullModules, message);
 
-      // List context — what dimensions exist
+      // List context — what dimensions exist + their members
       if (modelLists.length) {
-        const listDesc = modelLists.map(l => l.parent ? `${l.name} (child of ${l.parent})` : l.name).join(', ');
-        parts.push(`\nDimensions/Lists: ${listDesc}`);
+        const listLines = modelLists.map(l => {
+          let desc = l.parent ? `${l.name} (child of ${l.parent})` : l.name;
+          const members = listMembers.get(l.name);
+          if (members && members.length) {
+            const sample = members.length > 15 ? members.slice(0, 15).join(', ') + ` … (${members.length} total)` : members.join(', ');
+            desc += `: ${sample}`;
+          }
+          return desc;
+        });
+        parts.push(`\n═══ DIMENSIONS & LISTS ═══\n${listLines.join('\n')}`);
       }
 
-      // Dependency map — how modules connect
+      // Full model dependency graph (all modules, not just relevant ones)
+      const fullDepMap = buildDependencyContext(fullModules);
+      if (fullDepMap) {
+        parts.push('\n═══ FULL MODEL DATA FLOW ═══');
+        parts.push(fullDepMap);
+      }
+
+      // Detailed context for relevant modules
       if (relevant.length) {
-        const depMap = buildDependencyContext(relevant);
-        if (depMap) {
-          parts.push('\n═══ DATA FLOW ═══');
-          parts.push(depMap);
-        }
 
         parts.push('\n═══ MODULE DETAILS ═══');
         for (const mod of relevant) {
