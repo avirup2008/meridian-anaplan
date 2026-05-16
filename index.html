@@ -5633,21 +5633,17 @@ function confirmModelSelection() {
       }
       html += '</div></div>';
 
-      // ── RISK CLUSTERS ──
-      if (clusters.length) {
+      // ── RISK CLUSTERS (filter out naming-convention noise) ──
+      const filteredClusters = clusters.filter(cl => !/^Rename\s/i.test(cl.trigger || ''));
+      if (filteredClusters.length) {
         const clSevClass = { Critical: 'crit', High: 'high', Medium: 'med' };
         html += '<div class="mi-section"><div class="mi-section-head">';
         html += '<span class="mi-section-title">Risk Clusters</span>';
-        html += '<span class="mi-section-count">' + clusters.length + ' clusters</span>';
+        html += '<span class="mi-section-count">' + filteredClusters.length + ' clusters</span>';
         html += '</div><div class="mi-clusters">';
-        for (const cl of clusters.slice(0, 6)) {
+        for (const cl of filteredClusters.slice(0, 6)) {
           const csc = clSevClass[cl.severity] || 'med';
-          // Clean up raw trigger text — strip "Rename of" prefix, make readable
-          let clName = cl.trigger || '?';
-          if (/^Rename\s+of\s+/i.test(clName)) {
-            const target = clName.replace(/^Rename\s+of\s+/i, '').replace(/^'|'$/g, '');
-            clName = 'Naming issue — ' + target;
-          }
+          const clName = cl.trigger || '?';
           const modCount = cl.affectedModules ? cl.affectedModules.length : 0;
           html += '<div class="mi-cluster-card">';
           html += '<div class="mi-cluster-header"><span class="mi-cluster-name">' + e(clName) + '</span>';
