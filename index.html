@@ -860,8 +860,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .mi-step:last-child{border-bottom:0}
 .mi-step-num{min-width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
 .mi-step-body{min-width:0}
-.mi-step-modules{font-size:12.5px;color:var(--text);line-height:1.45}
-.mi-step-tag{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+.mi-step-modules{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.mi-step-pill{font-size:11px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;color:var(--text);white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.mi-step-overflow{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);padding:2px 6px}
+.mi-step-tag{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
 .mi-bottleneck{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px}
 .mi-bottleneck:last-child{border-bottom:0}
 .mi-bottleneck-name{color:var(--text)}
@@ -5417,6 +5419,10 @@ function confirmModelSelection() {
 
       if (!cards.length) { slot.hidden = true; return; }
 
+      // Hide old AI workstream cards — they're redundant when intelligence is present
+      const oldSlot = _anl$('health-format-slot');
+      if (oldSlot) oldSlot.hidden = true;
+
       const cardClass = { Critical: 'mi-card-crit', High: 'mi-card-high', Medium: 'mi-card-med', Low: 'mi-card-low' };
       const priClass = { Critical: 'ws-pri-crit', High: 'ws-pri-high', Medium: 'ws-pri-med', Low: 'ws-pri-watch' };
       const clusterClass = { Critical: 'mi-cluster-crit', High: 'mi-cluster-high', Medium: 'mi-cluster-med' };
@@ -5499,12 +5505,17 @@ function confirmModelSelection() {
         if (order.length) {
           html += '<div>';
           html += '<div class="anl-section-label"><span class="anl-section-label-text">Fix Order</span><span class="anl-section-label-line"></span></div>';
-          for (const step of order) {
+          for (const step of order.slice(0, 6)) {
+            const mods = step.modules || [];
+            const shown = mods.slice(0, 4);
+            const overflow = mods.length - shown.length;
             html += '<div class="mi-step">';
             html += '<div class="mi-step-num">' + step.step + '</div>';
             html += '<div class="mi-step-body">';
-            html += '<div class="mi-step-modules">' + (step.modules || []).map(m => e(m.moduleName || '')).join(', ') + '</div>';
-            if (step.parallel) html += '<div class="mi-step-tag">can fix in parallel</div>';
+            html += '<div class="mi-step-modules">' + shown.map(m => '<span class="mi-step-pill">' + e(m.moduleName || '') + '</span>').join('');
+            if (overflow > 0) html += '<span class="mi-step-overflow">+' + overflow + ' more</span>';
+            html += '</div>';
+            if (step.parallel) html += '<div class="mi-step-tag">parallel</div>';
             html += '</div></div>';
           }
           html += '</div>';

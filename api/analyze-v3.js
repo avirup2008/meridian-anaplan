@@ -563,7 +563,7 @@ export default async function handler(req, res) {
       summary: modelSummary,
       moduleCards: moduleCards.slice(0, 15),
       riskClusters: riskClusters.slice(0, 5),
-      remediationOrder,
+      remediationOrder: remediationOrder.slice(0, 8),
       patterns: modelSummary.patterns,
       bottlenecks: modelSummary.bottlenecks,
       evidenceLimits: modelSummary.evidenceLimits,
