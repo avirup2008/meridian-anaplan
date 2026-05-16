@@ -1,7 +1,27 @@
 export const config = { maxDuration: 60 };
 
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { applyCors } from './_cors.js';
 import { isAllowedBlobUrl } from './analyze.js';
+
+// ─── Load Anaplan knowledge base (static, read once at cold start) ────────────
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+let ANAPLAN_KNOWLEDGE = '';
+try {
+  const expertPath = join(__dirname, 'knowledge', 'anaplan-expert.md');
+  const planualPath = join(__dirname, 'knowledge', 'planual-disco.md');
+  const perfPath = join(__dirname, 'knowledge', 'performance.md');
+  ANAPLAN_KNOWLEDGE = [
+    readFileSync(expertPath, 'utf-8'),
+    readFileSync(planualPath, 'utf-8'),
+    readFileSync(perfPath, 'utf-8'),
+  ].join('\n\n---\n\n');
+} catch (e) {
+  console.warn('[analyze-v3] Knowledge base not loaded:', e.message);
+}
 import {
   countIfDepth,
   hasSumLookup,
@@ -333,6 +353,7 @@ Generate exactly 3 workstreams. Each field is ONE sentence only — no conjuncti
     aiClient.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1600,
+      ...(ANAPLAN_KNOWLEDGE ? { system: `You are a Master Anaplanner performing a model audit. Ground your analysis in DISCO methodology, Planual rules, and Anaplan best practices.\n\n${ANAPLAN_KNOWLEDGE.slice(0, 6000)}` } : {}),
       messages: [{ role: 'user', content: prompt }],
     }),
     new Promise((_, rej) => setTimeout(() => rej(new Error('workstreams-timeout')), 30000)),
@@ -402,6 +423,7 @@ RULES:
     aiClient.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1000,
+      ...(ANAPLAN_KNOWLEDGE ? { system: `You are a Master Anaplanner. Use DISCO methodology and Planual conventions to classify modules.\n\n${ANAPLAN_KNOWLEDGE.slice(0, 4000)}` } : {}),
       messages: [{ role: 'user', content: prompt }],
     }),
     new Promise((_, rej) => setTimeout(() => rej(new Error('architecture-timeout')), 30000)),
@@ -729,6 +751,7 @@ Rules:
           narrativeClient.messages.create({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 600,
+            ...(ANAPLAN_KNOWLEDGE ? { system: `You are a Master Anaplanner writing an executive model review.\n\n${ANAPLAN_KNOWLEDGE.slice(0, 4000)}` } : {}),
             messages: [{ role: 'user', content: narrativePrompt }],
           }),
           new Promise((_, rej) => setTimeout(() => rej(new Error('narrative-timeout')), 15000)),
@@ -770,7 +793,7 @@ Rules:
             .map(iss => `- ${iss.issue}${iss.danger ? ' → ' + iss.danger : ''}`)
             .join('\n');
 
-          const prompt = `You are a senior Anaplan model architect reviewing a specific module.
+          const prompt = `Review this specific module against Planual/DISCO standards and Anaplan best practices.
 Respond ONLY with valid JSON — no markdown, no explanation outside JSON.
 
 MODULE: ${card.moduleName}
@@ -802,10 +825,14 @@ Rules:
 - Keep each field to 1-3 sentences max`;
 
           try {
+            const systemMsg = ANAPLAN_KNOWLEDGE
+              ? `You are a Master Anaplanner and Anaplan Solutions Architect performing a model audit. Use the following Anaplan knowledge base to ground your analysis in platform best practices, DISCO methodology, Planual rules, and performance patterns.\n\n${ANAPLAN_KNOWLEDGE.slice(0, 12000)}`
+              : 'You are a senior Anaplan model architect performing a model audit.';
             const resp = await Promise.race([
               sonnetClient.messages.create({
                 model: 'claude-sonnet-4-20250514',
                 max_tokens: 400,
+                system: systemMsg,
                 messages: [{ role: 'user', content: prompt }],
               }),
               new Promise((_, rej) => setTimeout(() => rej(new Error('module-ai-timeout')), 12000)),
