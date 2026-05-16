@@ -428,7 +428,7 @@ HARD RULES:
 
   const response = await Promise.race([
     aiClient.messages.create({
-      model: 'claude-sonnet-4-6-20250514',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 1600,
       ...(ANAPLAN_KNOWLEDGE ? { system: `You are a Master Anaplanner performing a model audit. Ground your analysis in DISCO methodology, Planual rules, and Anaplan best practices.\n\n${ANAPLAN_KNOWLEDGE.slice(0, 6000)}` } : {}),
       messages: [{ role: 'user', content: prompt }],
@@ -498,7 +498,7 @@ RULES:
 
   const response = await Promise.race([
     aiClient.messages.create({
-      model: 'claude-sonnet-4-6-20250514',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
       ...(ANAPLAN_KNOWLEDGE ? { system: `You are a Master Anaplanner. Use DISCO methodology and Planual conventions to classify modules.\n\n${ANAPLAN_KNOWLEDGE.slice(0, 4000)}` } : {}),
       messages: [{ role: 'user', content: prompt }],
@@ -844,7 +844,7 @@ Rules:
 
         const narrativeResp = await Promise.race([
           narrativeClient.messages.create({
-            model: 'claude-sonnet-4-6-20250514',
+            model: 'claude-sonnet-4-20250514',
             max_tokens: 600,
             ...(ANAPLAN_KNOWLEDGE ? { system: `You are a Master Anaplanner writing an executive model review.\n\n${ANAPLAN_KNOWLEDGE.slice(0, 4000)}` } : {}),
             messages: [{ role: 'user', content: narrativePrompt }],
@@ -957,7 +957,7 @@ Rules:
               : 'You are a senior Anaplan model architect performing a model audit.';
             const resp = await Promise.race([
               sonnetClient.messages.create({
-                model: 'claude-sonnet-4-6-20250514',
+                model: 'claude-sonnet-4-20250514',
                 max_tokens: 400,
                 system: systemMsg,
                 messages: [{ role: 'user', content: prompt }],
@@ -1086,7 +1086,7 @@ Rules:
       const knowledgeClient = new Anthropic();
       const knowledgeResp = await Promise.race([
         knowledgeClient.messages.create({
-          model: 'claude-sonnet-4-6-20250514',
+          model: 'claude-sonnet-4-20250514',
           max_tokens: 1200,
           messages: [{ role: 'user', content: knowledgePrompt }],
         }),

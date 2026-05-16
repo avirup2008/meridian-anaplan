@@ -9,7 +9,7 @@ import {
   parseJsonStrict,
 } from './analyze.js';
 
-const SONNET_MODEL = 'claude-sonnet-4-6';
+const SONNET_MODEL = 'claude-sonnet-4-20250514';
 const NARR_CACHE_PREFIX = 'analysis-narrative-cache-v2/'; // v2: Sonnet model, plain-English layer overview
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
