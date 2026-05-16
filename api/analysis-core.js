@@ -2,13 +2,18 @@ const DOMAIN_FOR_RULE = {
   MODULE_NAMING_PATTERN: 'Naming',
   MODULE_DATA_HAS_CALC: 'Structural',
   MODULE_TOO_MANY_DIMS: 'Structural',
+  MODULE_MONOLITHIC: 'Structural',
   BOOLEAN_SUMMARY_INVALID: 'Best Practice',
   RATE_SUMMARY_SUM: 'Best Practice',
+  SUMMARY_LOOKUP_NOT_NONE: 'Best Practice',
   FORMULA_SUM_LOOKUP: 'Formula',
   FORMULA_SELECT_HARDCODED: 'Formula',
   FORMULA_NESTED_IF: 'Formula',
   FORMULA_LONG: 'Formula',
   FORMULA_DIVISION_UNGUARDED: 'Formula',
+  FORMULA_FINDITEM_EXPENSIVE: 'Formula',
+  FORMULA_IF_SHOULD_BE_BOOLEAN_GATE: 'Formula',
+  FORMULA_LONG_LOOKUP_CHAIN: 'Formula',
   TEXT_FORMAT_USED: 'Best Practice',
   BOOLEAN_NAME_WEAK: 'Naming',
   ARCH_DATA_MODULE_HAS_FORMULAS: 'Structural',
@@ -17,6 +22,8 @@ const DOMAIN_FOR_RULE = {
   ARCH_MIXED_RESPONSIBILITY_MODULE: 'Structural',
   ARCH_NAME_BEHAVIOR_MISMATCH: 'Structural',
   ARCH_OUTPUT_READS_RAW_LAYER: 'Structural',
+  ARCH_DAT_NO_IMPORT: 'Structural',
+  ARCH_INP_TOO_MANY_FORMULAS: 'Structural',
 };
 
 const TRIAGE_FOR_SEVERITY = {
@@ -35,13 +42,18 @@ const RULE_SCORE_CONFIG = {
   MODULE_NAMING_PATTERN: { scope: 'module', cap: 10, sensitivity: 1.2 },
   MODULE_DATA_HAS_CALC: { scope: 'module', cap: 18, sensitivity: 2.2 },
   MODULE_TOO_MANY_DIMS: { scope: 'module', cap: 24, sensitivity: 3.2 },
+  MODULE_MONOLITHIC: { scope: 'module', cap: 16, sensitivity: 2.0 },
   BOOLEAN_SUMMARY_INVALID: { scope: 'lineItem', cap: 14, sensitivity: 3 },
   RATE_SUMMARY_SUM: { scope: 'lineItem', cap: 22, sensitivity: 4 },
+  SUMMARY_LOOKUP_NOT_NONE: { scope: 'lineItem', cap: 8, sensitivity: 1.5 },
   FORMULA_SUM_LOOKUP: { scope: 'lineItem', cap: 18, sensitivity: 3.4 },
   FORMULA_SELECT_HARDCODED: { scope: 'lineItem', cap: 18, sensitivity: 3.4 },
   FORMULA_NESTED_IF: { scope: 'lineItem', cap: 12, sensitivity: 2.2 },
   FORMULA_LONG: { scope: 'lineItem', cap: 10, sensitivity: 1.5 },
   FORMULA_DIVISION_UNGUARDED: { scope: 'lineItem', cap: 14, sensitivity: 2.6 },
+  FORMULA_FINDITEM_EXPENSIVE: { scope: 'lineItem', cap: 20, sensitivity: 3.5 },
+  FORMULA_IF_SHOULD_BE_BOOLEAN_GATE: { scope: 'lineItem', cap: 12, sensitivity: 2.0 },
+  FORMULA_LONG_LOOKUP_CHAIN: { scope: 'lineItem', cap: 16, sensitivity: 2.8 },
   TEXT_FORMAT_USED: { scope: 'lineItem', cap: 4, sensitivity: 1 },
   BOOLEAN_NAME_WEAK: { scope: 'lineItem', cap: 4, sensitivity: 1 },
   ARCH_DATA_MODULE_HAS_FORMULAS: { scope: 'module', cap: 18, sensitivity: 2.2 },
@@ -50,6 +62,8 @@ const RULE_SCORE_CONFIG = {
   ARCH_MIXED_RESPONSIBILITY_MODULE: { scope: 'module', cap: 14, sensitivity: 2 },
   ARCH_NAME_BEHAVIOR_MISMATCH: { scope: 'module', cap: 12, sensitivity: 1.8 },
   ARCH_OUTPUT_READS_RAW_LAYER: { scope: 'module', cap: 20, sensitivity: 2.8 },
+  ARCH_DAT_NO_IMPORT: { scope: 'module', cap: 10, sensitivity: 1.5 },
+  ARCH_INP_TOO_MANY_FORMULAS: { scope: 'module', cap: 14, sensitivity: 2.0 },
 };
 
 const DIMENSION_WEIGHTS = {
@@ -73,11 +87,11 @@ const WORKSTREAM_EVIDENCE_LIMIT = 8;
 const DECORATIVE_MARK_RE = /[▼▲▶◀▾▴▸◂◆◇]{2,}/;
 
 const DIMENSION_RULES = {
-  architecture: new Set(['MODULE_NAMING_PATTERN', 'MODULE_DATA_HAS_CALC', 'MODULE_TOO_MANY_DIMS', 'ARCH_DATA_MODULE_HAS_FORMULAS', 'ARCH_CALC_MODULE_STORES_INPUTS', 'ARCH_OUTPUT_MODULE_NO_DERIVED_VALUES', 'ARCH_MIXED_RESPONSIBILITY_MODULE', 'ARCH_NAME_BEHAVIOR_MISMATCH', 'ARCH_OUTPUT_READS_RAW_LAYER']),
+  architecture: new Set(['MODULE_NAMING_PATTERN', 'MODULE_DATA_HAS_CALC', 'MODULE_TOO_MANY_DIMS', 'MODULE_MONOLITHIC', 'ARCH_DATA_MODULE_HAS_FORMULAS', 'ARCH_CALC_MODULE_STORES_INPUTS', 'ARCH_OUTPUT_MODULE_NO_DERIVED_VALUES', 'ARCH_MIXED_RESPONSIBILITY_MODULE', 'ARCH_NAME_BEHAVIOR_MISMATCH', 'ARCH_OUTPUT_READS_RAW_LAYER', 'ARCH_DAT_NO_IMPORT', 'ARCH_INP_TOO_MANY_FORMULAS']),
   naming: new Set(['MODULE_NAMING_PATTERN', 'BOOLEAN_NAME_WEAK']),
-  formulas: new Set(['FORMULA_SUM_LOOKUP', 'FORMULA_SELECT_HARDCODED', 'FORMULA_NESTED_IF', 'FORMULA_LONG', 'FORMULA_DIVISION_UNGUARDED']),
-  dataHygiene: new Set(['BOOLEAN_SUMMARY_INVALID', 'RATE_SUMMARY_SUM', 'TEXT_FORMAT_USED']),
-  governance: new Set(['MODULE_NAMING_PATTERN', 'MODULE_DATA_HAS_CALC', 'FORMULA_LONG', 'ARCH_NAME_BEHAVIOR_MISMATCH', 'ARCH_OUTPUT_READS_RAW_LAYER']),
+  formulas: new Set(['FORMULA_SUM_LOOKUP', 'FORMULA_SELECT_HARDCODED', 'FORMULA_NESTED_IF', 'FORMULA_LONG', 'FORMULA_DIVISION_UNGUARDED', 'FORMULA_FINDITEM_EXPENSIVE', 'FORMULA_IF_SHOULD_BE_BOOLEAN_GATE', 'FORMULA_LONG_LOOKUP_CHAIN']),
+  dataHygiene: new Set(['BOOLEAN_SUMMARY_INVALID', 'RATE_SUMMARY_SUM', 'SUMMARY_LOOKUP_NOT_NONE', 'TEXT_FORMAT_USED']),
+  governance: new Set(['MODULE_NAMING_PATTERN', 'MODULE_DATA_HAS_CALC', 'FORMULA_LONG', 'ARCH_NAME_BEHAVIOR_MISMATCH', 'ARCH_OUTPUT_READS_RAW_LAYER', 'ARCH_DAT_NO_IMPORT']),
 };
 
 const BOOLEAN_PREFIX_RE = /^(Is|Has|Can|Should|Use|Enable|Allow|Include|Exclude|Requires?)\b/i;
@@ -388,6 +402,120 @@ export function scanDeterministicFindings(normalized) {
           title: 'Calculated text line item may be heavy',
           evidence: `${li.name} is a calculated text line item.`,
           action: 'Use Boolean/list-coded status fields where practical instead of calculated text.',
+        }));
+      }
+
+      // ── FINDITEM in formula (expensive — forces list scan per cell) ──
+      if (li.hasFormula && /\bFINDITEM\s*\(/i.test(li.formula)) {
+        const dimCount = li.dimensionCount || module.dimensionCount || 0;
+        findings.push(finding({
+          ruleId: 'FORMULA_FINDITEM_EXPENSIVE',
+          severity: dimCount >= 3 ? 'critical' : 'warning',
+          module,
+          lineItem: li,
+          title: 'FINDITEM in calculation formula',
+          evidence: `${li.name} uses FINDITEM${dimCount >= 3 ? ` in a ${dimCount}-dimensional module — list scan runs per cell intersection` : ''}.`,
+          action: 'Pre-map via a SYS mapping module with LOOKUP instead of runtime FINDITEM.',
+        }));
+      }
+
+      // ── IF/THEN in high-cell module where boolean gate is preferable ──
+      if (li.hasFormula && li.ifDepth >= 1 && li.ifDepth <= 3 && module.dimensionCount >= 3) {
+        // Only flag IF usage in high-dimensional modules (where boolean multiplication is faster)
+        const formulaUpper = li.formula.toUpperCase();
+        if (/\bIF\b/.test(formulaUpper) && /\bTHEN\b/.test(formulaUpper)) {
+          findings.push(finding({
+            ruleId: 'FORMULA_IF_SHOULD_BE_BOOLEAN_GATE',
+            severity: 'info',
+            module,
+            lineItem: li,
+            title: 'IF/THEN in high-dimensional module',
+            evidence: `${li.name} uses IF logic in a ${module.dimensionCount}-dimension module. Boolean gate pattern (Value * Flag) is more performant at scale.`,
+            action: 'Replace IF condition THEN value ELSE 0 with: value * BooleanFlag (pre-calculated in a SYS module).',
+          }));
+        }
+      }
+
+      // ── Long LOOKUP chains (>3 cross-module refs in one formula) ──
+      if (li.hasFormula) {
+        const lookupMatches = li.formula.match(/\[\s*(LOOKUP|SUM)\s*:/gi);
+        const crossModRefs = li.formula.match(/'[^']+'\./g);
+        const chainLength = Math.max(lookupMatches?.length || 0, crossModRefs?.length || 0);
+        if (chainLength >= 4) {
+          findings.push(finding({
+            ruleId: 'FORMULA_LONG_LOOKUP_CHAIN',
+            severity: chainLength >= 6 ? 'critical' : 'warning',
+            module,
+            lineItem: li,
+            title: 'Long cross-module reference chain',
+            evidence: `${li.name} has ${chainLength} cross-module references/lookups in one formula — long DAG path slows recalculation.`,
+            action: 'Cache intermediate values in a SYS module. Read once, reference locally.',
+          }));
+        }
+      }
+
+      // ── LOOKUP reference line item without summary=NONE ──
+      if (li.hasFormula && /\[\s*LOOKUP\s*:/i.test(li.formula) && !li.formulaLength > 200) {
+        // Simple lookup formulas (short, single LOOKUP) that aren't set to NONE
+        const summaryUpper = (li.summaryMethod || '').toUpperCase();
+        if (summaryUpper && summaryUpper !== 'NONE' && li.formulaLength < 150) {
+          findings.push(finding({
+            ruleId: 'SUMMARY_LOOKUP_NOT_NONE',
+            severity: 'info',
+            module,
+            lineItem: li,
+            title: 'Lookup reference aggregates unnecessarily',
+            evidence: `${li.name} is a LOOKUP reference with summary method ${li.summaryMethod} — parent totals are meaningless for mapped attributes.`,
+            action: 'Set summary method to NONE for lookup/mapping line items to save rollup computation.',
+          }));
+        }
+      }
+    }
+
+    // ── MODULE-LEVEL: Monolithic module (>20 line items + multi-dimensional) ──
+    if (module.lineItemCount > 20 && module.dimensionCount >= 3) {
+      findings.push(finding({
+        ruleId: 'MODULE_MONOLITHIC',
+        severity: module.lineItemCount > 40 ? 'critical' : 'warning',
+        module,
+        title: 'Monolithic module — too many line items with high dimensionality',
+        evidence: `${module.name} has ${module.lineItemCount} line items across ${module.dimensionCount} dimensions. Cell count multiplies with each dimension.`,
+        action: 'Split by DISCO purpose into single-responsibility modules. Separate inputs, calculations, and outputs.',
+      }));
+    }
+
+    // ── INP module with too many formulas (>40% formula ratio) ──
+    if (/^INP\d{2}/.test(module.name)) {
+      const formulaCount = module.lineItems.filter(li => li.hasFormula).length;
+      const ratio = module.lineItemCount > 0 ? formulaCount / module.lineItemCount : 0;
+      if (ratio > 0.4 && formulaCount >= 3) {
+        findings.push(finding({
+          ruleId: 'ARCH_INP_TOO_MANY_FORMULAS',
+          severity: 'warning',
+          module,
+          title: 'Input module contains excessive calculation logic',
+          evidence: `${module.name} has ${formulaCount}/${module.lineItemCount} line items with formulas (${Math.round(ratio * 100)}%). INP modules should primarily store user inputs.`,
+          action: 'Move calculation logic into a CAL module. Keep INP modules focused on data entry with minimal validation formulas.',
+        }));
+      }
+    }
+
+    // ── DAT module without a matching import (orphaned data staging) ──
+    if (/^DAT\d{2}/.test(module.name) && normalized._enrichment) {
+      const importNames = (normalized._enrichment.imports || []).map(i => i.name.toUpperCase());
+      const modNameUpper = module.name.toUpperCase();
+      const hasMatchingImport = importNames.some(imp =>
+        imp.includes(modNameUpper.replace(/^DAT\d{2}\s*/, '')) ||
+        modNameUpper.includes(imp.replace(/^IMPORT\s*/i, '').slice(0, 15))
+      );
+      if (!hasMatchingImport && importNames.length > 0) {
+        findings.push(finding({
+          ruleId: 'ARCH_DAT_NO_IMPORT',
+          severity: 'info',
+          module,
+          title: 'Data module has no matching import action',
+          evidence: `${module.name} is prefixed DAT (data staging) but no import action name matches it. May be orphaned or manually populated.`,
+          action: 'Verify this module has a data source. If manual entry, rename to INP. If obsolete, remove.',
         }));
       }
     }

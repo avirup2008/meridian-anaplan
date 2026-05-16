@@ -489,6 +489,7 @@ export default async function handler(req, res) {
     const domain = classifyModelDomain(enrichment.lists.map(l => l.name));
 
     const normalized = toNormalized(modules);
+    normalized._enrichment = enrichment; // Attach for deterministic rules that need import/list context
 
     sendEvent({ type: 'stage', stage: 'graph', label: 'Building dependency graph…' });
     const graph = buildDependencyGraph(normalized);

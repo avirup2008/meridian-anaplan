@@ -116,6 +116,54 @@ const ISSUE_TEMPLATES = {
     danger: `Without Is/Has/Can prefix, the true/false meaning is ambiguous to other developers`,
     fix: `Rename with a Boolean verb prefix (Is Active, Has Override, Can Edit)`,
   }),
+
+  FORMULA_FINDITEM_EXPENSIVE: (f, graph) => {
+    const scope = computeItemImpact(graph, f);
+    return {
+      issue: `${f.lineItemName} uses FINDITEM — expensive list scan per cell`,
+      danger: `FINDITEM forces a sequential scan of the target list for every cell intersection. In multi-dimensional modules this causes exponential performance degradation${scope.outputSuffix}`,
+      fix: `Pre-map the text-to-item conversion in a SYS module, then use LOOKUP to retrieve the mapped value`,
+    };
+  },
+
+  FORMULA_IF_SHOULD_BE_BOOLEAN_GATE: (f, graph) => ({
+    issue: `${f.lineItemName} uses IF/THEN in a high-dimensional module`,
+    danger: `IF/THEN evaluates branch logic per cell — in high-cell-count modules, boolean multiplication (Value * Flag) is significantly faster`,
+    fix: `Replace IF condition THEN value ELSE 0 with: value * BooleanFlag (pre-calculate the flag in a SYS module)`,
+  }),
+
+  FORMULA_LONG_LOOKUP_CHAIN: (f, graph) => {
+    const scope = computeItemImpact(graph, f);
+    return {
+      issue: `${f.lineItemName} has a long cross-module reference chain`,
+      danger: `Multiple sequential cross-module reads create a deep DAG path — recalculation cascades slowly through the dependency chain${scope.outputSuffix}`,
+      fix: `Cache intermediate values in a SYS module. Read once from source, then reference the cached value locally`,
+    };
+  },
+
+  SUMMARY_LOOKUP_NOT_NONE: (f, graph) => ({
+    issue: `${f.lineItemName} is a LOOKUP reference that aggregates`,
+    danger: `Mapped attributes (category, region, type) rolled up via SUM/AVERAGE produce meaningless parent totals and waste computation`,
+    fix: `Set summary method to NONE for all lookup/mapping line items`,
+  }),
+
+  MODULE_MONOLITHIC: (f, graph) => ({
+    issue: `${f.moduleName} is monolithic — ${extractNumberFromEvidence(f.evidence)} line items with high dimensionality`,
+    danger: `Cell count = line items × all dimension members × time × versions. Monolithic modules consume disproportionate memory and slow targeted recalculation`,
+    fix: `Split into single-responsibility modules by DISCO pattern: separate inputs (INP), calculations (CAL), and outputs (REP)`,
+  }),
+
+  ARCH_INP_TOO_MANY_FORMULAS: (f, graph) => ({
+    issue: `Input module ${f.moduleName} contains excessive formulas`,
+    danger: `INP modules should store user-entered planning data with minimal validation. Heavy formula logic here violates DISCO separation and makes the input layer fragile`,
+    fix: `Move calculation logic into a dedicated CAL module. INP should contain only input-enabled line items and basic validation`,
+  }),
+
+  ARCH_DAT_NO_IMPORT: (f, graph) => ({
+    issue: `Data module ${f.moduleName} has no matching import action`,
+    danger: `DAT modules are meant for imported data staging. Without an import source, this may be orphaned or incorrectly classified`,
+    fix: `Verify data source exists. If manually populated, rename to INP. If integration was removed, archive the module`,
+  }),
 };
 
 // ─── Purpose Inference ──────────────────────────────────────────────────────
