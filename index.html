@@ -1056,7 +1056,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     <div class="dash-tab-bar" id="dash-tab-bar" hidden>
       <button class="dash-tab" data-tab="model" id="tab-btn-model" onclick="switchTab('model')">Model</button>
       <button class="dash-tab on" data-tab="assessment" onclick="switchTab('assessment')">Assessment</button>
-      <button class="dash-tab" data-tab="notes" onclick="switchTab('notes')">Notes</button>
       <button class="dash-tab" data-tab="export" onclick="switchTab('export')">Export</button>
     </div>
 
@@ -1148,6 +1147,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
           <div>
             <div id="health-verdict-domain"></div>
             <div id="health-verdict-text"></div>
+            <div id="health-verdict-confidence" style="font-size:10px;color:var(--text3);margin-top:4px;font-family:'IBM Plex Mono',monospace;"></div>
           </div>
           <div class="anl-score-right">
             <div class="anl-score-lbl">Health Score</div>
@@ -1167,10 +1167,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 
 
 
-    <div class="dash-panel" id="dash-panel-notes">
-      <div id="dash-notes-body">
-        <div class="notes-empty"><span style="font-size:22px;opacity:.35;">✎</span><span>Model review report appears here after analysis completes.</span></div>
-      </div>
+    <div class="dash-panel" id="dash-panel-notes" hidden>
+      <div id="dash-notes-body"></div>
     </div>
 
     <div class="dash-panel" id="dash-panel-export">
@@ -5456,6 +5454,26 @@ function confirmModelSelection() {
         html += '</div>';
       }
 
+      // Section: Evidence Limits
+      const limits = evt.evidenceLimits || (summary && summary.evidenceLimits);
+      if (limits && (limits.canSay || limits.cannotSay)) {
+        html += '<div style="margin-top:20px;padding:14px;border-radius:8px;background:var(--bg2,#f8f9fa);border:1px solid var(--rule);">';
+        html += '<h3 class="step-label" style="margin:0 0 8px;">Evidence Boundaries</h3>';
+        if (Array.isArray(limits.canSay) && limits.canSay.length) {
+          html += '<div style="font-size:12px;font-weight:600;color:var(--pos,#16a34a);margin-bottom:4px;">What this review can confirm:</div>';
+          html += '<ul style="font-size:12px;color:var(--text2);padding-left:18px;margin:0 0 10px;">';
+          for (const item of limits.canSay) html += '<li>' + escapeHtml(item) + '</li>';
+          html += '</ul>';
+        }
+        if (Array.isArray(limits.cannotSay) && limits.cannotSay.length) {
+          html += '<div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:4px;">What this review cannot determine:</div>';
+          html += '<ul style="font-size:12px;color:var(--text3);padding-left:18px;margin:0;">';
+          for (const item of limits.cannotSay) html += '<li>' + escapeHtml(item) + '</li>';
+          html += '</ul>';
+        }
+        html += '</div>';
+      }
+
       slot.innerHTML = html;
       slot.hidden = false;
 
@@ -5479,6 +5497,13 @@ function confirmModelSelection() {
           detailEl.textContent = (evt.moduleCount ? evt.moduleCount + ' modules · ' : '') + sub;
         }
         if (scoreNum && Number.isFinite(evt.healthScore)) scoreNum.innerHTML = String(evt.healthScore) + '<span class="anl-score-denom">/100</span>';
+        const confEl = _anl$('health-verdict-confidence');
+        if (confEl && evt.assessment) {
+          const parts = [];
+          if (evt.assessment.verdict) parts.push(evt.assessment.verdict);
+          if (evt.assessment.confidence) parts.push(evt.assessment.confidence);
+          if (parts.length) confEl.textContent = parts.join(' · ');
+        }
         verdictCard.hidden = false;
       }
 
@@ -5664,11 +5689,14 @@ function confirmModelSelection() {
           + row('ws-label-fix',     'Fix',     w.fix)
           : (w.whyItMatters ? row('ws-label-why', 'Why', w.whyItMatters) : '');
         const count = w.evidenceCount ? w.evidenceCount + ' finding' + (w.evidenceCount === 1 ? '' : 's') : '';
+        const confBadge = w.confidence ? '<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:var(--bg2,#f0f0f0);color:var(--text3);margin-left:6px;">' + escapeHtml(w.confidence) + '</span>' : '';
+        const kindBadge = w.kind && w.kind !== 'remediation' ? '<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:#fef3c7;color:#92400e;margin-left:6px;">' + escapeHtml(w.kind) + '</span>' : '';
         return '<div class="ws-card ' + cc + '">'
           + '<div class="ws-card-hd">'
           + '<span class="ws-card-title">' + escapeHtml(w.title || '?') + '</span>'
           + '<div class="ws-card-meta">'
           + '<span class="ws-card-priority ' + lc + '">' + escapeHtml(w.priority || '—') + '</span>'
+          + confBadge + kindBadge
           + (count ? '<div class="ws-card-count">' + count + '</div>' : '')
           + '</div></div>'
           + bodyHtml
@@ -5690,10 +5718,17 @@ function confirmModelSelection() {
       _anl$('anl-error').hidden = true; // clear any stale error banner
       _anl$('anl-progress-wrap').style.display = 'none';
       _anl$('anl-hdr-status').innerHTML = 'Analysis complete';
-      const _domainCount = Object.values(_anlState.suggestionsByDomain).filter(a => a.length > 0).length;
-      _anl$('anl-sub').textContent =
-        _anlState.suggestionCount + ' evidence-backed review workstream' + (_anlState.suggestionCount !== 1 ? 's' : '') +
-        ' across ' + _domainCount + ' domain' + (_domainCount !== 1 ? 's' : '');
+      // Subtitle: prefer module intelligence count, fall back to suggestionCount
+      const mi = _anlState.modelIntelligence;
+      if (mi && mi.moduleCards && mi.moduleCards.length) {
+        const s = mi.summary && mi.summary.moduleSummary;
+        _anl$('anl-sub').textContent = (s ? s.total + ' modules · ' + mi.moduleCards.length + ' with findings' : mi.moduleCards.length + ' module findings') + ' · ' + (c && c.moduleCount ? c.moduleCount + ' modules analysed' : 'Analysis complete');
+      } else if (c && c.workstreamCount != null) {
+        _anl$('anl-sub').textContent = c.workstreamCount + ' evidence workstream' + (c.workstreamCount !== 1 ? 's' : '') + ' · ' + (c.moduleCount || '') + ' modules';
+      } else {
+        const _domainCount = Object.values(_anlState.suggestionsByDomain).filter(a => a.length > 0).length;
+        _anl$('anl-sub').textContent = _anlState.suggestionCount + ' evidence-backed review workstream' + (_anlState.suggestionCount !== 1 ? 's' : '') + ' across ' + _domainCount + ' domain' + (_domainCount !== 1 ? 's' : '');
+      }
       // Phase 5: ensure tab bar is visible
       const tabBar = document.getElementById('dash-tab-bar');
       if (tabBar && tabBar.hasAttribute('hidden')) tabBar.removeAttribute('hidden');
@@ -5870,7 +5905,7 @@ function confirmModelSelection() {
                 case 'partial-analysis': _anlOnPartial(evt.reason, evt.modulesAnalysed, evt.modulesSkipped); break;
                 case 'score': _anlOnScore(evt); break;
                 case 'narrative': _anlOnNarrative(evt); break;
-                case 'complete': _anlOnComplete(evt); _anl$('anl-sub').dataset.cached = evt.fromCache ? '1' : ''; if (isV3 && evt.workstreamCount != null) { _anl$('anl-sub').textContent = evt.workstreamCount + ' evidence workstream' + (evt.workstreamCount !== 1 ? 's' : '') + ' · ' + (evt.moduleCount || '') + ' modules'; } if (!isV3 && !evt.deterministicOnly) runNarrative(blobUrl, myGen); break;
+                case 'complete': _anlOnComplete(evt); _anl$('anl-sub').dataset.cached = evt.fromCache ? '1' : ''; if (!isV3 && !evt.deterministicOnly) runNarrative(blobUrl, myGen); break;
                 case 'error': _anlShowError(evt.message); break;
               }
             } catch (handlerErr) {

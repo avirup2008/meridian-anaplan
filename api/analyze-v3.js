@@ -357,8 +357,8 @@ Generate exactly 3 workstreams. Each field is ONE sentence only — no conjuncti
 // Uses domain + list names + integration context for grounded architecture description.
 
 async function callArchitecture({ aiClient, modules, domain, enrichment }) {
-  const moduleNames = modules.slice(0, 60).map(m => m.name).join('\n')
-    + (modules.length > 60 ? `\n… and ${modules.length - 60} more` : '');
+  const moduleNames = modules.slice(0, 50).map(m => m.name).join('\n')
+    + (modules.length > 50 ? `\n… and ${modules.length - 50} more` : '');
 
   const listContext = enrichment.lists.length
     ? enrichment.lists.slice(0, 15).map(l => `${l.name} (${l.itemCount} members)`).join(', ')
@@ -624,15 +624,21 @@ export default async function handler(req, res) {
         const PRIORITIES = new Set(['Critical','High','Medium','Watch']);
         const CONFIDENCES = new Set(['High','Medium','Low']);
         const KINDS = new Set(['remediation','evidence-limit']);
-        const valid = wsResult.value.workstreams.filter(w =>
-          w && typeof w.title === 'string' && w.title.length > 3
-          && !w.title.includes('ModuleName')
-          && PRIORITIES.has(w.priority) && CONFIDENCES.has(w.confidence)
-          && KINDS.has(w.kind)
-          && typeof w.problem === 'string' && w.problem.length > 5
-          && typeof w.impact === 'string' && w.impact.length > 5
-          && typeof w.fix === 'string' && w.fix.length > 5
-        );
+        const knownModNames = new Set(normalized.modules.map(m => m.name));
+        const valid = wsResult.value.workstreams.filter(w => {
+          if (!w || typeof w.title !== 'string' || w.title.length <= 3) return false;
+          if (w.title.includes('ModuleName')) return false;
+          if (!PRIORITIES.has(w.priority) || !CONFIDENCES.has(w.confidence) || !KINDS.has(w.kind)) return false;
+          if (typeof w.problem !== 'string' || w.problem.length <= 5) return false;
+          if (typeof w.impact !== 'string' || w.impact.length <= 5) return false;
+          if (typeof w.fix !== 'string' || w.fix.length <= 5) return false;
+          // Grounding: title must reference a real module name from the model
+          const titleGrounded = [...knownModNames].some(name => w.title.includes(name));
+          if (!titleGrounded) return false;
+          // evidenceCount must be > 0
+          if (!w.evidenceCount || w.evidenceCount < 1) return false;
+          return true;
+        });
         if (valid.length === 0) {
           console.error('[analyze-v3] workstreams failed schema validation — keeping deterministic fallback');
         } else {
