@@ -981,14 +981,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 
 /* ─── BUILD TAB ──────────────────────────────────────────────── */
 .build-container{display:grid;grid-template-columns:1fr 1fr;height:calc(100vh - 280px);min-height:450px;max-height:750px;border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;background:var(--surface)}
-.build-left{display:flex;flex-direction:column;border-right:1px solid var(--rule)}
+.build-left{display:flex;flex-direction:column;border-right:1px solid var(--rule);overflow:hidden}
 .build-left-header{padding:20px 22px 14px}
 .build-left-title{font-size:15px;font-weight:600;letter-spacing:-.01em;margin-bottom:3px}
 .build-left-sub{font-size:11.5px;color:var(--text3);line-height:1.5}
 .build-context-bar{padding:8px 22px;background:var(--bg2);border-bottom:1px solid var(--border);border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;min-height:32px}
 .build-context-pill{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 9px;border-radius:4px;background:var(--surface);color:var(--text3);border:1px solid var(--border)}
 .build-context-pill strong{color:var(--text2);font-weight:600}
-.build-chat-area{flex:1;overflow-y:auto;padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.build-chat-area{flex:1;min-height:0;overflow-y:auto;padding:16px 22px;display:flex;flex-direction:column;gap:12px}
 .build-welcome{text-align:center;padding:32px 16px;color:var(--text3)}
 .build-welcome-icon{margin-bottom:10px;opacity:.6}
 .build-welcome-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px}
@@ -999,7 +999,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .build-msg{max-width:88%;padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.6}
 .build-msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:3px}
 .build-msg.ai{align-self:flex-start;background:var(--bg2);border:1px solid var(--border);color:var(--text2);border-bottom-left-radius:3px}
-.build-input-bar{display:flex;align-items:flex-end;gap:8px;padding:12px 22px;border-top:1px solid var(--border)}
+.build-input-bar{display:flex;align-items:flex-end;gap:8px;padding:12px 22px;border-top:1px solid var(--border);flex-shrink:0}
 .build-input{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;font-family:'IBM Plex Sans',system-ui,sans-serif;resize:none;max-height:100px;line-height:1.5;color:var(--text);background:var(--surface);transition:border-color .15s}
 .build-input:focus{outline:none;border-color:var(--accent)}
 
