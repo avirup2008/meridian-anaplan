@@ -5590,9 +5590,9 @@ function confirmModelSelection() {
         verdictCard.hidden = false;
       }
 
-      // ── Format slot (workstream cards) ───────────────────────────────────────
+      // ── Format slot (workstream cards) — skip if module intelligence already rendered ──
       const slot = _anl$('health-format-slot');
-      if (slot) { slot.innerHTML = _renderHealthFormat(evt); slot.hidden = false; }
+      if (slot && !_anlState.modelIntelligence) { slot.innerHTML = _renderHealthFormat(evt); slot.hidden = false; }
 
       // ── _anlState.score (export / share / Workstreams tab) ───────────────────
       if (evt.assessment) {
