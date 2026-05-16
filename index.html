@@ -1302,11 +1302,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
     </div>
 
     <div class="dash-tab-bar" id="dash-tab-bar" hidden>
-      <button class="dash-tab" data-tab="model" id="tab-btn-model" onclick="switchTab('model')">Model</button>
-      <button class="dash-tab on" data-tab="assessment" onclick="switchTab('assessment')">Assessment</button>
+      <button class="dash-tab" data-tab="model" id="tab-btn-model" onclick="switchTab('model')" style="display:none">Model</button>
+      <button class="dash-tab on" data-tab="assessment" onclick="switchTab('assessment')">Diagnose</button>
       <button class="dash-tab" data-tab="chat" onclick="switchTab('chat')">Chat</button>
       <button class="dash-tab" data-tab="build" onclick="switchTab('build')">Build</button>
-      <button class="dash-tab" data-tab="export" onclick="switchTab('export')">Export</button>
+      <button class="dash-tab" data-tab="export" onclick="switchTab('export')" style="display:none">Export</button>
     </div>
 
     <div class="dash-panel" id="dash-panel-model" data-alias="tab-panel-model">
