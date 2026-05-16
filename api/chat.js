@@ -191,7 +191,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'POST only' });
   }
 
-  const { message, history, modelState, stateUrl } = req.body || {};
+  const { message, history, modelState, stateUrl, modelKnowledge } = req.body || {};
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'message required' });
   }
@@ -239,6 +239,23 @@ export default async function handler(req, res) {
       if (modelState.domain) parts.push(`Domain: ${modelState.domain}`);
       if (modelState.moduleCount) parts.push(`Modules: ${modelState.moduleCount}`);
       if (modelState.healthScore) parts.push(`Health Score: ${modelState.healthScore}/100`);
+    }
+
+    // Model knowledge layer — pre-computed functional area summaries
+    if (modelKnowledge) {
+      if (modelKnowledge.modelPurpose) {
+        parts.push(`\n═══ MODEL PURPOSE ═══\n${modelKnowledge.modelPurpose}`);
+      }
+      if (modelKnowledge.areas && modelKnowledge.areas.length) {
+        parts.push('\n═══ FUNCTIONAL AREAS (architect knowledge) ═══');
+        for (const area of modelKnowledge.areas) {
+          parts.push(`\n[${area.prefix}] ${area.name}`);
+          parts.push(`  Purpose: ${area.purpose}`);
+          parts.push(`  How it works: ${area.howItWorks}`);
+          if (area.designRationale) parts.push(`  Design rationale: ${area.designRationale}`);
+          if (area.connectsTo?.length) parts.push(`  Connects to: ${area.connectsTo.join(', ')}`);
+        }
+      }
     }
 
     // If we have full module data, extract relevant ones with formulas

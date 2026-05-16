@@ -998,6 +998,109 @@ Rules:
       }
     }
 
+    // ─── Model Knowledge Layer (functional summaries for chat) ─────────────────
+    // Groups modules by prefix, asks AI for plain-English summaries per functional area
+    // + design rationale. Stored by frontend, passed to chat for grounded conversation.
+    let modelKnowledge = null;
+    try {
+      sendEvent({ type: 'stage', stage: 'knowledge', label: 'Building model knowledge…' });
+
+      // Group modules by prefix
+      const prefixGroups = new Map();
+      for (const mod of normalized.modules) {
+        const prefix = mod.prefix || 'OTHER';
+        if (!prefixGroups.has(prefix)) prefixGroups.set(prefix, []);
+        prefixGroups.get(prefix).push(mod);
+      }
+
+      // Build compact representation per group
+      const groupDescriptions = [];
+      for (const [prefix, mods] of prefixGroups) {
+        const modSummaries = mods.slice(0, 10).map(m => {
+          const calcItems = m.lineItems.filter(li => li.hasFormula).slice(0, 5);
+          const inputItems = m.lineItems.filter(li => li.isInput).slice(0, 3);
+          let desc = `  ${m.name} (${m.lineItemCount} items)`;
+          if (inputItems.length) desc += `\n    Inputs: ${inputItems.map(li => li.name).join(', ')}`;
+          if (calcItems.length) desc += `\n    Key calcs: ${calcItems.map(li => `${li.name} = ${li.formula.slice(0, 80)}`).join('\n    ')}`;
+          return desc;
+        }).join('\n');
+        groupDescriptions.push(`[${prefix}] ${mods.length} modules:\n${modSummaries}`);
+      }
+
+      // Dependencies between groups
+      const groupDeps = [];
+      for (const mod of normalized.modules) {
+        for (const li of mod.lineItems) {
+          if (!li.formula) continue;
+          const refs = li.formula.match(/'[^']+'/g) || [];
+          for (const ref of refs) {
+            const refName = ref.slice(1, -1);
+            const target = normalized.modules.find(m => m.name === refName);
+            if (target && target.prefix !== mod.prefix) {
+              groupDeps.push(`${mod.prefix} → ${target.prefix} (via ${mod.name}.${li.name})`);
+            }
+          }
+        }
+      }
+      const uniqueDeps = [...new Set(groupDeps)].slice(0, 20);
+
+      const knowledgePrompt = `You are an Anaplan solution architect documenting a ${domain} model with ${normalized.modules.length} modules.
+
+FUNCTIONAL GROUPS:
+${groupDescriptions.join('\n\n')}
+
+CROSS-GROUP DEPENDENCIES:
+${uniqueDeps.join('\n') || 'None detected'}
+
+LISTS/DIMENSIONS: ${enrichment.lists.slice(0, 15).map(l => l.name).join(', ')}
+
+Generate a model knowledge document. Your response MUST be valid JSON starting with { and ending with }.
+
+Return:
+{
+  "areas": [
+    {
+      "prefix": "SLP",
+      "name": "Short name for this functional area",
+      "purpose": "1-2 sentences: what business process this area handles",
+      "howItWorks": "2-3 sentences: plain English explanation of the logic flow — what goes in, what decisions are made, what comes out",
+      "designRationale": "1-2 sentences: why it's structured this way (inferred from the module/formula patterns)",
+      "keyModules": ["module names most important in this area"],
+      "connectsTo": ["other prefix codes this area feeds or reads from"]
+    }
+  ],
+  "modelPurpose": "1-2 sentences: what this entire model does as a whole system"
+}
+
+Rules:
+- Write for a business stakeholder, not a developer
+- Every claim must be supported by actual module/formula evidence above
+- Cover ALL prefix groups, not just the largest ones
+- "howItWorks" is the most important field — make it genuinely explanatory
+- Keep total response under 800 tokens`;
+
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      const knowledgeClient = new Anthropic();
+      const knowledgeResp = await Promise.race([
+        knowledgeClient.messages.create({
+          model: 'claude-sonnet-4-6-20250514',
+          max_tokens: 1200,
+          messages: [{ role: 'user', content: knowledgePrompt }],
+        }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('knowledge-timeout')), 20000)),
+      ]);
+
+      const kRaw = knowledgeResp.content?.[0]?.text?.trim() || '';
+      const kStart = kRaw.indexOf('{');
+      const kEnd = kRaw.lastIndexOf('}');
+      if (kStart >= 0 && kEnd > kStart) {
+        modelKnowledge = JSON.parse(kRaw.slice(kStart, kEnd + 1));
+        sendEvent({ type: 'model-knowledge', knowledge: modelKnowledge });
+      }
+    } catch (knowledgeErr) {
+      console.warn('[analyze-v3] Model knowledge layer skipped:', knowledgeErr.message);
+    }
+
     const lineItemCount = normalized.modules.reduce((s, m) => s + m.lineItemCount, 0);
     sendEvent({
       type: 'complete',

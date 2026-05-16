@@ -1874,6 +1874,7 @@ function startOver() {
   try { localStorage.removeItem('meridian.stateUrl'); } catch(e) {}
   try { localStorage.removeItem('meridian.stateMeta'); } catch(e) {}
   try { localStorage.removeItem('meridian.blueprintBlobUrl'); } catch(e) {}
+  try { localStorage.removeItem('meridian.modelKnowledge'); } catch(e) {}
   try { sessionStorage.removeItem('meridian.evidencePack'); } catch(e) {}
   // Use location.replace so back button doesn't loop back to cached state
   window.location.replace(window.location.pathname);
@@ -4868,6 +4869,7 @@ function confirmModelSelection() {
             history: chatHistory.slice(0, -1),
             modelState: getChatModelState(),
             stateUrl: localStorage.getItem('meridian.stateUrl') || undefined,
+            modelKnowledge: (() => { try { return JSON.parse(localStorage.getItem('meridian.modelKnowledge')); } catch { return null; } })(),
           }),
         });
 
@@ -6790,6 +6792,7 @@ function confirmModelSelection() {
                 case 'model-intelligence': _anlOnModelIntelligence(evt); break;
                 case 'intelligence-narrative': _anlOnIntelligenceNarrative(evt); break;
                 case 'module-ai-insight': _anlOnModuleAiInsight(evt); break;
+                case 'model-knowledge': try { localStorage.setItem('meridian.modelKnowledge', JSON.stringify(evt.knowledge)); } catch(e) {} break;
                 case 'cache-hit': _anl$('anl-hdr-status').innerHTML = 'Loading from cache…'; break;
                 case 'progress': _anlOnProgress(evt.stage, evt.pct); break;
                 case 'extraction-done': _anlOnExtractionDone(evt.moduleCount, evt.totalLineItems); break;
