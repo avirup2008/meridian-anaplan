@@ -40,6 +40,64 @@ import {
 import { parseAllFormulas } from './formula-parser.js';
 import { buildLineItemGraph, buildRiskClusters, detectBusinessPatterns, computeRemediationOrder } from './graph-builder.js';
 import { buildModuleIntelligence, buildModelSummary } from './module-intelligence.js';
+import { createHash } from 'crypto';
+import { put, list } from '@vercel/blob';
+
+// ─── AI Insight Cache ─────────────────────────────────────────────────────────
+const AI_CACHE_PREFIX = 'ai-insights-v1/';
+const AI_CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+
+function moduleInsightCacheKey(card) {
+  // Hash stable module properties: name, issues, role, criticality, stats
+  const stableData = {
+    name: card.moduleName,
+    role: card.role,
+    criticality: card.criticality,
+    issues: (card.issues || []).map(i => i.issue),
+    lineItems: card.stats?.lineItems,
+    formulas: card.stats?.formulas,
+  };
+  return createHash('sha256').update(JSON.stringify(stableData)).digest('hex').slice(0, 16);
+}
+
+async function getCachedInsights(cardHashes) {
+  try {
+    const { blobs } = await list({ prefix: AI_CACHE_PREFIX });
+    if (!blobs.length) return new Map();
+    const cacheMap = new Map();
+    const now = Date.now();
+    for (const blob of blobs) {
+      const key = blob.pathname.replace(AI_CACHE_PREFIX, '').replace('.json', '');
+      if (cardHashes.has(key) && (now - new Date(blob.uploadedAt).getTime()) < AI_CACHE_TTL_MS) {
+        cacheMap.set(key, blob.url);
+      }
+    }
+    // Fetch cached insights in parallel
+    const results = new Map();
+    const fetches = [...cacheMap.entries()].map(async ([key, url]) => {
+      try {
+        const resp = await fetch(url);
+        if (resp.ok) results.set(key, await resp.json());
+      } catch {}
+    });
+    await Promise.all(fetches);
+    return results;
+  } catch {
+    return new Map();
+  }
+}
+
+async function setCachedInsight(hash, insight) {
+  try {
+    await put(
+      `${AI_CACHE_PREFIX}${hash}.json`,
+      JSON.stringify(insight),
+      { access: 'public', addRandomSuffix: false, allowOverwrite: true }
+    );
+  } catch (e) {
+    console.warn('[analyze-v3] AI cache write failed:', e.message);
+  }
+}
 
 // ─── parseStateBlob ───────────────────────────────────────────────────────────
 // Parses the compact tab-separated blob written by model-state.js.
@@ -777,12 +835,44 @@ Rules:
     if (topAiCards.length >= 1) {
       try {
         sendEvent({ type: 'stage', stage: 'ai-intelligence', label: 'Generating AI insights…' });
-        const Anthropic = (await import('@anthropic-ai/sdk')).default;
-        const sonnetClient = new Anthropic();
 
-        for (let i = 0; i < topAiCards.length; i++) {
-          const card = topAiCards[i];
-          // Gather formula samples for this module
+        // Check cache for previously generated insights
+        const cardHashMap = new Map();
+        for (const card of topAiCards) {
+          cardHashMap.set(moduleInsightCacheKey(card), card);
+        }
+        const cachedInsights = await getCachedInsights(new Set(cardHashMap.keys()));
+        let cacheHits = 0;
+
+        // Emit cached insights immediately
+        for (const [hash, insight] of cachedInsights) {
+          const card = cardHashMap.get(hash);
+          if (card && insight) {
+            sendEvent({
+              type: 'module-ai-insight',
+              moduleId: card.moduleId,
+              moduleName: card.moduleName,
+              insight: insight.insight,
+              recommendation: insight.recommendation,
+              riskNarrative: insight.riskNarrative,
+              index: cacheHits,
+              total: topAiCards.length,
+              cached: true,
+            });
+            cacheHits++;
+          }
+        }
+
+        // Only call Sonnet for uncached modules
+        const uncachedCards = topAiCards.filter(card => !cachedInsights.has(moduleInsightCacheKey(card)));
+
+        if (uncachedCards.length > 0) {
+          const Anthropic = (await import('@anthropic-ai/sdk')).default;
+          const sonnetClient = new Anthropic();
+
+          for (let i = 0; i < uncachedCards.length; i++) {
+            const card = uncachedCards[i];
+            // Gather formula samples for this module
           const modFormulas = formulaSamples
             .filter(s => s.module === card.moduleName)
             .slice(0, 3)
@@ -827,7 +917,7 @@ Rules:
 
           try {
             const systemMsg = ANAPLAN_KNOWLEDGE
-              ? `You are a Master Anaplanner and Anaplan Solutions Architect performing a model audit. Use the following Anaplan knowledge base to ground your analysis in platform best practices, DISCO methodology, Planual rules, and performance patterns.\n\n${ANAPLAN_KNOWLEDGE.slice(0, 12000)}`
+              ? `You are a Master Anaplanner and Anaplan Solutions Architect performing a model audit. Use the following Anaplan knowledge base to ground your analysis in platform best practices, DISCO methodology, Planual rules, and performance patterns.\n\n${ANAPLAN_KNOWLEDGE.slice(0, 18000)}`
               : 'You are a senior Anaplan model architect performing a model audit.';
             const resp = await Promise.race([
               sonnetClient.messages.create({
@@ -845,22 +935,28 @@ Rules:
             if (jStart >= 0 && jEnd > jStart) {
               const parsed = JSON.parse(raw.slice(jStart, jEnd + 1));
               if (parsed.insight && parsed.recommendation) {
+                const insightData = {
+                  insight: String(parsed.insight).slice(0, 500),
+                  recommendation: String(parsed.recommendation).slice(0, 500),
+                  riskNarrative: String(parsed.riskNarrative || '').slice(0, 500),
+                };
                 sendEvent({
                   type: 'module-ai-insight',
                   moduleId: card.moduleId,
                   moduleName: card.moduleName,
-                  insight: String(parsed.insight).slice(0, 500),
-                  recommendation: String(parsed.recommendation).slice(0, 500),
-                  riskNarrative: String(parsed.riskNarrative || '').slice(0, 500),
-                  index: i,
+                  ...insightData,
+                  index: cacheHits + i,
                   total: topAiCards.length,
                 });
+                // Cache for future requests (fire and forget)
+                setCachedInsight(moduleInsightCacheKey(card), insightData);
               }
             }
           } catch (modErr) {
             console.warn(`[analyze-v3] AI insight skipped for ${card.moduleName}:`, modErr.message);
           }
-        }
+          } // end for loop over uncached cards
+        } // end if (uncachedCards.length > 0)
       } catch (aiErr) {
         console.error('[analyze-v3] AI intelligence layer failed:', aiErr.message);
       }

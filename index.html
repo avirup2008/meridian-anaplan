@@ -5809,7 +5809,7 @@ function confirmModelSelection() {
           workstreams:        ws,
           evidenceSummary:    ws.length + ' focused workstreams identified from formula and architecture analysis.',
           evidenceItems:      ws.map(w => ({ moduleName: w.title, evidence: w.problem || '' })),
-          feasibility:        { supportedNow: [], notKnowableYet: [] },
+          feasibility:        evt.evidenceLimits ? { supportedNow: evt.evidenceLimits.canSay || [], notKnowableYet: evt.evidenceLimits.cannotSay || [] } : { supportedNow: [], notKnowableYet: [] },
           architecture:       {},
           blastRadius:        [],
           regressionChecklist:[],
