@@ -17,10 +17,11 @@ try {
   console.error('[chat] Failed to load framework:', e.message);
 }
 
-// Parse the TSV blob format back into structured modules
+// Parse the TSV blob format back into structured modules + lists
 function parseBlobTSV(text) {
   const lines = text.split('\n');
   const modules = [];
+  const lists = [];
   let current = null;
 
   for (const line of lines) {
@@ -32,14 +33,15 @@ function parseBlobTSV(text) {
       current = { id: cols[1], name: cols[2], prefix: cols[3] || '', lineItems: [] };
       modules.push(current);
     } else if ((type === 'CALC' || type === 'INPUT' || type === 'ITEM') && current) {
-      const li = { name: cols[1] || '', format: cols[2] || '', summary: cols[3] || '' };
+      const li = { name: cols[1] || '', format: cols[2] || '', summary: cols[3] || '', type };
       if (cols[4]) li.appliesTo = cols[4].split('|').filter(Boolean);
       if (type === 'CALC' && cols[5]) li.formula = cols[5];
       current.lineItems.push(li);
+    } else if (type === 'LIST') {
+      lists.push({ name: cols[1] || '', parent: cols[2] || '' });
     }
-    // Skip LIST, IMPORT, EXPORT, PROCESS, META lines — not needed for chat
   }
-  return modules.length ? modules : null;
+  return { modules: modules.length ? modules : null, lists };
 }
 
 // Mode detection: comprehension vs build
@@ -55,27 +57,27 @@ function detectMode(message) {
   return 'comprehension';
 }
 
-// Extract relevant modules from the full model state based on the user's question
-function extractRelevantModules(modules, message, maxModules = 8) {
+// Extract relevant modules with dependency expansion
+function extractRelevantModules(modules, message, maxModules = 12) {
   if (!modules || !modules.length) return [];
   const lower = message.toLowerCase();
   const words = lower.split(/\s+/).filter(w => w.length > 2);
+
+  // Build name→module lookup
+  const byName = new Map(modules.map(m => [m.name, m]));
 
   // Score each module by relevance to the question
   const scored = modules.map(mod => {
     const name = (mod.name || '').toLowerCase();
     let score = 0;
 
-    // Direct name match
     for (const w of words) {
       if (name.includes(w)) score += 10;
     }
 
-    // Prefix match (e.g. "SLP" for slot planning)
     const prefix = name.split(/\s*[-–]\s*/)[0]?.trim();
     if (prefix && lower.includes(prefix.toLowerCase())) score += 15;
 
-    // Line item name matches
     if (mod.lineItems) {
       for (const li of mod.lineItems) {
         const liName = (li.name || '').toLowerCase();
@@ -88,29 +90,99 @@ function extractRelevantModules(modules, message, maxModules = 8) {
     return { mod, score };
   });
 
-  // Return top N with score > 0, sorted by relevance
-  return scored
+  // Get direct matches
+  const direct = scored
     .filter(s => s.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, maxModules)
+    .slice(0, 6)
     .map(s => s.mod);
+
+  // Dependency expansion: find modules referenced in formulas of direct matches
+  const expanded = new Set(direct.map(m => m.name));
+  for (const mod of direct) {
+    for (const li of (mod.lineItems || [])) {
+      if (!li.formula) continue;
+      // Find 'ModuleName'.LineItem references
+      const refs = li.formula.match(/'[^']+'/g) || [];
+      for (const ref of refs) {
+        const refName = ref.slice(1, -1); // strip quotes
+        if (byName.has(refName) && !expanded.has(refName)) {
+          expanded.add(refName);
+        }
+      }
+    }
+  }
+
+  // Collect all: direct + referenced, up to max
+  const result = [];
+  for (const mod of direct) result.push(mod);
+  for (const name of expanded) {
+    if (result.length >= maxModules) break;
+    const mod = byName.get(name);
+    if (mod && !direct.includes(mod)) result.push(mod);
+  }
+
+  return result;
 }
 
-// Compact module representation with formulas
+// Compute module dependency map for context
+function buildDependencyContext(modules) {
+  const names = new Set(modules.map(m => m.name));
+  const deps = [];
+
+  for (const mod of modules) {
+    const refs = new Set();
+    for (const li of (mod.lineItems || [])) {
+      if (!li.formula) continue;
+      const matches = li.formula.match(/'[^']+'/g) || [];
+      for (const m of matches) {
+        const refName = m.slice(1, -1);
+        if (names.has(refName) && refName !== mod.name) refs.add(refName);
+      }
+    }
+    if (refs.size) {
+      deps.push(`${mod.name} → reads from: ${[...refs].join(', ')}`);
+    }
+  }
+  return deps.length ? deps.join('\n') : '';
+}
+
+// Format module grouped by data flow: inputs → calculations → outputs
 function formatModuleForContext(mod) {
   const lines = [];
   lines.push(`\n## ${mod.name}`);
-  if (mod.lineItems && mod.lineItems.length) {
-    lines.push(`Line items (${mod.lineItems.length}):`);
-    for (const li of mod.lineItems) {
-      let entry = `  - ${li.name}`;
-      if (li.format) entry += ` [${li.format}]`;
-      if (li.summary && li.summary !== 'None') entry += ` (summary: ${li.summary})`;
-      if (li.formula) entry += `\n    Formula: ${li.formula}`;
-      if (li.appliesTo && li.appliesTo.length) entry += `\n    Dimensions: ${li.appliesTo.join(', ')}`;
+  if (!mod.lineItems || !mod.lineItems.length) return lines.join('\n');
+
+  const dims = mod.lineItems[0]?.appliesTo;
+  if (dims && dims.length) lines.push(`Dimensions: ${dims.join(' × ')}`);
+
+  const inputs = mod.lineItems.filter(li => li.type === 'INPUT');
+  const calcs = mod.lineItems.filter(li => li.type === 'CALC');
+  const items = mod.lineItems.filter(li => li.type === 'ITEM');
+
+  if (inputs.length) {
+    lines.push(`\nInputs (user-entered):`);
+    for (const li of inputs) {
+      lines.push(`  - ${li.name} [${li.format || '?'}]`);
+    }
+  }
+
+  if (calcs.length) {
+    lines.push(`\nCalculations:`);
+    for (const li of calcs) {
+      let entry = `  - ${li.name} [${li.format || '?'}]`;
+      if (li.formula) entry += `\n    = ${li.formula}`;
       lines.push(entry);
     }
   }
+
+  if (items.length) {
+    lines.push(`\nOther line items:`);
+    for (const li of items) {
+      lines.push(`  - ${li.name} [${li.format || '?'}]`);
+    }
+  }
+
   return lines.join('\n');
 }
 
@@ -143,12 +215,15 @@ export default async function handler(req, res) {
 
     // ─── Fetch actual model data from blob (TSV format) ─────────────────────
     let fullModules = null;
+    let modelLists = [];
     if (stateUrl) {
       try {
         const blobResp = await fetch(stateUrl);
         if (blobResp.ok) {
           const blobText = await blobResp.text();
-          fullModules = parseBlobTSV(blobText);
+          const parsed = parseBlobTSV(blobText);
+          fullModules = parsed.modules;
+          modelLists = parsed.lists || [];
         }
       } catch (e) {
         console.error('[chat] Failed to fetch state blob:', e.message);
@@ -169,14 +244,28 @@ export default async function handler(req, res) {
     // If we have full module data, extract relevant ones with formulas
     if (fullModules && fullModules.length) {
       const relevant = extractRelevantModules(fullModules, message);
+
+      // List context — what dimensions exist
+      if (modelLists.length) {
+        const listDesc = modelLists.map(l => l.parent ? `${l.name} (child of ${l.parent})` : l.name).join(', ');
+        parts.push(`\nDimensions/Lists: ${listDesc}`);
+      }
+
+      // Dependency map — how modules connect
       if (relevant.length) {
-        parts.push('\n═══ RELEVANT MODULES (with formulas) ═══');
+        const depMap = buildDependencyContext(relevant);
+        if (depMap) {
+          parts.push('\n═══ DATA FLOW ═══');
+          parts.push(depMap);
+        }
+
+        parts.push('\n═══ MODULE DETAILS ═══');
         for (const mod of relevant) {
           parts.push(formatModuleForContext(mod));
         }
       }
 
-      // Also include a full module name list for reference
+      // Full module name list for reference
       const allNames = fullModules.map(m => m.name).join(', ');
       parts.push(`\n═══ ALL MODULES IN MODEL ═══\n${allNames}`);
     } else if (modelState && modelState.modules) {
@@ -224,6 +313,24 @@ export default async function handler(req, res) {
       '- For "how does X work" questions: describe the process end-to-end in business terms first, then show key formulas as proof.',
       '- If the model data doesn\'t contain enough detail to answer, say exactly what\'s missing.',
       '- No preamble. No "here\'s what I found". Start with the answer.',
+      '',
+      'EXAMPLE OF A GOOD ANSWER:',
+      'Q: "How does the model calculate slot availability?"',
+      'A: "Each production slot has three possible states: allocated (assigned to a firm order), reserved (held for an opportunity), or available (open for new demand).',
+      '',
+      'The model determines state by checking assignments in priority order — if a slot has an Order linked, it\'s allocated. If it has an Opportunity but no Order, it\'s reserved. Otherwise it\'s available for scheduling.',
+      '',
+      '```',
+      'Allocated nr = IF ISNOTBLANK(Order) THEN 1 ELSE 0',
+      'Reserved nr = IF ISNOTBLANK(Opportunity) THEN 1 ELSE 0',
+      'Available = IF Not Allocated AND Not Reserved THEN 1 ELSE 0',
+      '```',
+      '',
+      'This three-state system means the planning team can see at a glance how much capacity is committed vs. tentative vs. open."',
+      '',
+      'EXAMPLE OF A BAD ANSWER (never do this):',
+      '"Here are the formulas in SLP05: Allocated nr = IF ISNOTBLANK(Order) THEN 1 ELSE 0. Reserved nr = IF ISNOTBLANK(Opportunity)..."',
+      '(This just lists formulas without explaining the business meaning.)',
     ];
 
     if (modelContext) {
