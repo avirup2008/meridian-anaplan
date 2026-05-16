@@ -817,102 +817,133 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .anl-seam-item{display:flex;gap:10px;align-items:baseline;font-size:13px;color:var(--text2);line-height:1.55}
 .anl-seam-bullet{color:var(--accent);font-size:16px;line-height:1;flex-shrink:0;margin-top:-1px}
 
-/* ─── MODULE INTELLIGENCE ──────────────────────────────────── */
-/* Reference: Stripe spacing (8px grid), Linear calm chrome, Geist 3-state borders */
-.mi-section{margin-top:48px}
-.mi-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--text4);margin-bottom:16px;display:flex;align-items:center;gap:10px}
-.mi-section-title::after{content:'';flex:1;height:1px;background:var(--border);opacity:.5}
+/* ─── MODULE INTELLIGENCE v5 ──────────────────────────────── */
+.mi-section{margin-top:40px}
+.mi-section-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.mi-section-icon{width:26px;height:26px;border-radius:6px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
+.mi-section-icon svg{width:13px;height:13px;color:var(--text3)}
+.mi-section-title{font-size:13px;font-weight:600;letter-spacing:-.01em;color:var(--text)}
+.mi-section-count{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);background:var(--bg2);padding:2px 7px;border-radius:100px;border:1px solid var(--border)}
 
-/* Summary KPIs — Stripe-style metric cards: number + label, no decoration */
-.mi-summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:40px}
-.mi-stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 16px 16px;text-align:center;position:relative;box-shadow:0 1px 2px rgba(0,0,0,.03);transition:border-color .2s ease}
-.mi-stat:hover{border-color:var(--border2)}
-.mi-stat b{font-size:30px;font-weight:700;display:block;margin-bottom:6px;letter-spacing:-.03em;color:var(--text);line-height:1}
-.mi-stat span{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
-.mi-stat-crit{border-color:var(--neg-bd);background:var(--neg-pale)}
-.mi-stat-crit b{color:var(--neg)}
-.mi-stat-high{border-color:var(--gold-bd);background:var(--gold-pale)}
-.mi-stat-high b{color:var(--gold)}
-.mi-stat-clean{border-color:rgba(43,171,96,.12)}
-.mi-stat-clean b{color:var(--pos)}
+/* ── Hero: Health gauge + severity bars ── */
+.mi-hero{display:grid;grid-template-columns:260px 1fr;gap:40px;align-items:start;margin-bottom:44px;padding:16px 0 28px}
+.mi-gauge{position:relative;width:260px;height:260px;display:flex;align-items:center;justify-content:center}
+.mi-gauge svg{position:absolute;inset:0;width:100%;height:100%}
+.mi-gauge-bg{fill:none;stroke:var(--bg2);stroke-width:6}
+.mi-gauge-arc{fill:none;stroke-width:6;stroke-linecap:round}
+.mi-gauge-crit{stroke:var(--neg);filter:drop-shadow(0 0 3px rgba(184,46,46,.2))}
+.mi-gauge-high{stroke:var(--gold);filter:drop-shadow(0 0 3px rgba(191,128,30,.2))}
+.mi-gauge-med{stroke:var(--accent);filter:drop-shadow(0 0 3px rgba(23,90,166,.15))}
+.mi-gauge-clean{stroke:var(--pos);filter:drop-shadow(0 0 3px rgba(33,115,72,.15))}
+.mi-gauge-tick{stroke:var(--border2);stroke-width:.5}
+.mi-gauge-tick-major{stroke:var(--text4);stroke-width:1}
+.mi-gauge-center{position:relative;z-index:1;text-align:center}
+.mi-gauge-num{font-size:60px;font-weight:700;letter-spacing:-.06em;line-height:1;color:var(--text)}
+.mi-gauge-label{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--text4);margin-top:6px}
+.mi-gauge-verdict{margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:100px}
+.mi-gauge-verdict-dot{width:6px;height:6px;border-radius:50%}
+.mi-gauge-verdict-text{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.02em}
 
-/* Module cards — Linear-style: minimal chrome, left accent, 3-state borders */
-.mi-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;overflow:hidden;transition:border-color .2s ease,box-shadow .2s ease}
-.mi-card:hover{border-color:var(--border2)}
-.mi-card-crit{border-left:3px solid var(--neg)}
-.mi-card-high{border-left:3px solid var(--gold)}
-.mi-card-med{border-left:3px solid var(--accent)}
-.mi-card-low{border-left:3px solid var(--border2)}
-.mi-card-hd{display:grid;grid-template-columns:1fr auto;align-items:center;padding:12px 16px;cursor:pointer;gap:16px;user-select:none;transition:background .15s ease}
-.mi-card-hd:hover{background:var(--bg2)}
-.mi-card-left{min-width:0}
-.mi-card-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mi-card-purpose{display:none}
-.mi-card.open .mi-card-purpose{display:block;font-size:11.5px;color:var(--text3);line-height:1.5;margin-top:4px;white-space:normal}
-.mi-card-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.mi-card-badge{font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:3px 7px;border-radius:4px;white-space:nowrap}
-.mi-badge-crit{background:var(--neg);color:#fff}
-.mi-badge-high{background:var(--gold);color:#fff}
-.mi-badge-med{background:var(--accent-pale);color:var(--accent);border:1px solid var(--accent-bd)}
-.mi-badge-low{background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
-.mi-card-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);white-space:nowrap}
-.mi-card-chevron{color:var(--text4);font-size:9px;transition:transform .2s ease}
-.mi-card.open .mi-card-chevron{transform:rotate(90deg)}
-.mi-card.open{border-color:var(--border2);box-shadow:var(--sh-sm)}
+/* Severity distribution bars */
+.mi-sev-panel{padding-top:8px}
+.mi-sev-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.14em;color:var(--text4);margin-bottom:20px}
+.mi-sev-bars{display:flex;flex-direction:column;gap:14px}
+.mi-sev-row{display:grid;grid-template-columns:72px 1fr 36px;align-items:center;gap:12px}
+.mi-sev-label{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.02em}
+.mi-sev-track{height:24px;background:var(--bg2);border-radius:4px;position:relative;overflow:hidden;border:1px solid var(--border)}
+.mi-sev-fill{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+.mi-sev-count{font-size:18px;font-weight:700;letter-spacing:-.03em;text-align:right}
+.mi-sev-total{margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.mi-sev-total-bar{height:5px;border-radius:3px;display:flex;overflow:hidden;background:var(--surface3);gap:2px}
+.mi-sev-total-seg{height:100%;border-radius:3px}
 
-/* Card body — clean expansion, no gradient, opacity-only animation */
-.mi-card-body{display:none;padding:4px 16px 16px;border-top:1px solid var(--border);background:var(--bg2)}
-.mi-card.open .mi-card-body{display:block;animation:miFadeIn .15s ease}
+/* ── Module table: collapsed/expandable ── */
+.mi-mod-table{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.mi-mod-thead{display:grid;grid-template-columns:28px 1fr 90px 60px 1fr;padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--border);gap:12px}
+.mi-mod-thead span{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--text4)}
+.mi-mod-row{border-bottom:1px solid var(--border)}
+.mi-mod-row:last-child{border-bottom:none}
+.mi-mod-summary{display:grid;grid-template-columns:28px 1fr 90px 60px 1fr;padding:12px 20px;align-items:center;gap:12px;cursor:pointer;transition:background .12s;user-select:none}
+.mi-mod-summary:hover{background:var(--bg2)}
+.mi-mod-row.open .mi-mod-summary{background:var(--bg2)}
+.mi-mod-chevron{width:20px;height:20px;display:flex;align-items:center;justify-content:center;transition:transform .2s}
+.mi-mod-chevron svg{width:14px;height:14px;color:var(--text4)}
+.mi-mod-row.open .mi-mod-chevron{transform:rotate(90deg)}
+.mi-mod-name{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.mi-mod-purpose{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);margin-top:1px}
+.mi-mod-sev{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:4px;width:fit-content}
+.mi-mod-sev-crit{background:var(--neg-pale);border:1px solid var(--neg-bd)}
+.mi-mod-sev-high{background:var(--gold-pale);border:1px solid var(--gold-bd)}
+.mi-mod-sev-med{background:var(--accent-pale);border:1px solid var(--accent-bd)}
+.mi-mod-sev-clean{background:var(--pos-pale);border:1px solid var(--pos-bd)}
+.mi-mod-sev-dot{width:6px;height:6px;border-radius:50%}
+.mi-mod-sev-text{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.02em}
+.mi-mod-issue-count{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.mi-mod-preview{font-size:12px;color:var(--text3);line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi-mod-detail{display:none;padding:4px 24px 18px 60px;border-top:1px solid var(--border);background:var(--bg2)}
+.mi-mod-row.open .mi-mod-detail{display:block}
+.mi-mod-issues{display:flex;flex-direction:column;gap:10px}
+.mi-mod-issue{display:flex;align-items:start;gap:10px;font-size:13px;color:var(--text2);line-height:1.5}
+.mi-mod-issue-icon{flex-shrink:0;width:16px;height:16px;margin-top:2px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;color:#fff}
+.mi-mod-issue-icon-crit{background:var(--neg)}
+.mi-mod-issue-icon-high{background:var(--gold)}
+.mi-mod-issue-icon-med{background:var(--accent)}
+.mi-mod-issue-tag{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:500;padding:1px 5px;border-radius:3px;margin-left:6px;background:var(--bg);color:var(--text3);white-space:nowrap}
+
+/* ── Risk clusters ── */
+.mi-clusters{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.mi-cluster-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.mi-cluster-header{padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between}
+.mi-cluster-name{font-size:13px;font-weight:600;color:var(--text)}
+.mi-cluster-sev{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;padding:2px 8px;border-radius:100px}
+.mi-cluster-sev-crit{background:var(--neg-pale);color:var(--neg);border:1px solid var(--neg-bd)}
+.mi-cluster-sev-high{background:var(--gold-pale);color:var(--gold);border:1px solid var(--gold-bd)}
+.mi-cluster-sev-med{background:var(--accent-pale);color:var(--accent);border:1px solid var(--accent-bd)}
+.mi-cluster-detail{padding:0 18px 10px;font-size:11px;color:var(--text3);line-height:1.5}
+.mi-cluster-mods{display:flex;flex-wrap:wrap;gap:4px;padding:4px 18px 14px}
+.mi-cluster-mod{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;padding:3px 7px;border-radius:4px;background:var(--bg2);border:1px solid var(--border);color:var(--text2)}
+
+/* ── Remediation table ── */
+.mi-rem{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.mi-rem-thead{display:grid;grid-template-columns:28px 200px 60px 1fr 80px;padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--border);gap:12px}
+.mi-rem-thead span{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--text4)}
+.mi-rem-row{display:grid;grid-template-columns:28px 200px 60px 1fr 80px;padding:12px 20px;align-items:center;gap:12px;border-bottom:1px solid var(--border);transition:background .12s}
+.mi-rem-row:last-child{border-bottom:none}
+.mi-rem-row:hover{background:var(--bg2)}
+.mi-rem-step{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#fff}
+.mi-rem-step-crit{background:var(--neg)}
+.mi-rem-step-high{background:var(--gold)}
+.mi-rem-step-med{background:var(--accent)}
+.mi-rem-mod-name{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.mi-rem-mod-why{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4}
+.mi-rem-impact{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.mi-rem-action{font-size:12px;color:var(--text2);line-height:1.4}
+.mi-rem-blocked{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4)}
+.mi-rem-blocked strong{color:var(--text2);font-weight:600}
+
+/* ── Bottlenecks ── */
+.mi-bottlenecks{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.mi-bn-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.mi-bn-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0}
+.mi-bn-card-crit::before{background:var(--neg)}
+.mi-bn-card-high::before{background:var(--gold)}
+.mi-bn-top{display:flex;align-items:start;justify-content:space-between;margin-bottom:8px}
+.mi-bn-name{font-size:13px;font-weight:600;color:var(--text)}
+.mi-bn-fanout{font-size:28px;font-weight:700;line-height:1;letter-spacing:-.04em}
+.mi-bn-fanout-label{font-family:'IBM Plex Mono',monospace;font-size:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--text4)}
+.mi-bn-why{font-size:11px;color:var(--text3);line-height:1.45;margin-bottom:8px}
+.mi-bn-deps{display:flex;flex-wrap:wrap;gap:3px}
+.mi-bn-dep{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:500;padding:2px 6px;border-radius:3px;background:var(--bg2);border:1px solid var(--border);color:var(--text3)}
+
+/* ── Evidence boundaries ── */
+.mi-evidence{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 22px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.mi-ev-title{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:12px}
+.mi-ev-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.mi-ev-stat{text-align:center;padding:12px 0;background:var(--bg);border-radius:8px;border:1px solid var(--border)}
+.mi-ev-val{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.03em}
+.mi-ev-label{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--text4);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+
 @keyframes miFadeIn{from{opacity:0}to{opacity:1}}
-.mi-issue{padding:10px 0;border-bottom:1px solid var(--border)}
-.mi-issue:last-child{border-bottom:0}
-.mi-issue-title{font-size:12px;font-weight:600;color:var(--text);line-height:1.45;margin-bottom:6px}
-.mi-issue-row{display:grid;grid-template-columns:38px 1fr;gap:6px;margin-top:4px;align-items:baseline}
-.mi-issue-label{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 5px;border-radius:3px;text-align:center}
-.mi-issue-label-danger{color:var(--neg);background:var(--neg-pale)}
-.mi-issue-label-fix{color:var(--pos);background:rgba(43,171,96,.08)}
-.mi-issue-text{font-size:11.5px;color:var(--text2);line-height:1.55}
-.mi-card-stats{display:flex;gap:12px;padding-top:10px;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);border-top:1px solid var(--border)}
-
-/* Risk clusters — Geist-style rows: border accent, no lift */
-.mi-cluster{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-bottom:6px;display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;transition:border-color .15s ease}
-.mi-cluster:hover{border-color:var(--border2)}
-.mi-cluster-crit{border-left:3px solid var(--neg)}
-.mi-cluster-high{border-left:3px solid var(--gold)}
-.mi-cluster-med{border-left:3px solid var(--accent)}
-.mi-cluster-trigger{font-size:12px;font-weight:500;color:var(--text);line-height:1.4}
-.mi-cluster-scope{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);white-space:nowrap}
-
-/* Fix order steps */
-.mi-step{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
-.mi-step:last-child{border-bottom:0}
-.mi-step-num{min-width:22px;height:22px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px}
-.mi-step-body{min-width:0;padding-top:1px}
-.mi-step-modules{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-.mi-step-pill{font-size:10px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;color:var(--text2);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis;transition:border-color .15s}
-.mi-step-pill:hover{border-color:var(--border2)}
-.mi-step-overflow{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4)}
-.mi-step-tag{font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
-
-/* Bottlenecks */
-.mi-bottleneck{display:grid;grid-template-columns:1fr auto;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
-.mi-bottleneck:last-child{border-bottom:0}
-.mi-bottleneck-name{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mi-bottleneck-name b{font-weight:600}
-.mi-bottleneck-fan{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);white-space:nowrap;margin-left:12px}
-
-/* Evidence boundaries */
-.mi-limits{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 20px}
-.mi-limits-title{font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.mi-limits-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.mi-limits-hd{font-size:10px;font-weight:600;margin-bottom:4px}
-.mi-limits-hd-pos{color:var(--pos)}
-.mi-limits-hd-neg{color:var(--text4)}
-.mi-limits-list{font-size:10px;color:var(--text3);line-height:1.75;padding-left:14px;margin:0}
-.mi-limits-list-neg{color:var(--text4)}
-
-/* 2-col grid for secondary info */
-.mi-bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
 .anl-seam-label{font-weight:600;color:var(--text);margin-right:4px}
 
 /* ─── NOTES TAB ──────────────────────────────────────────────── */
@@ -5455,139 +5486,255 @@ function confirmModelSelection() {
 
       if (!cards.length) { slot.hidden = true; return; }
 
-      // Hide old AI workstream cards — they're redundant when intelligence is present
       const oldSlot = _anl$('health-format-slot');
       if (oldSlot) oldSlot.hidden = true;
 
-      const cardClass = { Critical: 'mi-card-crit', High: 'mi-card-high', Medium: 'mi-card-med', Low: 'mi-card-low' };
-      const badgeClass = { Critical: 'mi-badge-crit', High: 'mi-badge-high', Medium: 'mi-badge-med', Low: 'mi-badge-low' };
-      const clusterClass = { Critical: 'mi-cluster-crit', High: 'mi-cluster-high', Medium: 'mi-cluster-med' };
       const e = escapeHtml;
       const s = summary.moduleSummary || {};
+      const total = s.total || cards.length;
+
+      // Count severities from cards
+      const sevCounts = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+      cards.forEach(c => { if (sevCounts.hasOwnProperty(c.criticality)) sevCounts[c.criticality]++; });
+      const clean = total - sevCounts.Critical - sevCounts.High - sevCounts.Medium;
+      if (s.critical) sevCounts.Critical = s.critical;
+      if (s.high) sevCounts.High = s.high;
+
+      // Color maps
+      const sevColor = { Critical: 'var(--neg)', High: 'var(--gold)', Medium: 'var(--accent)', Low: 'var(--pos)' };
+      const sevClass = { Critical: 'crit', High: 'high', Medium: 'med', Low: 'clean' };
+      const sevFill = { Critical: 'var(--neg)', High: 'var(--gold)', Medium: 'var(--accent)', Low: 'var(--pos)' };
+
+      // Health score
+      const hs = (evt.healthScore != null) ? evt.healthScore : (summary.healthScore || '--');
+      const hsNum = Number(hs) || 0;
+      const hsVerdict = hsNum >= 80 ? 'Healthy' : hsNum >= 60 ? 'Needs Attention' : hsNum >= 40 ? 'At Risk' : 'Critical';
+      const hsVerdictColor = hsNum >= 80 ? 'var(--pos)' : hsNum >= 60 ? 'var(--gold)' : 'var(--neg)';
+      const hsVerdictBg = hsNum >= 80 ? 'var(--pos-pale)' : hsNum >= 60 ? 'var(--gold-pale)' : 'var(--neg-pale)';
+      const hsVerdictBd = hsNum >= 80 ? 'var(--pos-bd)' : hsNum >= 60 ? 'var(--gold-bd)' : 'var(--neg-bd)';
 
       let html = '';
 
-      // ── Summary KPIs — large number cards ──
-      html += '<div class="mi-summary-bar">';
-      html += '<div class="mi-stat"><b>' + (s.total || cards.length) + '</b><span>Modules</span></div>';
-      if (s.critical) html += '<div class="mi-stat mi-stat-crit"><b>' + s.critical + '</b><span>Critical</span></div>';
-      if (s.high) html += '<div class="mi-stat mi-stat-high"><b>' + s.high + '</b><span>High</span></div>';
-      if (s.clean) html += '<div class="mi-stat"><b>' + s.clean + '</b><span>Clean</span></div>';
-      html += '</div>';
+      // ── HERO: Health gauge + severity bars ──
+      const gaugeR = 110, gaugeR2 = 120, circumf = 2 * Math.PI * gaugeR;
+      const scoreOffset = circumf - (circumf * hsNum / 100);
+      // Severity arcs on outer ring
+      const outerC = 2 * Math.PI * gaugeR2;
+      const critPct = total ? sevCounts.Critical / total : 0;
+      const highPct = total ? sevCounts.High / total : 0;
+      const medPct = total ? sevCounts.Medium / total : 0;
+      const cleanPct = total ? (clean > 0 ? clean / total : 0) : 0;
+      const gap = 0.02; // small gap between segments
 
-      // ── Module cards (top 8) — accordion ──
-      html += '<div class="mi-section"><div class="mi-section-title">Highest-Risk Modules</div>';
-      for (const card of cards.slice(0, 8)) {
-        const cc = cardClass[card.criticality] || '';
-        const bc = badgeClass[card.criticality] || 'mi-badge-low';
+      html += '<div class="mi-hero">';
+      html += '<div class="mi-gauge">';
+      html += '<svg viewBox="0 0 260 260">';
+      // Tick marks
+      html += '<g>';
+      for (let i = 0; i < 60; i++) {
+        const a = (i / 60) * 360 - 90, rad = a * Math.PI / 180;
+        const len = i % 5 === 0 ? 6 : 3;
+        const x1 = 130 + (128 - len) * Math.cos(rad), y1 = 130 + (128 - len) * Math.sin(rad);
+        const x2 = 130 + 128 * Math.cos(rad), y2 = 130 + 128 * Math.sin(rad);
+        html += '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" class="mi-gauge-tick' + (i % 5 === 0 ? '-major' : '') + '"/>';
+      }
+      html += '</g>';
+      // Background arcs
+      html += '<circle cx="130" cy="130" r="' + gaugeR + '" class="mi-gauge-bg"/>';
+      html += '<circle cx="130" cy="130" r="' + gaugeR2 + '" class="mi-gauge-bg" stroke-width="6"/>';
+      // Score arc
+      html += '<circle cx="130" cy="130" r="' + gaugeR + '" style="fill:none;stroke:' + hsVerdictColor + ';stroke-width:10;stroke-linecap:round;stroke-dasharray:' + circumf + ';stroke-dashoffset:' + scoreOffset + '" transform="rotate(-90 130 130)"/>';
+      // Severity outer segments
+      let sevOffset = 0;
+      if (critPct > 0) {
+        html += '<circle cx="130" cy="130" r="' + gaugeR2 + '" class="mi-gauge-arc mi-gauge-crit" stroke-dasharray="' + (critPct * outerC - 2) + ' ' + outerC + '" stroke-dashoffset="-' + sevOffset + '" transform="rotate(-90 130 130)"/>';
+        sevOffset += critPct * outerC + 2;
+      }
+      if (highPct > 0) {
+        html += '<circle cx="130" cy="130" r="' + gaugeR2 + '" class="mi-gauge-arc mi-gauge-high" stroke-dasharray="' + (highPct * outerC - 2) + ' ' + outerC + '" stroke-dashoffset="-' + sevOffset + '" transform="rotate(-90 130 130)"/>';
+        sevOffset += highPct * outerC + 2;
+      }
+      if (medPct > 0) {
+        html += '<circle cx="130" cy="130" r="' + gaugeR2 + '" class="mi-gauge-arc mi-gauge-med" stroke-dasharray="' + (medPct * outerC - 2) + ' ' + outerC + '" stroke-dashoffset="-' + sevOffset + '" transform="rotate(-90 130 130)"/>';
+        sevOffset += medPct * outerC + 2;
+      }
+      if (cleanPct > 0) {
+        html += '<circle cx="130" cy="130" r="' + gaugeR2 + '" class="mi-gauge-arc mi-gauge-clean" stroke-dasharray="' + (cleanPct * outerC - 2) + ' ' + outerC + '" stroke-dashoffset="-' + sevOffset + '" transform="rotate(-90 130 130)"/>';
+      }
+      html += '</svg>';
+      html += '<div class="mi-gauge-center">';
+      html += '<div class="mi-gauge-num">' + hs + '</div>';
+      html += '<div class="mi-gauge-label">Model Health</div>';
+      html += '<div class="mi-gauge-verdict" style="background:' + hsVerdictBg + ';border:1px solid ' + hsVerdictBd + '">';
+      html += '<div class="mi-gauge-verdict-dot" style="background:' + hsVerdictColor + '"></div>';
+      html += '<div class="mi-gauge-verdict-text" style="color:' + hsVerdictColor + '">' + hsVerdict + '</div>';
+      html += '</div></div></div>';
+
+      // Severity bars
+      html += '<div class="mi-sev-panel"><div class="mi-sev-title">Severity Distribution</div>';
+      html += '<div class="mi-sev-bars">';
+      const sevRows = [
+        { label: 'Critical', count: sevCounts.Critical, color: 'var(--neg)', pct: total ? Math.round(sevCounts.Critical / total * 100) : 0 },
+        { label: 'High', count: sevCounts.High, color: 'var(--gold)', pct: total ? Math.round(sevCounts.High / total * 100) : 0 },
+        { label: 'Medium', count: sevCounts.Medium, color: 'var(--accent)', pct: total ? Math.round(sevCounts.Medium / total * 100) : 0 },
+        { label: 'Clean', count: clean > 0 ? clean : (s.clean || 0), color: 'var(--pos)', pct: total ? Math.round((clean > 0 ? clean : (s.clean || 0)) / total * 100) : 0 }
+      ];
+      for (const sr of sevRows) {
+        html += '<div class="mi-sev-row">';
+        html += '<span class="mi-sev-label" style="color:' + sr.color + '">' + sr.label + '</span>';
+        html += '<div class="mi-sev-track"><div class="mi-sev-fill" style="width:' + (sr.pct > 0 ? Math.max(sr.pct, 5) : 0) + '%;background:' + sr.color + '"></div></div>';
+        html += '<span class="mi-sev-count" style="color:' + sr.color + '">' + sr.count + '</span>';
+        html += '</div>';
+      }
+      html += '</div>';
+      // Total bar
+      html += '<div class="mi-sev-total"><div class="mi-sev-total-bar">';
+      for (const sr of sevRows) {
+        if (sr.count > 0) html += '<div class="mi-sev-total-seg" style="width:' + sr.pct + '%;background:' + sr.color + '"></div>';
+      }
+      html += '</div></div></div></div>';
+
+      // ── MODULE TABLE (collapsed/expandable) ──
+      html += '<div class="mi-section"><div class="mi-section-head">';
+      html += '<span class="mi-section-title">Module Risk Assessment</span>';
+      html += '<span class="mi-section-count">' + total + ' modules</span>';
+      html += '</div>';
+      html += '<div class="mi-mod-table">';
+      html += '<div class="mi-mod-thead"><span></span><span>Module</span><span>Severity</span><span>Issues</span><span>Top Issue</span></div>';
+
+      const chevronSvg = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>';
+
+      for (let ci = 0; ci < Math.min(cards.length, 10); ci++) {
+        const card = cards[ci];
+        const sc = sevClass[card.criticality] || 'clean';
+        const color = sevColor[card.criticality] || 'var(--text3)';
         const issueCount = card.issues ? card.issues.length : 0;
+        const topIssue = issueCount ? (card.issues[0].issue || card.issues[0].danger || '') : '';
+        const isFirst = ci === 0;
 
-        html += '<div class="mi-card ' + cc + '">';
-        html += '<div class="mi-card-hd" onclick="this.parentElement.classList.toggle(\'open\')">';
-        html += '<div class="mi-card-left">';
-        html += '<div class="mi-card-name">' + e(card.moduleName || '?') + '</div>';
-        html += '<div class="mi-card-purpose">' + e(card.purpose || '') + '</div>';
+        html += '<div class="mi-mod-row' + (isFirst ? ' open' : '') + '">';
+        // Summary row
+        html += '<div class="mi-mod-summary" onclick="this.parentElement.classList.toggle(\'open\')">';
+        html += '<div class="mi-mod-chevron">' + chevronSvg + '</div>';
+        html += '<div><div class="mi-mod-name">' + e(card.moduleName || '?') + '</div>';
+        html += '<div class="mi-mod-purpose">' + e(card.purpose || '') + (card.stats ? ' &middot; ' + card.stats.lineItems + ' line items' : '') + '</div></div>';
+        html += '<div class="mi-mod-sev mi-mod-sev-' + sc + '"><div class="mi-mod-sev-dot" style="background:' + color + '"></div><span class="mi-mod-sev-text" style="color:' + color + '">' + e(card.criticality || '') + '</span></div>';
+        html += '<div class="mi-mod-issue-count" style="color:' + color + '">' + issueCount + '</div>';
+        html += '<div class="mi-mod-preview">' + e(topIssue) + '</div>';
         html += '</div>';
-        html += '<div class="mi-card-right">';
-        html += '<span class="mi-card-badge ' + bc + '">' + e(card.criticality || '') + '</span>';
-        html += '<span class="mi-card-meta">' + (card.stats ? card.stats.lineItems : 0) + ' items</span>';
-        html += '<span class="mi-card-chevron">&#9654;</span>';
-        html += '</div></div>';
 
-        html += '<div class="mi-card-body">';
+        // Expandable detail
         if (issueCount) {
-          for (const iss of card.issues.slice(0, 3)) {
-            html += '<div class="mi-issue">';
-            html += '<div class="mi-issue-title">' + e(iss.issue || '') + '</div>';
-            html += '<div class="mi-issue-row"><span class="mi-issue-label mi-issue-label-danger">risk</span><span class="mi-issue-text">' + e(iss.danger || '') + '</span></div>';
-            html += '<div class="mi-issue-row"><span class="mi-issue-label mi-issue-label-fix">fix</span><span class="mi-issue-text">' + e(iss.fix || '') + '</span></div>';
-            html += '</div>';
+          html += '<div class="mi-mod-detail"><div class="mi-mod-issues">';
+          for (const iss of card.issues) {
+            const issCrit = (iss.severity === 'Critical' || (card.criticality === 'Critical' && !iss.severity)) ? 'crit' : (iss.severity === 'High' ? 'high' : 'med');
+            const tag = iss.template || iss.category || '';
+            html += '<div class="mi-mod-issue">';
+            html += '<div class="mi-mod-issue-icon mi-mod-issue-icon-' + issCrit + '">!</div>';
+            html += '<span>' + e(iss.issue || iss.danger || '');
+            if (tag) html += '<span class="mi-mod-issue-tag">' + e(tag) + '</span>';
+            html += '</span></div>';
           }
-          if (issueCount > 3) html += '<div style="font-size:9px;color:var(--text4);padding:6px 0 0;font-family:\'IBM Plex Mono\',monospace;text-align:center"><span style="padding:3px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:4px">+' + (issueCount - 3) + ' more</span></div>';
+          html += '</div></div>';
         }
-        html += '<div class="mi-card-stats">';
-        html += '<span>' + (card.stats ? card.stats.formulas : 0) + ' formulas</span>';
-        html += '<span>' + (card.stats ? card.stats.inboundEdges + card.stats.outboundEdges : 0) + ' dependencies</span>';
-        html += '<span>' + e(card.grain || 'Model-level') + '</span>';
         html += '</div>';
-        html += '</div></div>';
       }
-      html += '</div>';
+      html += '</div></div>';
 
-      // ── Risk Clusters ──
+      // ── RISK CLUSTERS ──
       if (clusters.length) {
-        html += '<div class="mi-section"><div class="mi-section-title">Risk Clusters</div>';
-        for (const cl of clusters.slice(0, 4)) {
-          const clc = clusterClass[cl.severity] || 'mi-cluster-med';
-          html += '<div class="mi-cluster ' + clc + '">';
-          html += '<div class="mi-cluster-trigger">' + e(cl.trigger || '?') + '</div>';
-          html += '<div class="mi-cluster-scope">' + cl.affectedItemCount + ' items &middot; ' + (cl.affectedModules ? cl.affectedModules.length : 0) + ' modules</div>';
-          html += '</div>';
-        }
-        html += '</div>';
-      }
-
-      // ── Fix Order + Bottlenecks — 2 col ──
-      if (order.length || bottlenecks.length) {
-        html += '<div class="mi-section"><div class="mi-bottom-grid">';
-
-        if (order.length) {
-          html += '<div><div class="mi-section-title">Fix Order</div>';
-          for (const step of order.slice(0, 5)) {
-            const mods = step.modules || [];
-            const shown = mods.slice(0, 3);
-            const overflow = mods.length - shown.length;
-            html += '<div class="mi-step">';
-            html += '<div class="mi-step-num">' + step.step + '</div>';
-            html += '<div class="mi-step-body">';
-            html += '<div class="mi-step-modules">' + shown.map(m => '<span class="mi-step-pill">' + e(m.moduleName || '') + '</span>').join('');
-            if (overflow > 0) html += '<span class="mi-step-overflow">+' + overflow + '</span>';
-            html += '</div>';
-            if (step.parallel) html += '<div class="mi-step-tag">parallel</div>';
-            html += '</div></div>';
-          }
-          html += '</div>';
-        }
-
-        if (bottlenecks.length) {
-          html += '<div><div class="mi-section-title">Bottlenecks</div>';
-          for (const b of bottlenecks.slice(0, 5)) {
-            html += '<div class="mi-bottleneck">';
-            html += '<div class="mi-bottleneck-name"><b>' + e(b.moduleName || '') + '</b>.' + e(b.itemName || '') + '</div>';
-            html += '<div class="mi-bottleneck-fan">' + b.fanOut + ' out &middot; ' + b.fanIn + ' in</div>';
+        const clSevClass = { Critical: 'crit', High: 'high', Medium: 'med' };
+        html += '<div class="mi-section"><div class="mi-section-head">';
+        html += '<span class="mi-section-title">Risk Clusters</span>';
+        html += '<span class="mi-section-count">' + clusters.length + ' clusters</span>';
+        html += '</div><div class="mi-clusters">';
+        for (const cl of clusters.slice(0, 6)) {
+          const csc = clSevClass[cl.severity] || 'med';
+          html += '<div class="mi-cluster-card">';
+          html += '<div class="mi-cluster-header"><span class="mi-cluster-name">' + e(cl.trigger || '?') + '</span>';
+          html += '<span class="mi-cluster-sev mi-cluster-sev-' + csc + '">' + e(cl.severity || '') + '</span></div>';
+          html += '<div class="mi-cluster-detail">' + cl.affectedItemCount + ' items across ' + (cl.affectedModules ? cl.affectedModules.length : 0) + ' modules</div>';
+          if (cl.affectedModules && cl.affectedModules.length) {
+            html += '<div class="mi-cluster-mods">';
+            for (const m of cl.affectedModules.slice(0, 6)) html += '<span class="mi-cluster-mod">' + e(m) + '</span>';
+            if (cl.affectedModules.length > 6) html += '<span class="mi-cluster-mod">+' + (cl.affectedModules.length - 6) + '</span>';
             html += '</div>';
           }
           html += '</div>';
         }
-
         html += '</div></div>';
       }
 
-      // ── Evidence Boundaries — subtle footer ──
+      // ── REMEDIATION ORDER ──
+      if (order.length) {
+        html += '<div class="mi-section"><div class="mi-section-head">';
+        html += '<span class="mi-section-title">Remediation Order</span>';
+        html += '<span class="mi-section-count">' + order.length + ' steps</span>';
+        html += '</div>';
+        html += '<div class="mi-rem"><div class="mi-rem-thead"><span>#</span><span>Module</span><span>Impact</span><span>Key Action</span><span>Blocked By</span></div>';
+        let stepNum = 0;
+        for (const step of order.slice(0, 8)) {
+          const mods = step.modules || [];
+          for (const m of mods) {
+            stepNum++;
+            const mc = m.criticality || step.criticality || 'Medium';
+            const msc = sevClass[mc] || 'med';
+            const deps = mods.length;
+            html += '<div class="mi-rem-row">';
+            html += '<div class="mi-rem-step mi-rem-step-' + msc + '">' + stepNum + '</div>';
+            html += '<div><div class="mi-rem-mod-name">' + e(m.moduleName || '') + '</div>';
+            html += '<div class="mi-rem-mod-why">' + deps + ' module' + (deps !== 1 ? 's' : '') + ' in this step</div></div>';
+            html += '<div class="mi-rem-impact" style="color:' + (sevColor[mc] || 'var(--text3)') + '">Step ' + step.step + '</div>';
+            html += '<div class="mi-rem-action">' + (step.parallel ? 'Can fix in parallel' : 'Sequential fix') + '</div>';
+            html += '<div class="mi-rem-blocked">' + (step.step > 1 ? 'Step ' + (step.step - 1) : '—') + '</div>';
+            html += '</div>';
+          }
+        }
+        html += '</div></div>';
+      }
+
+      // ── BOTTLENECKS ──
+      if (bottlenecks.length) {
+        html += '<div class="mi-section"><div class="mi-section-head">';
+        html += '<span class="mi-section-title">Bottleneck Analysis</span>';
+        html += '<span class="mi-section-count">' + bottlenecks.length + ' identified</span>';
+        html += '</div><div class="mi-bottlenecks">';
+        for (const b of bottlenecks.slice(0, 3)) {
+          const bc = b.fanOut >= 8 ? 'crit' : 'high';
+          html += '<div class="mi-bn-card mi-bn-card-' + bc + '">';
+          html += '<div class="mi-bn-top"><div class="mi-bn-name">' + e(b.moduleName || '') + '</div>';
+          html += '<div style="text-align:right"><div class="mi-bn-fanout" style="color:' + (bc === 'crit' ? 'var(--neg)' : 'var(--gold)') + '">' + b.fanOut + '</div>';
+          html += '<div class="mi-bn-fanout-label">Fan-out</div></div></div>';
+          html += '<div class="mi-bn-why">' + e(b.itemName || '') + ' &middot; ' + b.fanIn + ' inputs, ' + b.fanOut + ' dependents</div>';
+          html += '<div class="mi-bn-deps">';
+          // We don't have downstream module names from bottleneck data, show what we have
+          html += '<span class="mi-bn-dep">' + b.fanOut + ' downstream</span>';
+          html += '<span class="mi-bn-dep">' + b.fanIn + ' upstream</span>';
+          html += '</div></div>';
+        }
+        html += '</div></div>';
+      }
+
+      // ── EVIDENCE BOUNDARIES ──
       const limits = evt.evidenceLimits || (summary && summary.evidenceLimits);
       if (limits && (limits.canSay || limits.cannotSay)) {
-        html += '<div class="mi-section"><div class="mi-limits">';
-        html += '<div class="mi-limits-title">Evidence Boundaries</div>';
-        html += '<div class="mi-limits-col">';
-        if (Array.isArray(limits.canSay) && limits.canSay.length) {
-          html += '<div><div class="mi-limits-hd mi-limits-hd-pos">Confirmed</div>';
-          html += '<ul class="mi-limits-list">' + limits.canSay.map(i => '<li>' + e(i) + '</li>').join('') + '</ul></div>';
-        }
-        if (Array.isArray(limits.cannotSay) && limits.cannotSay.length) {
-          html += '<div><div class="mi-limits-hd mi-limits-hd-neg">Cannot determine</div>';
-          html += '<ul class="mi-limits-list mi-limits-list-neg">' + limits.cannotSay.map(i => '<li>' + e(i) + '</li>').join('') + '</ul></div>';
-        }
+        html += '<div class="mi-section"><div class="mi-section-head">';
+        html += '<span class="mi-section-title">Evidence Boundaries</span></div>';
+        html += '<div class="mi-evidence"><div class="mi-ev-title">Analysis Scope & Limitations</div>';
+        html += '<div class="mi-ev-grid">';
+        html += '<div class="mi-ev-stat"><div class="mi-ev-val">' + total + '</div><div class="mi-ev-label">Modules</div></div>';
+        const totalItems = cards.reduce((sum, c) => sum + (c.stats ? c.stats.lineItems : 0), 0);
+        html += '<div class="mi-ev-stat"><div class="mi-ev-val">' + totalItems + '</div><div class="mi-ev-label">Line Items</div></div>';
+        const totalFormulas = cards.reduce((sum, c) => sum + (c.stats ? c.stats.formulas : 0), 0);
+        html += '<div class="mi-ev-stat"><div class="mi-ev-val">' + totalFormulas + '</div><div class="mi-ev-label">Formulas</div></div>';
+        const totalIssues = cards.reduce((sum, c) => sum + (c.issues ? c.issues.length : 0), 0);
+        html += '<div class="mi-ev-stat"><div class="mi-ev-val">' + totalIssues + '</div><div class="mi-ev-label">Issues Found</div></div>';
         html += '</div></div></div>';
       }
 
       slot.innerHTML = html;
       slot.hidden = false;
 
-      // Auto-expand first card only
-      const firstCard = slot.querySelector('.mi-card');
-      if (firstCard) firstCard.classList.add('open');
-
-      // Store on _anlState for export/share
       _anlState.modelIntelligence = { summary, moduleCards: cards, riskClusters: clusters, remediationOrder: order, patterns, bottlenecks };
     }
 
