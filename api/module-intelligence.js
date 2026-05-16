@@ -338,6 +338,91 @@ export function buildModelSummary(graph, moduleCards, riskClusters, patterns) {
   };
 }
 
+// ─── Admissibility Gates ───────────────────────────────────────────────────
+// Determines which visualizations and claims are supported by actual evidence.
+
+export function computeAdmissibilityGates(graph, moduleCards, normalized, discoMap) {
+  const moduleCount = normalized.modules.length;
+  const formulaCount = normalized.modules.reduce((sum, m) => sum + m.lineItems.filter(li => li.formula).length, 0);
+  const totalLineItems = normalized.modules.reduce((sum, m) => sum + m.lineItems.length, 0);
+  const formulaCoverage = totalLineItems > 0 ? formulaCount / totalLineItems : 0;
+
+  const edgeCount = graph.edges.length;
+  const crossModuleEdges = graph.edges.filter(e => e.isCrossModule).length;
+  const graphDensity = moduleCount > 1 ? crossModuleEdges / (moduleCount * (moduleCount - 1)) : 0;
+
+  const unknown = discoMap.UNKNOWN || 0;
+  const namingCoverage = moduleCount > 0 ? (moduleCount - unknown) / moduleCount : 0;
+
+  // Thresholds
+  const hasFormulas = formulaCoverage > 0.05; // at least 5% of line items have formulas
+  const hasDenseGraph = crossModuleEdges >= 3 && graphDensity > 0.02;
+  const hasStrongNaming = namingCoverage >= 0.5;
+  const hasRichGraph = crossModuleEdges >= 8 && graphDensity > 0.05;
+  const hasEnoughModules = moduleCount >= 3;
+
+  // Visualization flags
+  const vizFlags = {
+    dependencyArchitecture: hasFormulas && hasDenseGraph && hasEnoughModules,
+    riskClusters: hasFormulas && moduleCards.length >= 2,
+    fixOrder: moduleCards.filter(c => c.criticality === 'Critical' || c.criticality === 'High').length >= 2,
+    bottlenecks: hasFormulas && hasRichGraph,
+    architectureMix: hasStrongNaming,
+    blastRadius: hasFormulas && hasDenseGraph,
+  };
+
+  // Dynamic canSay / cannotSay based on actual evidence
+  const canSay = [];
+  const cannotSay = [];
+
+  if (hasFormulas) {
+    canSay.push('Formula-level dependencies between line items');
+    canSay.push('Hardcoded references that break on rename');
+    if (hasDenseGraph) {
+      canSay.push('Exact blast radius for any change');
+      canSay.push('Remediation order respecting dependency chains');
+    } else {
+      cannotSay.push('Full blast radius — too few cross-module formula references detected');
+    }
+  } else {
+    cannotSay.push('Formula dependencies — no formula text in the blueprint export');
+    cannotSay.push('Blast radius — requires formula references');
+  }
+
+  if (hasStrongNaming) {
+    canSay.push('Module responsibility classification (DISCO prefix mapping)');
+    canSay.push('Architecture layer boundary analysis');
+  } else {
+    cannotSay.push('Architecture classification — naming coverage below 50%');
+  }
+
+  if (totalLineItems > 0) {
+    canSay.push('Summary method and format risk detection');
+    canSay.push('Dimensional flow and aggregation patterns');
+  }
+
+  // Always cannot-say items
+  cannotSay.push('Actual recalculation performance or memory usage');
+  cannotSay.push('Whether a finding is intentional (model-owner decision)');
+  cannotSay.push('Cell count without Polaris/HyperConnect metadata');
+  cannotSay.push('User-facing page layout and dashboard configuration');
+
+  return {
+    vizFlags,
+    evidenceQuality: {
+      formulaCoverage: Math.round(formulaCoverage * 100),
+      graphDensity: Math.round(graphDensity * 1000) / 1000,
+      namingCoverage: Math.round(namingCoverage * 100),
+      crossModuleEdges,
+      moduleCount,
+      totalLineItems,
+      formulaCount,
+    },
+    canSay,
+    cannotSay,
+  };
+}
+
 // ─── Health Score (deterministic) ───────────────────────────────────────────
 
 function computeHealthScore(moduleCards, graph) {

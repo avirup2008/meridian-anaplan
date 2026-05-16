@@ -39,7 +39,7 @@ import {
 } from './analysis-core.js';
 import { parseAllFormulas } from './formula-parser.js';
 import { buildLineItemGraph, buildRiskClusters, detectBusinessPatterns, computeRemediationOrder } from './graph-builder.js';
-import { buildModuleIntelligence, buildModelSummary } from './module-intelligence.js';
+import { buildModuleIntelligence, buildModelSummary, computeAdmissibilityGates } from './module-intelligence.js';
 import { createHash } from 'crypto';
 import { put, list } from '@vercel/blob';
 
@@ -346,7 +346,19 @@ function buildDeterministicVerdict(discoMap, blastRadiusTop10, findings, moduleC
 // ─── AI call: workstreams ──────────────────────────────────────────────────────
 // Uses full formula samples + domain + integration context for model-specific advisory.
 
-async function callWorkstreams({ aiClient, modules, findingSummary, blastRadiusTop10, domain, formulaSamples, enrichment }) {
+async function callWorkstreams({ aiClient, modules, findingSummary, blastRadiusTop10, domain, formulaSamples, enrichment, admissibility }) {
+  // Cap to top 50 modules by line item count for context window safety
+  const topModules = modules.slice(0, 50);
+  const moduleNameList = topModules.map(m => m.name).join(', ');
+
+  // Evidence quality context for the prompt
+  const eq = admissibility?.evidenceQuality || {};
+  const evidenceContext = [
+    `Formula coverage: ${eq.formulaCoverage || 0}% of line items have formulas`,
+    `Cross-module edges: ${eq.crossModuleEdges || 0}`,
+    `Naming coverage: ${eq.namingCoverage || 0}%`,
+  ].join('\n');
+
   const blastLines = blastRadiusTop10
     .map(b => `  ${b.moduleName}: ${b.downstreamCount} downstream modules`)
     .join('\n');
@@ -381,8 +393,13 @@ Your response MUST begin with { and end with }. No markdown fences. No preamble.
 
 MODEL CONTEXT:
 Domain: ${domain}
+Modules (${topModules.length}): ${moduleNameList}
 ${listContext}
 ${integrationLines}
+
+EVIDENCE QUALITY:
+${evidenceContext}
+If formula coverage is below 10% or cross-module edges below 3, use kind "evidence-limit" for architecture claims.
 
 HIGH-RISK FORMULA SAMPLES — cite these directly, using the exact module and line item names:
 ${formulaBlock}
@@ -394,12 +411,14 @@ TOP BLAST-RADIUS MODULES:
 ${blastLines}
 
 Generate exactly 3 workstreams. Each field is ONE sentence only — no conjunctions chaining multiple issues.
-- title: module name + the specific defect (e.g. "Data Upload — IF depth 12 with hardcoded German months")
+HARD RULES:
+- title MUST start with an exact module name from the Modules list above. If the title does not contain a real module name it will be rejected.
 - problem: what the formula does wrong, naming the exact line item and pattern
-- impact: what breaks downstream and where (name the affected module or export)
+- impact: what breaks downstream and where (name the affected module or export from the Modules list)
 - fix: the specific remediation action (MONTHVALUE, COUNTIF, lookup table, guard clause, etc.)
-- No generic phrases. No review questions. No "this may" or "could potentially".
-- Use kind "evidence-limit" only when evidence is genuinely sparse
+- evidenceCount: the number of affected line items or downstream modules (MUST be >= 1, never 0)
+- No generic phrases. No review questions. No "this may" or "could potentially". No invented module names.
+- Use kind "evidence-limit" only when the blueprint genuinely has no formula text to cite
 
 {"workstreams":[
 {"id":"ws-1","title":"DAT01 Revenue Data — SUM-IF member name hardcode","priority":"High","confidence":"High","kind":"remediation","problem":"DAT01 Revenue Data.Net Revenue uses SUM-IF on the literal member name 'Revenue', which silently returns zero if the account list member is renamed.","impact":"14 downstream modules including the Board export receive zeroed revenue figures with no error surfaced.","fix":"Replace the hardcoded member name with a driver list lookup or a LOOKUP formula referencing a stable list item ID.","evidenceCount":14,"examples":["DAT01 Revenue Data.Net Revenue"]},
@@ -409,7 +428,7 @@ Generate exactly 3 workstreams. Each field is ONE sentence only — no conjuncti
 
   const response = await Promise.race([
     aiClient.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 1600,
       ...(ANAPLAN_KNOWLEDGE ? { system: `You are a Master Anaplanner performing a model audit. Ground your analysis in DISCO methodology, Planual rules, and Anaplan best practices.\n\n${ANAPLAN_KNOWLEDGE.slice(0, 6000)}` } : {}),
       messages: [{ role: 'user', content: prompt }],
@@ -479,7 +498,7 @@ RULES:
 
   const response = await Promise.race([
     aiClient.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
       ...(ANAPLAN_KNOWLEDGE ? { system: `You are a Master Anaplanner. Use DISCO methodology and Planual conventions to classify modules.\n\n${ANAPLAN_KNOWLEDGE.slice(0, 4000)}` } : {}),
       messages: [{ role: 'user', content: prompt }],
@@ -639,6 +658,9 @@ export default async function handler(req, res) {
     const remediationOrder = computeRemediationOrder(lineItemGraph, criticalModuleIds);
     const modelSummary = buildModelSummary(lineItemGraph, moduleCards, riskClusters, businessPatterns);
 
+    // Compute admissibility gates — determines which visualizations are evidence-backed
+    const admissibility = computeAdmissibilityGates(lineItemGraph, moduleCards, normalized, discoMap);
+
     sendEvent({
       type: 'model-intelligence',
       summary: modelSummary,
@@ -647,7 +669,11 @@ export default async function handler(req, res) {
       remediationOrder: remediationOrder.slice(0, 8),
       patterns: modelSummary.patterns,
       bottlenecks: modelSummary.bottlenecks,
-      evidenceLimits: modelSummary.evidenceLimits,
+      admissibility,
+      evidenceLimits: {
+        canSay: admissibility.canSay,
+        cannotSay: admissibility.cannotSay,
+      },
     });
 
     // Build finding summary — module + line item evidence per rule category
@@ -697,7 +723,7 @@ export default async function handler(req, res) {
         formulaSamples[0] ? `${formulaSamples[0].module}.${formulaSamples[0].lineItem}:${formulaSamples[0].formula.slice(0, 80)}` : 'none');
 
       const [wsResult, archResult] = await Promise.allSettled([
-        callWorkstreams({ aiClient, modules: normalized.modules, findingSummary, blastRadiusTop10, domain, formulaSamples, enrichment }),
+        callWorkstreams({ aiClient, modules: normalized.modules, findingSummary, blastRadiusTop10, domain, formulaSamples, enrichment, admissibility }),
         callArchitecture({ aiClient, modules: normalized.modules, domain, enrichment }),
       ]);
 
@@ -723,6 +749,16 @@ export default async function handler(req, res) {
         if (valid.length === 0) {
           console.error('[analyze-v3] workstreams failed schema validation — keeping deterministic fallback');
         } else {
+          // Enforce evidence-limit kind when evidence is weak for architecture claims
+          const eqFc = admissibility?.evidenceQuality?.formulaCoverage || 0;
+          const eqEdges = admissibility?.evidenceQuality?.crossModuleEdges || 0;
+          const archTerms = /architecture|layer|boundary|separation|structure/i;
+          for (const w of valid) {
+            if (w.kind === 'remediation' && (eqFc < 10 || eqEdges < 3) && archTerms.test(w.problem + ' ' + w.title)) {
+              w.kind = 'evidence-limit';
+              w.confidence = 'Low';
+            }
+          }
           workstreams = valid;
           const critical = workstreams.filter(w => w.priority === 'Critical').length;
           const high = workstreams.filter(w => w.priority === 'High').length;
@@ -774,8 +810,8 @@ export default async function handler(req, res) {
         posture: assessmentObj.posture,
       },
       evidenceLimits: {
-        canSay: intelligence.feasibility.supportedNow,
-        cannotSay: intelligence.feasibility.notKnowableYet,
+        canSay: admissibility.canSay.length ? admissibility.canSay : intelligence.feasibility.supportedNow,
+        cannotSay: admissibility.cannotSay.length ? admissibility.cannotSay : intelligence.feasibility.notKnowableYet,
       },
     });
 
@@ -808,7 +844,7 @@ Rules:
 
         const narrativeResp = await Promise.race([
           narrativeClient.messages.create({
-            model: 'claude-haiku-4-5-20251001',
+            model: 'claude-sonnet-4-20250514',
             max_tokens: 600,
             ...(ANAPLAN_KNOWLEDGE ? { system: `You are a Master Anaplanner writing an executive model review.\n\n${ANAPLAN_KNOWLEDGE.slice(0, 4000)}` } : {}),
             messages: [{ role: 'user', content: narrativePrompt }],
