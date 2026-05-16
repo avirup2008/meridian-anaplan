@@ -745,6 +745,99 @@ Rules:
       }
     }
 
+    // ─── Sequential AI Module Intelligence (Sonnet — per-module) ──────────────
+    // Fires after deterministic intelligence. Each call is independent so we
+    // avoid Vercel's 60s timeout by streaming results as they arrive.
+    const AI_MODULE_LIMIT = 8; // top N by criticality
+    const topAiCards = moduleCards.slice(0, AI_MODULE_LIMIT);
+    if (topAiCards.length >= 1) {
+      try {
+        sendEvent({ type: 'stage', stage: 'ai-intelligence', label: 'Generating AI insights…' });
+        const Anthropic = (await import('@anthropic-ai/sdk')).default;
+        const sonnetClient = new Anthropic();
+
+        for (let i = 0; i < topAiCards.length; i++) {
+          const card = topAiCards[i];
+          // Gather formula samples for this module
+          const modFormulas = formulaSamples
+            .filter(s => s.module === card.moduleName)
+            .slice(0, 3)
+            .map(s => `  ${s.lineItem}: ${s.formula.slice(0, 200)}${s.formula.length > 200 ? '…' : ''} [flags: ${s.flags.join(', ')}]`)
+            .join('\n');
+
+          // Build per-module context
+          const issueText = (card.issues || [])
+            .map(iss => `- ${iss.issue}${iss.danger ? ' → ' + iss.danger : ''}`)
+            .join('\n');
+
+          const prompt = `You are a senior Anaplan model architect reviewing a specific module.
+Respond ONLY with valid JSON — no markdown, no explanation outside JSON.
+
+MODULE: ${card.moduleName}
+ROLE: ${card.role} | CRITICALITY: ${card.criticality} | COMPLEXITY: ${card.complexity}
+GRAIN: ${card.grain}
+PURPOSE: ${card.purpose}
+UPSTREAM: ${(card.upstreamModules || []).slice(0, 5).join(', ') || 'none'}
+DOWNSTREAM: ${(card.downstreamModules || []).slice(0, 5).join(', ') || 'none'}
+STATS: ${card.stats.lineItems} line items, ${card.stats.formulas} formulas, ${card.stats.inputs} inputs, ${card.stats.outboundEdges} outbound edges
+
+DETECTED ISSUES:
+${issueText || 'None detected'}
+
+FORMULA SAMPLES:
+${modFormulas || 'No samples available for this module'}
+
+MODEL CONTEXT: ${domain} domain, ${normalized.modules.length} total modules, health score ${modelSummary.healthScore}/100
+
+Return:
+{
+  "insight": "1-2 sentence expert interpretation of this module's risk posture — what's actually dangerous here and why a model owner should care. Be specific to the formulas/issues shown.",
+  "recommendation": "1 concrete, actionable next step the model owner should take for this module. Reference specific line items or patterns from the evidence.",
+  "riskNarrative": "Brief assessment of blast radius — if this module fails, what breaks downstream and how quickly would the error surface in reports?"
+}
+
+Rules:
+- Be specific — reference actual module/line item names from the data
+- No generic Anaplan advice — only insights grounded in the evidence shown
+- Keep each field to 1-3 sentences max`;
+
+          try {
+            const resp = await Promise.race([
+              sonnetClient.messages.create({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 400,
+                messages: [{ role: 'user', content: prompt }],
+              }),
+              new Promise((_, rej) => setTimeout(() => rej(new Error('module-ai-timeout')), 12000)),
+            ]);
+
+            const raw = resp.content?.[0]?.text?.trim() || '';
+            const jStart = raw.indexOf('{');
+            const jEnd = raw.lastIndexOf('}');
+            if (jStart >= 0 && jEnd > jStart) {
+              const parsed = JSON.parse(raw.slice(jStart, jEnd + 1));
+              if (parsed.insight && parsed.recommendation) {
+                sendEvent({
+                  type: 'module-ai-insight',
+                  moduleId: card.moduleId,
+                  moduleName: card.moduleName,
+                  insight: String(parsed.insight).slice(0, 500),
+                  recommendation: String(parsed.recommendation).slice(0, 500),
+                  riskNarrative: String(parsed.riskNarrative || '').slice(0, 500),
+                  index: i,
+                  total: topAiCards.length,
+                });
+              }
+            }
+          } catch (modErr) {
+            console.warn(`[analyze-v3] AI insight skipped for ${card.moduleName}:`, modErr.message);
+          }
+        }
+      } catch (aiErr) {
+        console.error('[analyze-v3] AI intelligence layer failed:', aiErr.message);
+      }
+    }
+
     const lineItemCount = normalized.modules.reduce((s, m) => s + m.lineItemCount, 0);
     sendEvent({
       type: 'complete',

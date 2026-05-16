@@ -933,6 +933,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .mi-ev-label{font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--text4);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
 
 @keyframes miFadeIn{from{opacity:0}to{opacity:1}}
+
+/* ── AI Insight blocks (injected per-module after SSE) ── */
+.mi-ai-insight{margin-top:10px;padding:10px 12px;border-left:2px solid var(--accent);background:rgba(99,102,241,0.04);border-radius:0 6px 6px 0;animation:miFadeIn .3s ease}
+.mi-ai-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.mi-ai-badge svg{opacity:.7}
+.mi-ai-text{font-size:13px;color:var(--text);line-height:1.55;margin-bottom:6px}
+.mi-ai-rec{font-size:12px;color:var(--text2);line-height:1.5}
+.mi-ai-rec-label{font-weight:600;color:var(--text)}
+.mi-ai-risk{font-size:11px;color:var(--text3);line-height:1.5;margin-top:4px;font-style:italic}
+
 .anl-seam-label{font-weight:600;color:var(--text);margin-right:4px}
 
 /* ─── NOTES TAB ──────────────────────────────────────────────── */
@@ -5465,6 +5475,41 @@ function confirmModelSelection() {
       }
     }
 
+    function _anlOnModuleAiInsight(evt) {
+      if (!evt.moduleId || !evt.insight) return;
+      const slot = _anl$('intelligence-slot');
+      if (!slot) return;
+      // Find the module row by data attribute and inject AI insight
+      const row = slot.querySelector('[data-module-id="' + evt.moduleId + '"]');
+      if (!row) return;
+      let detail = row.querySelector('.mi-mod-detail');
+      if (!detail) {
+        // Module has no issues — create detail container
+        detail = document.createElement('div');
+        detail.className = 'mi-mod-detail';
+        row.appendChild(detail);
+      }
+      // Remove existing AI block if re-rendering
+      const existing = detail.querySelector('.mi-ai-insight');
+      if (existing) existing.remove();
+      // Build AI insight block
+      const e = escapeHtml;
+      let aiHtml = '<div class="mi-ai-insight">';
+      aiHtml += '<div class="mi-ai-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg> AI Analysis</div>';
+      aiHtml += '<div class="mi-ai-text">' + e(evt.insight) + '</div>';
+      if (evt.recommendation) {
+        aiHtml += '<div class="mi-ai-rec"><span class="mi-ai-rec-label">Recommendation:</span> ' + e(evt.recommendation) + '</div>';
+      }
+      if (evt.riskNarrative) {
+        aiHtml += '<div class="mi-ai-risk">' + e(evt.riskNarrative) + '</div>';
+      }
+      aiHtml += '</div>';
+      detail.insertAdjacentHTML('beforeend', aiHtml);
+      // Update stage label with progress
+      const stageEl = _anl$('anl-stage-label');
+      if (stageEl && evt.total) stageEl.textContent = 'AI insight ' + (evt.index + 1) + '/' + evt.total + ': ' + (evt.moduleName || '');
+    }
+
     function _anlOnModelIntelligence(evt) {
       const slot = _anl$('intelligence-slot');
       if (!slot) return;
@@ -5604,7 +5649,7 @@ function confirmModelSelection() {
         const topIssue = issueCount ? (card.issues[0].issue || card.issues[0].danger || '') : '';
         const isFirst = ci === 0;
 
-        html += '<div class="mi-mod-row' + (isFirst ? ' open' : '') + '">';
+        html += '<div class="mi-mod-row' + (isFirst ? ' open' : '') + '" data-module-id="' + e(card.moduleId || '') + '">';
         // Summary row
         html += '<div class="mi-mod-summary" onclick="this.parentElement.classList.toggle(\'open\')">';
         html += '<div class="mi-mod-chevron">' + chevronSvg + '</div>';
@@ -6132,6 +6177,7 @@ function confirmModelSelection() {
                 case 'health-workstreams': _anlOnHealthWorkstreams(evt); break;
                 case 'model-intelligence': _anlOnModelIntelligence(evt); break;
                 case 'intelligence-narrative': _anlOnIntelligenceNarrative(evt); break;
+                case 'module-ai-insight': _anlOnModuleAiInsight(evt); break;
                 case 'cache-hit': _anl$('anl-hdr-status').innerHTML = 'Loading from cache…'; break;
                 case 'progress': _anlOnProgress(evt.stage, evt.pct); break;
                 case 'extraction-done': _anlOnExtractionDone(evt.moduleCount, evt.totalLineItems); break;
