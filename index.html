@@ -1159,6 +1159,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 
       <!-- Workstream cards: populated by _anlOnHealthWorkstreams via _renderHealthFormat -->
       <div id="health-format-slot" hidden></div>
+
+      <!-- Module Intelligence Cards: populated by _anlOnModelIntelligence -->
+      <div id="intelligence-slot" hidden></div>
     </div>
 
 
@@ -5331,6 +5334,135 @@ function confirmModelSelection() {
       }
     }
 
+    function _anlOnIntelligenceNarrative(evt) {
+      const n = evt.narrative;
+      if (!n) return;
+      // Prepend executive narrative to the notes story
+      if (n.executive) {
+        const questions = Array.isArray(n.ownerQuestions) && n.ownerQuestions.length
+          ? '\n\n── Questions for Model Owner ──\n\n' + n.ownerQuestions.map((q, i) => (i + 1) + '. ' + q).join('\n')
+          : '';
+        narrativeStory = '── Executive Summary ──\n\n' + n.executive + questions + '\n\n' + narrativeStory;
+        renderNotesStory();
+      }
+    }
+
+    function _anlOnModelIntelligence(evt) {
+      const slot = _anl$('intelligence-slot');
+      if (!slot) return;
+
+      const cards = Array.isArray(evt.moduleCards) ? evt.moduleCards : [];
+      const clusters = Array.isArray(evt.riskClusters) ? evt.riskClusters : [];
+      const order = Array.isArray(evt.remediationOrder) ? evt.remediationOrder : [];
+      const summary = evt.summary || {};
+      const patterns = Array.isArray(evt.patterns) ? evt.patterns : [];
+      const bottlenecks = Array.isArray(evt.bottlenecks) ? evt.bottlenecks : [];
+
+      if (!cards.length) { slot.hidden = true; return; }
+
+      const critClass = { Critical: 'ws-card-crit', High: 'ws-card-high', Medium: 'ws-card-med', Low: 'ws-card-watch' };
+      const priClass = { Critical: 'ws-pri-crit', High: 'ws-pri-high', Medium: 'ws-pri-med', Low: 'ws-pri-watch' };
+
+      let html = '';
+
+      // Section: Module Intelligence Cards
+      html += '<h3 class="step-label" style="margin-top:16px;">Module Intelligence</h3>';
+      html += '<div style="font-size:12px;color:var(--text2);margin-bottom:12px;">'
+        + (summary.moduleSummary ? summary.moduleSummary.total + ' modules analysed · '
+          + summary.moduleSummary.critical + ' critical · '
+          + summary.moduleSummary.high + ' high · '
+          + summary.moduleSummary.clean + ' clean' : '')
+        + '</div>';
+
+      for (const card of cards.slice(0, 10)) {
+        const cc = critClass[card.criticality] || 'ws-card-watch';
+        const lc = priClass[card.criticality] || 'ws-pri-watch';
+        html += '<div class="ws-card ' + cc + '" style="margin-bottom:10px;">';
+        html += '<div class="ws-card-hd">';
+        html += '<span class="ws-card-title">' + escapeHtml(card.moduleName || '?') + '</span>';
+        html += '<div class="ws-card-meta">';
+        html += '<span class="ws-card-priority ' + lc + '">' + escapeHtml(card.criticality || '') + '</span>';
+        html += '<div class="ws-card-count">' + escapeHtml(card.role || '') + ' · ' + (card.stats ? card.stats.lineItems : 0) + ' items</div>';
+        html += '</div></div>';
+        // Purpose
+        html += '<div style="font-size:12px;color:var(--text2);padding:6px 14px 0;font-style:italic;">' + escapeHtml(card.purpose || '') + '</div>';
+        // Issues
+        if (Array.isArray(card.issues) && card.issues.length) {
+          for (const iss of card.issues) {
+            html += '<div class="ws-card-row">';
+            html += '<span class="ws-row-label ws-label-problem">Issue</span>';
+            html += '<span class="ws-row-text">' + escapeHtml(iss.issue || '') + '</span>';
+            html += '</div>';
+            html += '<div class="ws-card-row">';
+            html += '<span class="ws-row-label ws-label-impact">Danger</span>';
+            html += '<span class="ws-row-text">' + escapeHtml(iss.danger || '') + '</span>';
+            html += '</div>';
+            html += '<div class="ws-card-row">';
+            html += '<span class="ws-row-label ws-label-fix">Fix</span>';
+            html += '<span class="ws-row-text">' + escapeHtml(iss.fix || '') + '</span>';
+            html += '</div>';
+          }
+        }
+        // Stats bar
+        html += '<div style="display:flex;gap:12px;padding:8px 14px;font-size:11px;color:var(--text3);border-top:1px solid var(--rule);margin-top:6px;">';
+        html += '<span>' + (card.stats ? card.stats.formulas : 0) + ' formulas</span>';
+        html += '<span>' + (card.stats ? card.stats.inboundEdges + card.stats.outboundEdges : 0) + ' cross-module deps</span>';
+        if (card.stats && card.stats.temporalCalcs) html += '<span>' + card.stats.temporalCalcs + ' temporal</span>';
+        html += '<span>' + escapeHtml(card.grain || 'Model-level') + '</span>';
+        html += '</div>';
+        html += '</div>';
+      }
+
+      // Section: Risk Clusters
+      if (clusters.length) {
+        html += '<h3 class="step-label" style="margin-top:20px;">Risk Clusters</h3>';
+        html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Items that break together — shared fragility points</div>';
+        for (const cl of clusters) {
+          const clc = critClass[cl.severity] || 'ws-card-watch';
+          html += '<div class="ws-card ' + clc + '" style="margin-bottom:8px;padding:10px 14px;">';
+          html += '<div style="font-size:13px;font-weight:600;">' + escapeHtml(cl.trigger || '?') + '</div>';
+          html += '<div style="font-size:12px;color:var(--text2);margin-top:4px;">'
+            + cl.affectedItemCount + ' items across ' + (cl.affectedModules ? cl.affectedModules.length : 0) + ' modules'
+            + '</div>';
+          html += '</div>';
+        }
+      }
+
+      // Section: Remediation Order
+      if (order.length) {
+        html += '<h3 class="step-label" style="margin-top:20px;">Remediation Order</h3>';
+        html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Fix upstream modules first — dependencies flow downward</div>';
+        for (const step of order) {
+          html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;">';
+          html += '<span style="min-width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--pos);color:#fff;font-size:11px;font-weight:700;">' + step.step + '</span>';
+          html += '<span>' + (step.modules || []).map(m => escapeHtml(m.moduleName || '')).join(', ') + '</span>';
+          if (step.parallel) html += '<span style="font-size:10px;color:var(--text3);margin-left:4px;">(parallel)</span>';
+          html += '</div>';
+        }
+      }
+
+      // Section: Bottlenecks
+      if (bottlenecks.length) {
+        html += '<h3 class="step-label" style="margin-top:20px;">Dependency Bottlenecks</h3>';
+        html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Line items with the highest connection count — single points of failure</div>';
+        html += '<div style="font-size:12px;">';
+        for (const b of bottlenecks.slice(0, 5)) {
+          html += '<div style="padding:4px 0;border-bottom:1px solid var(--rule);">';
+          html += '<strong>' + escapeHtml(b.moduleName || '') + '</strong>.' + escapeHtml(b.itemName || '');
+          html += ' <span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:var(--text3);">'
+            + b.fanOut + ' out / ' + b.fanIn + ' in</span>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      slot.innerHTML = html;
+      slot.hidden = false;
+
+      // Store on _anlState for export/share
+      _anlState.modelIntelligence = { summary, moduleCards: cards, riskClusters: clusters, remediationOrder: order, patterns, bottlenecks };
+    }
+
     function _anlOnHealthWorkstreams(evt) {
       const ws = Array.isArray(evt.workstreams) ? evt.workstreams : [];
 
@@ -5383,7 +5515,7 @@ function confirmModelSelection() {
         renderIntelligencePanel();
       }
 
-      // ── Notes tab: auto-generate narrative from workstreams ───────────────────
+      // ── Notes tab: auto-generate narrative from workstreams + module intelligence ─
       if (ws.length) {
         const critCount = ws.filter(w => w.priority === 'Critical').length;
         const highCount = ws.filter(w => w.priority === 'High').length;
@@ -5391,15 +5523,48 @@ function confirmModelSelection() {
           critCount ? critCount + ' critical' : '',
           highCount ? highCount + ' high' : '',
         ].filter(Boolean).join(', ');
-        narrativeStory = (evt.domain || 'Model') + ' review complete. '
-          + 'Health score: ' + (evt.healthScore || '--') + '. '
-          + ws.length + ' issue' + (ws.length === 1 ? '' : 's') + ' identified'
-          + (prioritySummary ? ' (' + prioritySummary + ')' : '') + '.\n\n'
-          + ws.map((w, i) => (i + 1) + '. ' + w.title
-              + (w.problem ? '\n   Problem: '  + w.problem  : '')
-              + (w.impact  ? '\n   Impact: '   + w.impact   : '')
-              + (w.fix     ? '\n   Fix: '      + w.fix      : '')
-            ).join('\n\n');
+
+        // Prefer module intelligence narrative when available
+        const mi = _anlState.modelIntelligence;
+        if (mi && mi.moduleCards && mi.moduleCards.length) {
+          const s = mi.summary || {};
+          narrativeStory = (evt.domain || 'Model') + ' review complete. '
+            + 'Health score: ' + (evt.healthScore || '--') + '. '
+            + (s.moduleSummary ? s.moduleSummary.total + ' modules analysed, '
+              + s.moduleSummary.critical + ' critical, '
+              + s.moduleSummary.high + ' high priority, '
+              + s.moduleSummary.clean + ' clean.' : '')
+            + '\n\n── Top Risk Modules ──\n\n'
+            + mi.moduleCards.slice(0, 8).map((c, i) => (i + 1) + '. ' + c.moduleName + ' [' + c.criticality + ']'
+                + '\n   Purpose: ' + (c.purpose || '')
+                + (c.issues && c.issues.length ? c.issues.map(iss =>
+                    '\n   • ' + (iss.issue || '')
+                    + '\n     Danger: ' + (iss.danger || '')
+                    + '\n     Fix: ' + (iss.fix || '')
+                  ).join('') : '')
+              ).join('\n\n')
+            + (mi.riskClusters && mi.riskClusters.length
+              ? '\n\n── Risk Clusters ──\n\n' + mi.riskClusters.map(cl =>
+                  '• ' + cl.trigger + ' (' + cl.affectedItemCount + ' items, ' + cl.severity + ')'
+                ).join('\n')
+              : '')
+            + (mi.remediationOrder && mi.remediationOrder.length
+              ? '\n\n── Remediation Order ──\n\n' + mi.remediationOrder.map(step =>
+                  'Step ' + step.step + ': ' + (step.modules || []).map(m => m.moduleName).join(', ')
+                  + (step.parallel ? ' (parallel)' : '')
+                ).join('\n')
+              : '');
+        } else {
+          narrativeStory = (evt.domain || 'Model') + ' review complete. '
+            + 'Health score: ' + (evt.healthScore || '--') + '. '
+            + ws.length + ' issue' + (ws.length === 1 ? '' : 's') + ' identified'
+            + (prioritySummary ? ' (' + prioritySummary + ')' : '') + '.\n\n'
+            + ws.map((w, i) => (i + 1) + '. ' + w.title
+                + (w.problem ? '\n   Problem: '  + w.problem  : '')
+                + (w.impact  ? '\n   Impact: '   + w.impact   : '')
+                + (w.fix     ? '\n   Fix: '      + w.fix      : '')
+              ).join('\n\n');
+        }
         renderNotesStory();
       }
 
@@ -5694,6 +5859,8 @@ function confirmModelSelection() {
                 case 'model-comprehension': _anlOnModelComprehension(evt); break;
                 case 'model-comprehension-enriched': _anlOnModelComprehensionEnriched(evt); break;
                 case 'health-workstreams': _anlOnHealthWorkstreams(evt); break;
+                case 'model-intelligence': _anlOnModelIntelligence(evt); break;
+                case 'intelligence-narrative': _anlOnIntelligenceNarrative(evt); break;
                 case 'cache-hit': _anl$('anl-hdr-status').innerHTML = 'Loading from cache…'; break;
                 case 'progress': _anlOnProgress(evt.stage, evt.pct); break;
                 case 'extraction-done': _anlOnExtractionDone(evt.moduleCount, evt.totalLineItems); break;

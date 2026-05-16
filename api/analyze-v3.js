@@ -17,6 +17,9 @@ import {
   detectCircularDependencies,
   detectDaisyChains,
 } from './analysis-core.js';
+import { parseAllFormulas } from './formula-parser.js';
+import { buildLineItemGraph, buildRiskClusters, detectBusinessPatterns, computeRemediationOrder } from './graph-builder.js';
+import { buildModuleIntelligence, buildModelSummary } from './module-intelligence.js';
 
 // ─── parseStateBlob ───────────────────────────────────────────────────────────
 // Parses the compact tab-separated blob written by model-state.js.
@@ -35,7 +38,7 @@ import {
 //   ITEM\t{name}\t{format}\t{summary}\t
 function parseStateBlob(text) {
   const modules = [];
-  const enrichment = { lists: [], versions: [], imports: [], exports: [], processes: [] };
+  const enrichment = { lists: [], versions: [], imports: [], exports: [], processes: [], listMembers: new Map() };
   let current = null;
 
   for (const rawLine of text.split('\n')) {
@@ -57,7 +60,12 @@ function parseStateBlob(text) {
       };
       modules.push(current);
     } else if ((rowType === 'CALC' || rowType === 'INPUT' || rowType === 'ITEM') && current) {
-      const formula = parts[4] || '';
+      // v2 format: TYPE\tname\tformat\tsummary\tdims\tformula
+      // v1 format: TYPE\tname\tformat\tsummary\tformula
+      // Detect v2 by checking if parts[5] exists (formula in position 5)
+      const hasV2Dims = parts.length >= 6;
+      const dims = hasV2Dims ? (parts[4] || '').split('|').filter(Boolean) : [];
+      const formula = hasV2Dims ? (parts[5] || '') : (parts[4] || '');
       current.lineItems.push({
         id: '',
         name: parts[1] || '',
@@ -67,8 +75,8 @@ function parseStateBlob(text) {
         hasFormula: rowType === 'CALC' && formula.length > 0,
         isInput: rowType === 'INPUT',
         formulaTruncated: formula.endsWith('…'),
-        dimensions: [],
-        dimensionCount: 0,
+        dimensions: dims,
+        dimensionCount: dims.length,
         notes: '',
         formulaLength: formula.length,
         ifDepth: countIfDepth(formula),
@@ -78,6 +86,10 @@ function parseStateBlob(text) {
       });
     } else if (rowType === 'LIST') {
       enrichment.lists.push({ name: parts[1] || '', itemCount: parseInt(parts[2] || '0', 10) });
+    } else if (rowType === 'LISTMEMBERS') {
+      const listName = parts[1] || '';
+      const members = (parts[2] || '').split('|').filter(Boolean);
+      if (listName && members.length) enrichment.listMembers.set(listName, members);
     } else if (rowType === 'VERSION') {
       enrichment.versions.push({ name: parts[1] || '' });
     } else if (rowType === 'IMPORT') {
@@ -520,6 +532,13 @@ export default async function handler(req, res) {
       domain,
     });
 
+    // ─── Line-Item Intelligence Graph (v2 engine) ──────────────────────────────
+    sendEvent({ type: 'stage', stage: 'parsing-formulas', label: 'Parsing formula references…' });
+    const parsedFormulas = parseAllFormulas(modules, enrichment.listMembers);
+
+    sendEvent({ type: 'stage', stage: 'building-graph', label: 'Building line-item graph…' });
+    const lineItemGraph = buildLineItemGraph(modules, parsedFormulas);
+
     sendEvent({ type: 'stage', stage: 'health', label: 'Synthesizing model intelligence…' });
 
     const findings = [
@@ -528,6 +547,27 @@ export default async function handler(req, res) {
     ];
 
     const intelligence = buildEvidenceBackedIntelligence(normalized, findings);
+
+    // Graph-based intelligence: risk clusters, patterns, module cards, summary
+    const riskClusters = buildRiskClusters(lineItemGraph, findings);
+    const businessPatterns = detectBusinessPatterns(lineItemGraph);
+    const moduleCards = buildModuleIntelligence(lineItemGraph, findings);
+    const criticalModuleIds = moduleCards
+      .filter(c => c.criticality === 'Critical' || c.criticality === 'High')
+      .map(c => c.moduleId);
+    const remediationOrder = computeRemediationOrder(lineItemGraph, criticalModuleIds);
+    const modelSummary = buildModelSummary(lineItemGraph, moduleCards, riskClusters, businessPatterns);
+
+    sendEvent({
+      type: 'model-intelligence',
+      summary: modelSummary,
+      moduleCards: moduleCards.slice(0, 15),
+      riskClusters: riskClusters.slice(0, 5),
+      remediationOrder,
+      patterns: modelSummary.patterns,
+      bottlenecks: modelSummary.bottlenecks,
+      evidenceLimits: modelSummary.evidenceLimits,
+    });
 
     // Build finding summary — module + line item evidence per rule category
     const byRule = {};
@@ -652,10 +692,57 @@ export default async function handler(req, res) {
       },
     });
 
+    // ─── Optional AI narration (Phase E) — failure-safe ─────────────────────────
+    if (moduleCards.length >= 2) {
+      try {
+        sendEvent({ type: 'stage', stage: 'narrating', label: 'Writing executive summary…' });
+        const Anthropic = (await import('@anthropic-ai/sdk')).default;
+        const narrativeClient = new Anthropic();
+        const topCards = moduleCards.slice(0, 5).map(c =>
+          `${c.moduleName} [${c.criticality}]: ${c.purpose} Issues: ${(c.issues || []).map(i => i.issue).join('; ')}`
+        ).join('\n');
+        const clusterText = riskClusters.slice(0, 3).map(cl => cl.trigger).join('; ');
+        const narrativePrompt = `You are writing a 2-paragraph executive model review for a ${domain} model with ${normalized.modules.length} modules.
+Your response MUST begin with { and end with }. No markdown. Raw JSON only.
+
+TOP RISK MODULES:
+${topCards}
+
+RISK CLUSTERS: ${clusterText || 'None identified'}
+HEALTH: ${modelSummary.overallHealth}, score ${modelSummary.healthScore}/100
+
+Return:
+{"executive":"2 paragraphs: first describes the model and its top risk; second recommends next steps. Name specific modules.","ownerQuestions":["question 1 for model owner","question 2"]}
+
+Rules:
+- Every module named must come from the data above
+- No generic advice — be specific to what was found
+- Keep each paragraph to 2-3 sentences`;
+
+        const narrativeResp = await Promise.race([
+          narrativeClient.messages.create({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 600,
+            messages: [{ role: 'user', content: narrativePrompt }],
+          }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('narrative-timeout')), 15000)),
+        ]);
+        const nRaw = narrativeResp.content?.[0]?.text?.trim() || '';
+        const nStart = nRaw.indexOf('{');
+        const nEnd = nRaw.lastIndexOf('}');
+        if (nStart >= 0 && nEnd > nStart) {
+          const narrative = JSON.parse(nRaw.slice(nStart, nEnd + 1));
+          sendEvent({ type: 'intelligence-narrative', narrative });
+        }
+      } catch (narrativeErr) {
+        console.warn('[analyze-v3] AI narration skipped:', narrativeErr.message);
+      }
+    }
+
     const lineItemCount = normalized.modules.reduce((s, m) => s + m.lineItemCount, 0);
     sendEvent({
       type: 'complete',
-      version: 'v3',
+      version: 'v3.1',
       moduleCount: normalized.modules.length,
       lineItemCount,
       workstreamCount: workstreams.length,
@@ -663,6 +750,13 @@ export default async function handler(req, res) {
       cycleCount: cycles.length,
       domain,
       formulaSampleCount: formulaSamples.length,
+      graphStats: {
+        nodes: lineItemGraph.nodes.size,
+        edges: lineItemGraph.edges.length,
+        moduleCards: moduleCards.length,
+        riskClusters: riskClusters.length,
+        patterns: businessPatterns.length,
+      },
     });
   } catch (err) {
     console.error('[analyze-v3] error:', err.constructor.name, err.message);

@@ -11,8 +11,8 @@ const GATE_THRESHOLDS = {
   namingCoverage: 0.60,
 };
 
-// 600 chars preserves most real Anaplan formulas (raised from 150 which was too short for AI analysis)
-const FORMULA_TRUNCATE_LEN = 600;
+// Full formula text preserved for intelligence graph — truncation removed in v2
+const FORMULA_TRUNCATE_LEN = 8000;
 
 const DISCO_PREFIX_REGEX = /^[A-Z]{2,5}\d{2}\s/;
 
@@ -107,6 +107,12 @@ function serializeModelState(functionalModules, enrichment = {}) {
       const format = (li.formatType ?? li.format ?? '').replace(/[\t\n]/g, ' ');
       const summary = (li.summaryMethod ?? li.summary ?? '').replace(/[\t\n]/g, ' ');
 
+      // Extract dimensions from appliesTo
+      const appliesTo = Array.isArray(li.appliesTo)
+        ? li.appliesTo.map(d => (typeof d === 'string' ? d : d?.name || d?.id || '')).filter(Boolean)
+        : [];
+      const dims = appliesTo.join('|');
+
       let typeLabel;
       if (typeof li.formula === 'string' && li.formula.trim().length > 0) {
         typeLabel = 'CALC';
@@ -124,7 +130,7 @@ function serializeModelState(functionalModules, enrichment = {}) {
           : raw;
       }
 
-      lines.push(`${typeLabel}\t${name}\t${format}\t${summary}\t${formula}`);
+      lines.push(`${typeLabel}\t${name}\t${format}\t${summary}\t${dims}\t${formula}`);
     }
 
     lines.push('');
