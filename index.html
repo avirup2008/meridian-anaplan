@@ -14,7 +14,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#FAF8F0;--bg2:#F2EFE8;--surface:#FFFDF8;--surface2:#F5F2EA;--surface3:#EBE8E0;
-  --text:#1C2129;--text2:#595E6B;--text3:#9EA1AB;--text4:#C8CACE;
+  --text:#1C2129;--text2:#4A4F5C;--text3:#6B7080;--text4:#8A8E99;
   --accent:#175AA6;--accent2:#3B7FC4;--accent-pale:rgba(23,90,166,0.08);--accent-bd:rgba(23,90,166,0.20);
   --gold:#BF801E;--gold-pale:rgba(191,128,30,0.09);--gold-bd:rgba(191,128,30,0.26);
   --pos:#217348;--pos-pale:rgba(33,115,72,0.08);--pos-bd:rgba(33,115,72,0.20);
@@ -868,8 +868,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .mi-mod-row{border-bottom:1px solid var(--border)}
 .mi-mod-row:last-child{border-bottom:none}
 .mi-mod-summary{display:grid;grid-template-columns:28px 2fr 90px 50px 3fr;padding:12px 20px;align-items:center;gap:12px;cursor:pointer;transition:background .12s;user-select:none}
-.mi-mod-summary:hover{background:var(--bg2)}
-.mi-mod-row.open .mi-mod-summary{background:var(--bg2)}
+.mi-mod-summary:hover{background:rgba(28,33,41,0.02)}
+.mi-mod-row.open .mi-mod-summary{background:rgba(28,33,41,0.02)}
 .mi-mod-chevron{width:20px;height:20px;display:flex;align-items:center;justify-content:center;transition:transform .2s}
 .mi-mod-chevron svg{width:14px;height:14px;color:var(--text4)}
 .mi-mod-row.open .mi-mod-chevron{transform:rotate(90deg)}
@@ -884,7 +884,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .mi-mod-sev-text{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.02em}
 .mi-mod-issue-count{font-size:15px;font-weight:700;letter-spacing:-.02em}
 .mi-mod-preview{font-size:12px;color:var(--text3);line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mi-mod-detail{display:none;padding:4px 24px 18px 60px;border-top:1px solid var(--border);background:var(--bg2)}
+.mi-mod-detail{display:none;padding:8px 24px 18px 56px;border-top:1px solid var(--border);border-left:3px solid var(--accent);margin-left:18px}
 .mi-mod-row.open .mi-mod-detail{display:block}
 .mi-mod-issues{display:flex;flex-direction:column;gap:10px}
 .mi-mod-issue{display:flex;align-items:start;gap:10px;font-size:13px;color:var(--text2);line-height:1.5}
@@ -907,28 +907,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .mi-cluster-mods{display:flex;flex-wrap:wrap;gap:4px;padding:4px 18px 14px}
 .mi-cluster-mod{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;padding:3px 7px;border-radius:4px;background:var(--bg2);border:1px solid var(--border);color:var(--text2)}
 
-/* ── Remediation (collapsible step groups) ── */
-.mi-rem{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-.mi-rem-group{border-bottom:1px solid var(--border)}
-.mi-rem-group:last-child{border-bottom:none}
-.mi-rem-group-head{display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;transition:background .12s;user-select:none}
-.mi-rem-group-head:hover{background:var(--bg2)}
-.mi-rem-group.open .mi-rem-group-head{background:var(--bg2)}
-.mi-rem-step{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
-.mi-rem-step-crit{background:var(--neg)}
-.mi-rem-step-high{background:var(--gold)}
-.mi-rem-step-med{background:var(--accent)}
-.mi-rem-group-info{flex:1;min-width:0}
-.mi-rem-group-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.01em}
-.mi-rem-group-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);margin-top:2px}
-.mi-rem-group-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;padding:3px 8px;border-radius:4px;white-space:nowrap}
-.mi-rem-chevron{width:20px;height:20px;display:flex;align-items:center;justify-content:center;transition:transform .2s;flex-shrink:0}
-.mi-rem-chevron svg{width:14px;height:14px;color:var(--text4)}
-.mi-rem-group.open .mi-rem-chevron{transform:rotate(90deg)}
-.mi-rem-group-body{display:none;padding:0 20px 14px 60px;border-top:1px solid var(--border);background:var(--bg2)}
-.mi-rem-group.open .mi-rem-group-body{display:block}
-.mi-rem-mod-list{display:flex;flex-wrap:wrap;gap:6px;padding-top:12px}
-.mi-rem-mod-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;padding:4px 10px;border-radius:5px;background:var(--surface);border:1px solid var(--border);color:var(--text2)}
+/* ── Remediation — removed, data insufficient ── */
 
 /* ── Bottlenecks ── */
 .mi-bottlenecks{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -5663,10 +5642,17 @@ function confirmModelSelection() {
         html += '</div><div class="mi-clusters">';
         for (const cl of clusters.slice(0, 6)) {
           const csc = clSevClass[cl.severity] || 'med';
+          // Clean up raw trigger text — strip "Rename of" prefix, make readable
+          let clName = cl.trigger || '?';
+          if (/^Rename\s+of\s+/i.test(clName)) {
+            const target = clName.replace(/^Rename\s+of\s+/i, '').replace(/^'|'$/g, '');
+            clName = 'Naming issue — ' + target;
+          }
+          const modCount = cl.affectedModules ? cl.affectedModules.length : 0;
           html += '<div class="mi-cluster-card">';
-          html += '<div class="mi-cluster-header"><span class="mi-cluster-name">' + e(cl.trigger || '?') + '</span>';
+          html += '<div class="mi-cluster-header"><span class="mi-cluster-name">' + e(clName) + '</span>';
           html += '<span class="mi-cluster-sev mi-cluster-sev-' + csc + '">' + e(cl.severity || '') + '</span></div>';
-          html += '<div class="mi-cluster-detail">' + cl.affectedItemCount + ' items across ' + (cl.affectedModules ? cl.affectedModules.length : 0) + ' modules</div>';
+          html += '<div class="mi-cluster-detail">' + cl.affectedItemCount + ' affected line items across ' + modCount + ' module' + (modCount !== 1 ? 's' : '') + '</div>';
           if (cl.affectedModules && cl.affectedModules.length) {
             html += '<div class="mi-cluster-mods">';
             for (const m of cl.affectedModules.slice(0, 6)) html += '<span class="mi-cluster-mod">' + e(m) + '</span>';
@@ -5678,41 +5664,7 @@ function confirmModelSelection() {
         html += '</div></div>';
       }
 
-      // ── REMEDIATION ORDER (collapsible step groups) ──
-      if (order.length) {
-        html += '<div class="mi-section"><div class="mi-section-head">';
-        html += '<span class="mi-section-title">Remediation Order</span>';
-        html += '<span class="mi-section-count">' + order.length + ' steps</span>';
-        html += '</div>';
-        html += '<div class="mi-rem">';
-        const remChevron = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>';
-        for (let si = 0; si < order.length; si++) {
-          const step = order[si];
-          const mods = step.modules || [];
-          const mc = step.criticality || (mods[0] && mods[0].criticality) || 'Medium';
-          const msc = sevClass[mc] || 'med';
-          const isFirst = si === 0;
-          const modCount = mods.length;
-          const parallelTxt = step.parallel ? 'Parallel' : 'Sequential';
-          const blockedTxt = step.step > 1 ? 'After step ' + (step.step - 1) : 'No blockers';
-          html += '<div class="mi-rem-group' + (isFirst ? ' open' : '') + '">';
-          html += '<div class="mi-rem-group-head" onclick="this.parentElement.classList.toggle(\'open\')">';
-          html += '<div class="mi-rem-step mi-rem-step-' + msc + '">' + step.step + '</div>';
-          html += '<div class="mi-rem-group-info">';
-          html += '<div class="mi-rem-group-title">' + modCount + ' module' + (modCount !== 1 ? 's' : '') + '</div>';
-          html += '<div class="mi-rem-group-meta">' + parallelTxt + ' · ' + blockedTxt + '</div>';
-          html += '</div>';
-          html += '<span class="mi-rem-group-badge" style="background:' + (sevColor[mc] || 'var(--text3)') + '22;color:' + (sevColor[mc] || 'var(--text3)') + '">' + e(mc) + '</span>';
-          html += '<div class="mi-rem-chevron">' + remChevron + '</div>';
-          html += '</div>';
-          html += '<div class="mi-rem-group-body"><div class="mi-rem-mod-list">';
-          for (const m of mods) {
-            html += '<span class="mi-rem-mod-chip">' + e(m.moduleName || '') + '</span>';
-          }
-          html += '</div></div></div>';
-        }
-        html += '</div></div>';
-      }
+      // Remediation section removed — data doesn't support meaningful guidance
 
       // ── BOTTLENECKS ──
       if (bottlenecks.length) {
