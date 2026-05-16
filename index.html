@@ -980,7 +980,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 @keyframes chatBounce{from{opacity:.3;transform:translateY(0)}to{opacity:1;transform:translateY(-3px)}}
 
 /* ─── BUILD TAB ──────────────────────────────────────────────── */
-.build-container{display:grid;grid-template-columns:1fr 1.2fr;height:calc(100vh - 200px);min-height:500px;background:var(--surface)}
+#dash-panel-build{padding:0!important}
+#dash-panel-build .build-container{max-width:none;margin:0 -32px;width:calc(100% + 64px)}
+.build-container{display:grid;grid-template-columns:1fr 1.4fr;height:calc(100vh - 160px);min-height:500px;background:var(--surface)}
 .build-left{display:flex;flex-direction:column;border-right:1px solid var(--rule);overflow:hidden}
 .build-left-header{padding:20px 22px 14px}
 .build-left-title{font-size:15px;font-weight:600;letter-spacing:-.01em;margin-bottom:3px}
@@ -1053,8 +1055,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .build-conn-to{color:var(--text2)}
 .build-conn-via{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-left:auto;background:var(--bg2);padding:2px 8px;border-radius:4px;border:1px solid var(--border)}
 
-.build-streaming{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;margin-bottom:14px;font-size:11px;color:var(--text3)}
-.build-streaming-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s infinite}
+.build-streaming{padding:32px 24px;text-align:center}
+.build-streaming-spinner{width:28px;height:28px;border:2.5px solid var(--bg2);border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 16px}
+.build-streaming-status{font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px}
+.build-streaming-sub{font-size:11px;color:var(--text4)}
+.build-phase-list{list-style:none;padding:0;margin:20px auto 0;max-width:260px;text-align:left}
+.build-phase-item{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11.5px;color:var(--text4);transition:color .2s}
+.build-phase-item.active{color:var(--accent);font-weight:500}
+.build-phase-item.done{color:var(--pos)}
+.build-phase-check{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0}
+.build-phase-item.active .build-phase-check{border-color:var(--accent);background:var(--accent-pale)}
+.build-phase-item.done .build-phase-check{border-color:var(--pos);background:var(--pos-pale);color:var(--pos)}
 
 /* ─── EXPORT TAB ─────────────────────────────────────────────── */
 .anl-export-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -5207,7 +5218,18 @@ function confirmModelSelection() {
 
       // Show streaming indicator in output
       const output = document.getElementById('build-output');
-      output.innerHTML = '<div class="build-streaming"><div class="build-streaming-dot"></div><span>Generating build specification...</span></div>';
+      output.innerHTML = '<div class="build-streaming">'
+        + '<div class="build-streaming-spinner"></div>'
+        + '<div class="build-streaming-status" id="build-status-text">Analyzing model structure...</div>'
+        + '<div class="build-streaming-sub">This takes 30–60 seconds</div>'
+        + '<ul class="build-phase-list" id="build-phase-list">'
+        + '<li class="build-phase-item active" data-phase="1"><span class="build-phase-check"></span>Analyzing model structure</li>'
+        + '<li class="build-phase-item" data-phase="2"><span class="build-phase-check"></span>Designing list dimensions</li>'
+        + '<li class="build-phase-item" data-phase="3"><span class="build-phase-check"></span>Architecting modules</li>'
+        + '<li class="build-phase-item" data-phase="4"><span class="build-phase-check"></span>Writing formulas</li>'
+        + '<li class="build-phase-item" data-phase="5"><span class="build-phase-check"></span>Determining build order</li>'
+        + '<li class="build-phase-item" data-phase="6"><span class="build-phase-check"></span>Mapping integrations</li>'
+        + '</ul></div>';
       document.getElementById('build-stats').style.display = 'none';
       document.getElementById('build-export-bar').style.display = 'none';
 
@@ -5243,7 +5265,20 @@ function confirmModelSelection() {
             try {
               const evt = JSON.parse(line.slice(6));
               if (evt.type === 'status') {
-                output.innerHTML = '<div class="build-streaming"><div class="build-streaming-dot"></div><span>' + escapeHtml(evt.text) + '</span></div>';
+                const statusEl = document.getElementById('build-status-text');
+                if (statusEl) statusEl.textContent = evt.text;
+                // Advance phase checklist
+                if (evt.phase) {
+                  const phaseList = document.getElementById('build-phase-list');
+                  if (phaseList) {
+                    phaseList.querySelectorAll('.build-phase-item').forEach(item => {
+                      const p = parseInt(item.getAttribute('data-phase'));
+                      if (p < evt.phase) { item.className = 'build-phase-item done'; item.querySelector('.build-phase-check').innerHTML = '&#10003;'; }
+                      else if (p === evt.phase) { item.className = 'build-phase-item active'; }
+                      else { item.className = 'build-phase-item'; }
+                    });
+                  }
+                }
               } else if (evt.type === 'delta') {
                 fullText += evt.text;
               } else if (evt.type === 'formula-warnings') {

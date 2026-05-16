@@ -208,7 +208,7 @@ export default async function handler(req, res) {
     }
 
     const nextNums = getNextNumbers(existingModules);
-    send({ type: 'status', text: 'Generating build specification...' });
+    send({ type: 'status', text: 'Analyzing model structure...', phase: 1 });
 
     // Build system prompt
     const systemParts = [
@@ -333,8 +333,9 @@ FORMULA STYLE:
     }
     messages.push({ role: 'user', content: message });
 
-    // Stream response
+    // Stream response with progress tracking
     let fullText = '';
+    let phasesSent = new Set();
     const stream = await client.messages.stream({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 8000,
@@ -346,6 +347,28 @@ FORMULA STYLE:
       if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
         fullText += event.delta.text;
         send({ type: 'delta', text: event.delta.text });
+
+        // Send progress updates based on detected JSON sections
+        if (!phasesSent.has('lists') && fullText.includes('"lists"')) {
+          phasesSent.add('lists');
+          send({ type: 'status', text: 'Designing list dimensions...', phase: 2 });
+        }
+        if (!phasesSent.has('modules') && fullText.includes('"modules"')) {
+          phasesSent.add('modules');
+          send({ type: 'status', text: 'Architecting modules and line items...', phase: 3 });
+        }
+        if (!phasesSent.has('lineItems') && fullText.includes('"lineItems"')) {
+          phasesSent.add('lineItems');
+          send({ type: 'status', text: 'Writing formulas...', phase: 4 });
+        }
+        if (!phasesSent.has('buildSequence') && fullText.includes('"buildSequence"')) {
+          phasesSent.add('buildSequence');
+          send({ type: 'status', text: 'Determining build order...', phase: 5 });
+        }
+        if (!phasesSent.has('connections') && fullText.includes('"connections"')) {
+          phasesSent.add('connections');
+          send({ type: 'status', text: 'Mapping integration points...', phase: 6 });
+        }
       }
     }
 
