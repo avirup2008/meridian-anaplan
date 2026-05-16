@@ -154,8 +154,10 @@ function inferModulePurpose(mod, graph) {
 const SEVERITY_RANK = { critical: 0, warning: 1, info: 2 };
 const CRITICALITY_RANK = { Critical: 0, High: 1, Medium: 2, Low: 3, None: 4 };
 
+const SUPPRESSED_RULES = new Set(['BOOLEAN_SUMMARY_INVALID', 'FORMULA_DIVISION_UNGUARDED']);
+
 function computeCriticality(mod, graph, findings) {
-  const modFindings = findings.filter(f => f.moduleId === mod.id);
+  const modFindings = findings.filter(f => f.moduleId === mod.id && !SUPPRESSED_RULES.has(f.ruleId));
   const criticalCount = modFindings.filter(f => f.severity === 'critical').length;
   const warningCount = modFindings.filter(f => f.severity === 'warning').length;
 
@@ -185,7 +187,7 @@ export function buildModuleIntelligence(graph, findings) {
     const criticality = computeCriticality(mod, graph, findings);
     if (criticality === 'None') continue;
 
-    const modFindings = findings.filter(f => f.moduleId === mod.id);
+    const modFindings = findings.filter(f => f.moduleId === mod.id && !SUPPRESSED_RULES.has(f.ruleId));
     const issues = modFindings
       .sort((a, b) => (SEVERITY_RANK[a.severity] ?? 2) - (SEVERITY_RANK[b.severity] ?? 2))
       .slice(0, 5)
