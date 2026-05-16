@@ -5297,12 +5297,39 @@ function confirmModelSelection() {
                 appendBuildMsg('ai', 'Specification generated (raw format).');
               } else if (evt.type === 'error') {
                 output.innerHTML = '<div style="padding:20px;text-align:center;color:var(--neg);font-size:13px;">Error: ' + escapeHtml(evt.message) + '</div>';
+              } else if (evt.type === 'done') {
+                /* If we got here without spec/spec-raw rendering, try parsing fullText as fallback */
+                if (output.querySelector('.build-streaming') && fullText.trim()) {
+                  try {
+                    let jt = fullText.trim().replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
+                    const fb = jt.indexOf('{'), lb = jt.lastIndexOf('}');
+                    if (fb !== -1 && lb > fb) jt = jt.slice(fb, lb + 1);
+                    const fallback = JSON.parse(jt);
+                    renderBuildSpec(fallback);
+                    appendBuildMsg('ai', 'Build specification generated — ' + (fallback.modules || []).length + ' modules.');
+                  } catch {
+                    output.innerHTML = '<div style="font-size:12px;color:var(--text2);white-space:pre-wrap;font-family:\'IBM Plex Mono\',monospace;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:100%;">' + escapeHtml(fullText) + '</div>';
+                    appendBuildMsg('ai', 'Specification generated (raw format).');
+                  }
+                }
               }
             } catch {}
           }
         }
       } catch (err) {
-        output.innerHTML = '<div style="padding:20px;text-align:center;color:var(--neg);font-size:13px;">Connection error</div>';
+        output.innerHTML = '<div style="padding:20px;text-align:center;color:var(--neg);font-size:13px;">Connection error: ' + escapeHtml(err.message || 'unknown') + '</div>';
+      }
+
+      /* Safety net: if spinner still visible after stream ends, force render */
+      if (output.querySelector('.build-streaming') && fullText.trim()) {
+        try {
+          let jt = fullText.trim().replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
+          const fb = jt.indexOf('{'), lb = jt.lastIndexOf('}');
+          if (fb !== -1 && lb > fb) jt = jt.slice(fb, lb + 1);
+          renderBuildSpec(JSON.parse(jt));
+        } catch {
+          output.innerHTML = '<div style="font-size:12px;color:var(--text2);white-space:pre-wrap;font-family:\'IBM Plex Mono\',monospace;padding:12px;">' + escapeHtml(fullText) + '</div>';
+        }
       }
 
       buildStreaming = false;

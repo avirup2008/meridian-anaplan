@@ -375,8 +375,13 @@ FORMULA STYLE:
     // Parse the final JSON, validate formulas, send structured result
     try {
       let jsonText = fullText.trim();
-      if (jsonText.startsWith('```')) {
-        jsonText = jsonText.replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
+      // Strip markdown fencing
+      jsonText = jsonText.replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
+      // Extract the outermost JSON object if surrounded by text
+      const firstBrace = jsonText.indexOf('{');
+      const lastBrace = jsonText.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        jsonText = jsonText.slice(firstBrace, lastBrace + 1);
       }
       const rawSpec = JSON.parse(jsonText);
 
