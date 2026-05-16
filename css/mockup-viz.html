@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian — SVG Visualization Options</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#F7F5F0;--surface:#fff;--surface2:#FAFAF7;--border:#E8E4DB;--border2:#DED9CF;
+  --text:#1C2129;--text2:#4A4E5A;--text3:#9EA1AB;--text4:#B8BAC2;
+  --accent:#175AA6;--accent-light:rgba(23,90,166,0.08);
+  --neg:#C0392B;--neg-bg:rgba(192,57,43,0.06);--neg-bd:rgba(192,57,43,0.18);
+  --warn:#D4850B;--warn-bg:rgba(212,133,11,0.06);--warn-bd:rgba(212,133,11,0.18);
+  --med:#2E6FA0;--med-bg:rgba(46,111,160,0.06);
+  --pos:#1B7A4B;--pos-bg:rgba(27,122,75,0.06);
+  --r:8px;--r-xl:14px;--sh:0 1px 3px rgba(0,0,0,0.06);--sh-lg:0 4px 20px rgba(0,0,0,0.08);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-family:'IBM Plex Sans',system-ui,sans-serif}
+
+/* Nav bar */
+.viz-nav{position:sticky;top:0;z-index:100;background:rgba(28,33,41,0.97);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.06);padding:0 32px;display:flex;align-items:center;height:54px;gap:24px}
+.viz-nav-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:.08em;text-transform:uppercase;margin-right:auto}
+.viz-tab{font-size:12px;font-weight:500;color:rgba(255,255,255,0.45);padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .15s;border:1px solid transparent;white-space:nowrap}
+.viz-tab:hover{color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.06)}
+.viz-tab.active{color:#fff;background:var(--accent);border-color:rgba(255,255,255,0.1)}
+
+/* Section container */
+.viz-section{display:none;padding:40px 32px 80px;max-width:1320px;margin:0 auto}
+.viz-section.active{display:block}
+.viz-section-hd{margin-bottom:32px}
+.viz-section-hd h2{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+.viz-section-hd p{font-size:13px;color:var(--text3);line-height:1.5}
+
+/* Option toggle */
+.opt-bar{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap}
+.opt-btn{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:7px 16px;border-radius:100px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s}
+.opt-btn:hover{border-color:var(--accent);color:var(--accent)}
+.opt-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.opt-panel{display:none}
+.opt-panel.active{display:block}
+
+/* Cards */
+.viz-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:28px;box-shadow:var(--sh)}
+.viz-card+.viz-card{margin-top:20px}
+
+/* Severity chips */
+.sev-chip{display:inline-flex;align-items:center;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:100px}
+.sev-critical{background:var(--neg-bg);color:var(--neg);border:1px solid var(--neg-bd)}
+.sev-high{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-bd)}
+.sev-medium{background:var(--med-bg);color:var(--med);border:1px solid rgba(46,111,160,0.18)}
+.sev-clean{background:var(--pos-bg);color:var(--pos);border:1px solid rgba(27,122,75,0.18)}
+
+/* Tooltip */
+.svg-tooltip{position:absolute;pointer-events:none;background:rgba(28,33,41,0.95);color:#fff;font-size:11px;padding:8px 12px;border-radius:6px;line-height:1.5;max-width:260px;z-index:200;opacity:0;transition:opacity .15s;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.08)}
+.svg-tooltip.show{opacity:1}
+.svg-tooltip strong{font-weight:600;display:block;margin-bottom:2px}
+.svg-tooltip .tt-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:rgba(255,255,255,0.5);letter-spacing:.04em;text-transform:uppercase;margin-top:4px}
+
+/* Animation */
+@keyframes nodeAppear{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes edgeDraw{from{stroke-dashoffset:1000}to{stroke-dashoffset:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.anim-node{animation:nodeAppear .4s ease-out both}
+.anim-edge{stroke-dasharray:1000;animation:edgeDraw 1.2s ease-out both}
+.anim-fade{animation:fadeUp .5s ease-out both}
+
+/* Module table enhancements */
+.mod-tbl{width:100%;border-collapse:collapse}
+.mod-tbl th{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:10px 12px;text-align:left;border-bottom:2px solid var(--border2)}
+.mod-tbl td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12.5px;vertical-align:middle}
+.mod-tbl tr:hover{background:rgba(23,90,166,0.02)}
+.mod-name{font-weight:600;color:var(--text)}
+.mod-role{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:.04em}
+.mini-bar{width:80px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle}
+.mini-bar-fill{height:100%;border-radius:3px}
+.dep-arc{display:inline-block;vertical-align:middle;margin-left:6px}
+</style>
+</head>
+<body>
+
+<div class="svg-tooltip" id="tooltip"></div>
+
+<nav class="viz-nav">
+  <span class="viz-nav-title">Meridian · Visualization Options</span>
+  <div class="viz-tab active" data-section="clusters">Risk Clusters</div>
+  <div class="viz-tab" data-section="fixorder">Fix Order</div>
+  <div class="viz-tab" data-section="bottlenecks">Bottlenecks</div>
+  <div class="viz-tab" data-section="modtable">Module Table</div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- RISK CLUSTERS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="viz-section active" id="sec-clusters">
+  <div class="viz-section-hd">
+    <h2>Risk Clusters</h2>
+    <p>Visually grouped modules that share critical dependencies. Three rendering approaches.</p>
+  </div>
+  <div class="opt-bar">
+    <div class="opt-btn active" data-opt="cluster-a">A · Force-directed graph</div>
+    <div class="opt-btn" data-opt="cluster-b">B · Concentric rings</div>
+    <div class="opt-btn" data-opt="cluster-c">C · Treemap density</div>
+  </div>
+
+  <!-- Option A: Force-directed node graph -->
+  <div class="opt-panel active" id="cluster-a">
+    <div class="viz-card">
+      <svg id="cluster-force" width="100%" height="520" viewBox="0 0 1260 520" font-family="IBM Plex Sans, sans-serif"></svg>
+    </div>
+  </div>
+
+  <!-- Option B: Concentric rings -->
+  <div class="opt-panel" id="cluster-b">
+    <div class="viz-card">
+      <svg id="cluster-rings" width="100%" height="520" viewBox="0 0 1260 520" font-family="IBM Plex Sans, sans-serif"></svg>
+    </div>
+  </div>
+
+  <!-- Option C: Treemap density -->
+  <div class="opt-panel" id="cluster-c">
+    <div class="viz-card">
+      <svg id="cluster-treemap" width="100%" height="520" viewBox="0 0 1260 520" font-family="IBM Plex Sans, sans-serif"></svg>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- FIX ORDER -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="viz-section" id="sec-fixorder">
+  <div class="viz-section-hd">
+    <h2>Fix Order Pipeline</h2>
+    <p>Sequenced remediation path showing dependency-safe ordering.</p>
+  </div>
+  <div class="opt-bar">
+    <div class="opt-btn active" data-opt="fix-a">A · Pipeline diagram</div>
+    <div class="opt-btn" data-opt="fix-b">B · Swim lanes</div>
+  </div>
+  <div class="opt-panel active" id="fix-a">
+    <div class="viz-card">
+      <svg id="fix-pipeline" width="100%" height="340" viewBox="0 0 1260 340" font-family="IBM Plex Sans, sans-serif"></svg>
+    </div>
+  </div>
+  <div class="opt-panel" id="fix-b">
+    <div class="viz-card">
+      <svg id="fix-swim" width="100%" height="380" viewBox="0 0 1260 380" font-family="IBM Plex Sans, sans-serif"></svg>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- BOTTLENECKS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="viz-section" id="sec-bottlenecks">
+  <div class="viz-section-hd">
+    <h2>Bottleneck Fan-out</h2>
+    <p>Hub modules that cascade risk to downstream dependents.</p>
+  </div>
+  <div class="opt-bar">
+    <div class="opt-btn active" data-opt="bn-a">A · Radial fan-out</div>
+    <div class="opt-btn" data-opt="bn-b">B · Sankey flow</div>
+  </div>
+  <div class="opt-panel active" id="bn-a">
+    <div class="viz-card">
+      <svg id="bn-radial" width="100%" height="480" viewBox="0 0 1260 480" font-family="IBM Plex Sans, sans-serif"></svg>
+    </div>
+  </div>
+  <div class="opt-panel" id="bn-b">
+    <div class="viz-card">
+      <svg id="bn-sankey" width="100%" height="480" viewBox="0 0 1260 480" font-family="IBM Plex Sans, sans-serif"></svg>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- MODULE TABLE -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="viz-section" id="sec-modtable">
+  <div class="viz-section-hd">
+    <h2>Module Risk Table</h2>
+    <p>Enhanced module rows with inline severity bars and dependency arcs.</p>
+  </div>
+  <div class="opt-bar">
+    <div class="opt-btn active" data-opt="tbl-a">A · Spark bars + arcs</div>
+    <div class="opt-btn" data-opt="tbl-b">B · Heat strip</div>
+  </div>
+  <div class="opt-panel active" id="tbl-a">
+    <div class="viz-card" style="padding:0;overflow:hidden" id="tbl-spark-wrap"></div>
+  </div>
+  <div class="opt-panel" id="tbl-b">
+    <div class="viz-card" style="padding:0;overflow:hidden" id="tbl-heat-wrap"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA (realistic Anaplan model)
+// ═══════════════════════════════════════════════════════
+const MODULES = [
+  { id:'DEM01', name:'DEM01 - Demand Forecast', role:'CAL', severity:'critical', lineItems:42, deps:['DEM03','DEM07','SLP01'], issues:4, score:28 },
+  { id:'DEM03', name:'DEM03 - Pipeline Analysis', role:'CAL', severity:'critical', lineItems:38, deps:['DEM07','SCE13'], issues:3, score:35 },
+  { id:'DEM05', name:'DEM05 - Customer Details', role:'DAT', severity:'high', lineItems:28, deps:['DEM06'], issues:2, score:52 },
+  { id:'DEM06', name:'DEM06 - Opportunity Mgmt', role:'CAL', severity:'critical', lineItems:55, deps:['DEM07','DEM30','DEM31','SCE13'], issues:5, score:22 },
+  { id:'DEM07', name:'DEM07 - Opp. Specifics', role:'CAL', severity:'high', lineItems:33, deps:['DEM30'], issues:2, score:48 },
+  { id:'DEM30', name:'DEM30 - Budget', role:'OUT', severity:'medium', lineItems:18, deps:[], issues:1, score:68 },
+  { id:'DEM31', name:'DEM31 - Sales', role:'OUT', severity:'high', lineItems:24, deps:[], issues:2, score:55 },
+  { id:'SCE13', name:'SCE13 - Scenario Specs', role:'SYS', severity:'critical', lineItems:16, deps:['DEM30','DEM31'], issues:3, score:31 },
+  { id:'DCW03', name:'DCW03 - Stat Calcs', role:'CAL', severity:'critical', lineItems:67, deps:['DCW10','SLP01'], issues:4, score:25 },
+  { id:'DCW10', name:'DCW10 - Units by Week', role:'CAL', severity:'high', lineItems:136, deps:['SLP01','SLP05'], issues:3, score:40 },
+  { id:'SLP01', name:'SLP01 - Slot Hours', role:'CAL', severity:'high', lineItems:44, deps:['SLP05'], issues:2, score:46 },
+  { id:'SLP05', name:'SLP05 - Slots', role:'INP', severity:'medium', lineItems:12, deps:[], issues:1, score:72 },
+  { id:'CPM04', name:'CPM04 - Milestone Track', role:'CAL', severity:'critical', lineItems:22, deps:['CPM08'], issues:3, score:30 },
+  { id:'CPM08', name:'CPM08 - Milestone Chart', role:'OUT', severity:'medium', lineItems:8, deps:[], issues:1, score:74 },
+  { id:'PM01',  name:'PM01 - Project', role:'CAL', severity:'critical', lineItems:48, deps:['DEM01','CPM04'], issues:5, score:18 },
+];
+
+const CLUSTERS = [
+  { id:0, label:'Demand Planning Chain', severity:'critical', modules:['DEM01','DEM03','DEM05','DEM06','DEM07','DEM30','DEM31','SCE13'], root:'DEM06', lineItems:179, description:'Cascading calculation dependencies through the demand planning workflow — DEM06 feeds 4 downstream modules' },
+  { id:1, label:'Capacity & Scheduling', severity:'critical', modules:['DCW03','DCW10','SLP01','SLP05'], root:'DCW03', lineItems:203, description:'Statistical calculations bottleneck — DCW03 drives unit calculations through the slot allocation pipeline' },
+  { id:2, label:'Project Milestones', severity:'critical', modules:['CPM04','CPM08','PM01'], root:'PM01', lineItems:30, description:'PM01 hub with FINDITEM + nested IF creates exponential degradation as project volume grows' },
+];
+
+const COLORS = { critical:'#C0392B', high:'#D4850B', medium:'#2E6FA0', clean:'#1B7A4B' };
+const COLORBG = { critical:'rgba(192,57,43,0.08)', high:'rgba(212,133,11,0.08)', medium:'rgba(46,111,160,0.08)', clean:'rgba(27,122,75,0.08)' };
+
+// ═══════════════════════════════════════════════════════
+// NAV + OPTIONS
+// ═══════════════════════════════════════════════════════
+document.querySelectorAll('.viz-tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.viz-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.viz-section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('sec-' + tab.dataset.section).classList.add('active');
+  };
+});
+document.querySelectorAll('.opt-btn').forEach(btn => {
+  btn.onclick = () => {
+    const bar = btn.parentElement;
+    bar.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const section = bar.parentElement;
+    section.querySelectorAll('.opt-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(btn.dataset.opt).classList.add('active');
+  };
+});
+
+// Tooltip helper
+const ttEl = document.getElementById('tooltip');
+function showTip(e, html) {
+  ttEl.innerHTML = html;
+  ttEl.classList.add('show');
+  const r = ttEl.getBoundingClientRect();
+  ttEl.style.left = Math.min(e.pageX + 12, window.innerWidth - r.width - 20) + 'px';
+  ttEl.style.top = (e.pageY - r.height - 10) + 'px';
+}
+function hideTip() { ttEl.classList.remove('show'); }
+
+function modById(id) { return MODULES.find(m => m.id === id); }
+
+// ═══════════════════════════════════════════════════════
+// A) RISK CLUSTERS — FORCE-DIRECTED GRAPH
+// ═══════════════════════════════════════════════════════
+(function renderClusterForce() {
+  const svg = document.getElementById('cluster-force');
+  const W = 1260, H = 520;
+  let s = '';
+
+  // Defs
+  s += '<defs>';
+  s += '<marker id="arrow-c" viewBox="0 0 10 8" refX="10" refY="4" markerWidth="8" markerHeight="6" orient="auto"><path d="M0 0L10 4L0 8" fill="none" stroke="#B8BAC2" stroke-width="1" stroke-linecap="round"/></marker>';
+  Object.entries(COLORS).forEach(([sev, col]) => {
+    s += `<radialGradient id="glow-${sev}"><stop offset="0%" stop-color="${col}" stop-opacity="0.2"/><stop offset="100%" stop-color="${col}" stop-opacity="0"/></radialGradient>`;
+  });
+  s += '</defs>';
+
+  // Layout clusters in horizontal zones
+  const zones = [
+    { cx: 240, cy: 270, cluster: CLUSTERS[0] },
+    { cx: 680, cy: 260, cluster: CLUSTERS[1] },
+    { cx: 1060, cy: 270, cluster: CLUSTERS[2] },
+  ];
+
+  // Pre-compute node positions
+  const nodePos = {};
+  zones.forEach(z => {
+    const mods = z.cluster.modules;
+    const n = mods.length;
+    mods.forEach((mid, i) => {
+      const angle = (2 * Math.PI * i / n) - Math.PI / 2;
+      const radius = n <= 3 ? 80 : n <= 5 ? 100 : 120;
+      nodePos[mid] = {
+        x: z.cx + Math.cos(angle) * radius,
+        y: z.cy + Math.sin(angle) * radius,
+        zone: z,
+      };
+    });
+  });
+
+  // Cluster background bubbles
+  zones.forEach((z, zi) => {
+    const r = z.cluster.modules.length <= 3 ? 140 : z.cluster.modules.length <= 5 ? 160 : 190;
+    s += `<circle cx="${z.cx}" cy="${z.cy}" r="${r}" fill="${COLORBG[z.cluster.severity]}" stroke="${COLORS[z.cluster.severity]}" stroke-width="1" stroke-dasharray="4 3" opacity="0.6" class="anim-node" style="animation-delay:${zi*0.1}s"/>`;
+    // Cluster label
+    s += `<text x="${z.cx}" y="${z.cy - r - 16}" text-anchor="middle" font-size="13" font-weight="700" fill="#1C2129" class="anim-fade" style="animation-delay:${zi*0.15}s">${z.cluster.label}</text>`;
+    s += `<text x="${z.cx}" y="${z.cy - r - 2}" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="#9EA1AB" class="anim-fade" style="animation-delay:${zi*0.2}s">${z.cluster.lineItems} line items · ${z.cluster.modules.length} modules</text>`;
+  });
+
+  // Edges
+  MODULES.forEach(m => {
+    if (!nodePos[m.id]) return;
+    m.deps.forEach(dep => {
+      if (!nodePos[dep]) return;
+      const from = nodePos[m.id], to = nodePos[dep];
+      const dx = to.x - from.x, dy = to.y - from.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const rm = Math.max(14, Math.min(24, m.lineItems / 3));
+      const rd = Math.max(14, Math.min(24, (modById(dep)?.lineItems || 20) / 3));
+      const fx = from.x + (dx/dist) * rm, fy = from.y + (dy/dist) * rm;
+      const tx = to.x - (dx/dist) * rd, ty = to.y - (dy/dist) * rd;
+      const crossCluster = nodePos[m.id].zone !== nodePos[dep].zone;
+      s += `<line x1="${fx}" y1="${fy}" x2="${tx}" y2="${ty}" stroke="${crossCluster ? '#D4850B' : '#B8BAC2'}" stroke-width="${crossCluster ? 1.5 : 1}" marker-end="url(#arrow-c)" opacity="${crossCluster ? 0.6 : 0.35}" class="anim-edge" style="animation-delay:${Math.random()*0.3}s"/>`;
+    });
+  });
+
+  // Nodes
+  MODULES.forEach((m, mi) => {
+    if (!nodePos[m.id]) return;
+    const p = nodePos[m.id];
+    const r = Math.max(14, Math.min(28, m.lineItems / 2.5));
+    const col = COLORS[m.severity];
+    // Glow
+    s += `<circle cx="${p.x}" cy="${p.y}" r="${r * 2.2}" fill="url(#glow-${m.severity})" class="anim-node" style="animation-delay:${mi*0.04}s"/>`;
+    // Node
+    s += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${col}" opacity="0.9" stroke="#fff" stroke-width="2" class="anim-node" style="animation-delay:${mi*0.04}s;cursor:pointer" data-mod="${m.id}"`;
+    s += ` onmouseenter="showTip(event,'<strong>${m.name}</strong>${m.issues} issues · ${m.lineItems} line items · Score ${m.score}<div class=tt-meta>${m.role} · ${m.severity}</div>')"`;
+    s += ` onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${m.name}</strong>${m.issues} issues · ${m.lineItems} line items · Score ${m.score}<div class=tt-meta>${m.role} · ${m.severity}</div>')"/>`;
+    // Label
+    s += `<text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" font-size="${r > 18 ? 9 : 8}" font-weight="600" fill="#fff" pointer-events="none" class="anim-fade" style="animation-delay:${mi*0.05}s">${m.id}</text>`;
+  });
+
+  // Legend
+  s += '<g transform="translate(20,490)" class="anim-fade" style="animation-delay:0.5s">';
+  ['critical','high','medium','clean'].forEach((sev, i) => {
+    s += `<circle cx="${i*100}" cy="0" r="5" fill="${COLORS[sev]}"/>`;
+    s += `<text x="${i*100 + 10}" y="4" font-size="10" fill="#9EA1AB" font-family="IBM Plex Mono, monospace">${sev}</text>`;
+  });
+  s += '<text x="450" y="4" font-size="10" fill="#B8BAC2">Node size = line item count · Orange edges = cross-cluster dependencies</text>';
+  s += '</g>';
+
+  svg.innerHTML = s;
+})();
+
+// ═══════════════════════════════════════════════════════
+// B) RISK CLUSTERS — CONCENTRIC RINGS
+// ═══════════════════════════════════════════════════════
+(function renderClusterRings() {
+  const svg = document.getElementById('cluster-rings');
+  const W = 1260, H = 520;
+  let s = '';
+
+  s += '<defs><marker id="arrow-r" viewBox="0 0 10 8" refX="10" refY="4" markerWidth="7" markerHeight="5" orient="auto"><path d="M0 1L9 4L0 7" fill="none" stroke="#9EA1AB" stroke-width="1.2" stroke-linecap="round"/></marker></defs>';
+
+  const centers = [
+    { cx: 220, cy: 280, cluster: CLUSTERS[0] },
+    { cx: 660, cy: 270, cluster: CLUSTERS[1] },
+    { cx: 1060, cy: 280, cluster: CLUSTERS[2] },
+  ];
+
+  centers.forEach((cen, ci) => {
+    const cl = cen.cluster;
+    const root = modById(cl.root);
+    const others = cl.modules.filter(id => id !== cl.root).map(id => modById(id)).filter(Boolean);
+
+    // Cluster label
+    s += `<text x="${cen.cx}" y="62" text-anchor="middle" font-size="14" font-weight="700" fill="#1C2129" class="anim-fade" style="animation-delay:${ci*0.1}s">${cl.label}</text>`;
+    s += `<text x="${cen.cx}" y="78" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="#9EA1AB" class="anim-fade" style="animation-delay:${ci*0.12}s">${cl.lineItems} line items · ${cl.modules.length} modules</text>`;
+
+    // Draw concentric severity rings
+    const ringRadii = { critical: 55, high: 100, medium: 145 };
+    Object.entries(ringRadii).forEach(([sev, r]) => {
+      s += `<circle cx="${cen.cx}" cy="${cen.cy}" r="${r}" fill="none" stroke="${COLORS[sev]}" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.25"/>`;
+      s += `<text x="${cen.cx + r + 4}" y="${cen.cy - 4}" font-size="8" font-family="IBM Plex Mono, monospace" fill="${COLORS[sev]}" opacity="0.5">${sev}</text>`;
+    });
+
+    // Root hub at center
+    if (root) {
+      const col = COLORS[root.severity];
+      s += `<circle cx="${cen.cx}" cy="${cen.cy}" r="26" fill="${col}" stroke="#fff" stroke-width="3" class="anim-node" style="animation-delay:${ci*0.1}s;cursor:pointer"`;
+      s += ` onmouseenter="showTip(event,'<strong>${root.name}</strong>Hub · ${root.issues} issues · ${root.lineItems} LI<div class=tt-meta>Root of cluster</div>')" onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${root.name}</strong>Hub · ${root.issues} issues · ${root.lineItems} LI<div class=tt-meta>Root of cluster</div>')"/>`;
+      s += `<text x="${cen.cx}" y="${cen.cy - 3}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" pointer-events="none">${root.id}</text>`;
+      s += `<text x="${cen.cx}" y="${cen.cy + 9}" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.7)" font-family="IBM Plex Mono" pointer-events="none">${root.lineItems} LI</text>`;
+    }
+
+    // Place others evenly around the correct ring
+    const n = others.length;
+    others.forEach((m, i) => {
+      const ringR = ringRadii[m.severity] || 100;
+      const angle = (2 * Math.PI * i / n) - Math.PI / 2;
+      const mx = cen.cx + Math.cos(angle) * ringR;
+      const my = cen.cy + Math.sin(angle) * ringR;
+      const nr = Math.max(14, Math.min(20, m.lineItems / 2.5));
+      const col = COLORS[m.severity];
+
+      // Edge
+      s += `<line x1="${cen.cx}" y1="${cen.cy}" x2="${mx}" y2="${my}" stroke="${col}" stroke-width="1.5" opacity="0.3" marker-end="url(#arrow-r)" class="anim-edge" style="animation-delay:${0.2+i*0.06}s"/>`;
+      // Node
+      s += `<circle cx="${mx}" cy="${my}" r="${nr}" fill="${col}" stroke="#fff" stroke-width="2" class="anim-node" style="animation-delay:${0.15+i*0.05}s;cursor:pointer"`;
+      s += ` onmouseenter="showTip(event,'<strong>${m.name}</strong>${m.issues} issues · ${m.lineItems} LI · Score ${m.score}<div class=tt-meta>${m.role} · ${m.severity}</div>')" onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${m.name}</strong>${m.issues} issues · ${m.lineItems} LI · Score ${m.score}<div class=tt-meta>${m.role} · ${m.severity}</div>')"/>`;
+      s += `<text x="${mx}" y="${my + 1}" text-anchor="middle" dominant-baseline="central" font-size="${nr > 16 ? 9 : 8}" font-weight="600" fill="#fff" pointer-events="none">${m.id}</text>`;
+    });
+  });
+
+  // Legend
+  s += '<g transform="translate(20,500)" class="anim-fade" style="animation-delay:0.5s">';
+  s += '<text x="0" y="4" font-size="10" fill="#B8BAC2">Rings = severity distance from hub · Center = root module · Node size = line item count</text>';
+  s += '</g>';
+
+  svg.innerHTML = s;
+})();
+
+// ═══════════════════════════════════════════════════════
+// C) RISK CLUSTERS — TREEMAP DENSITY
+// ═══════════════════════════════════════════════════════
+(function renderClusterTreemap() {
+  const svg = document.getElementById('cluster-treemap');
+  const W = 1260, H = 520;
+  let s = '';
+
+  const totalLI = CLUSTERS.reduce((a, c) => a + c.lineItems, 0);
+  let xOffset = 20;
+  const gap = 16;
+  const usableW = W - 40 - gap * (CLUSTERS.length - 1);
+
+  CLUSTERS.forEach((cl, ci) => {
+    const clW = Math.round(usableW * cl.lineItems / totalLI);
+    const mods = cl.modules.map(id => modById(id)).filter(Boolean).sort((a, b) => b.lineItems - a.lineItems);
+    const clX = xOffset;
+    const clY = 60;
+    const clH = H - 100;
+    const col = COLORS[cl.severity];
+
+    // Cluster container
+    s += `<rect x="${clX}" y="${clY}" width="${clW}" height="${clH}" rx="10" fill="${COLORBG[cl.severity]}" stroke="${col}" stroke-width="1.5" opacity="0.8" class="anim-node" style="animation-delay:${ci*0.1}s"/>`;
+
+    // Cluster label
+    s += `<text x="${clX + clW/2}" y="${clY - 12}" text-anchor="middle" font-size="13" font-weight="700" fill="#1C2129" class="anim-fade" style="animation-delay:${ci*0.12}s">${cl.label}</text>`;
+    s += `<text x="${clX + clW/2}" y="${clY + 22}" text-anchor="middle" font-size="28" font-weight="300" fill="${col}" opacity="0.4" font-family="IBM Plex Mono, monospace" class="anim-fade" style="animation-delay:${ci*0.15}s">${cl.lineItems}</text>`;
+    s += `<text x="${clX + clW/2}" y="${clY + 38}" text-anchor="middle" font-size="9" fill="#9EA1AB" font-family="IBM Plex Mono, monospace" class="anim-fade" style="animation-delay:${ci*0.18}s">line items</text>`;
+
+    // Treemap layout — simple squarified
+    const modTotalLI = mods.reduce((a, m) => a + m.lineItems, 0);
+    let my = clY + 52;
+    const pad = 4;
+    const innerW = clW - pad * 2;
+    const innerH = clH - 58;
+
+    mods.forEach((m, mi) => {
+      const frac = m.lineItems / modTotalLI;
+      const mH = Math.max(28, Math.round(innerH * frac));
+      const mx = clX + pad;
+      const mCol = COLORS[m.severity];
+
+      s += `<rect x="${mx}" y="${my}" width="${innerW}" height="${mH - 2}" rx="5" fill="${mCol}" opacity="0.12" stroke="${mCol}" stroke-width="1" stroke-opacity="0.3" class="anim-node" style="animation-delay:${ci*0.1+mi*0.04}s;cursor:pointer"`;
+      s += ` onmouseenter="showTip(event,'<strong>${m.name}</strong>${m.issues} issues · ${m.lineItems} LI · Score ${m.score}<div class=tt-meta>${m.role} · ${m.severity}</div>')" onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${m.name}</strong>${m.issues} issues · ${m.lineItems} LI · Score ${m.score}<div class=tt-meta>${m.role} · ${m.severity}</div>')"/>`;
+
+      // Fill bar inside
+      const fillW = Math.round(innerW * (100 - m.score) / 100);
+      s += `<rect x="${mx}" y="${my}" width="${fillW}" height="${mH - 2}" rx="5" fill="${mCol}" opacity="0.08" pointer-events="none"/>`;
+
+      if (mH > 22) {
+        s += `<text x="${mx + 10}" y="${my + mH/2 + 1}" dominant-baseline="central" font-size="10" font-weight="600" fill="${mCol}" pointer-events="none">${m.id}</text>`;
+        s += `<text x="${mx + innerW - 10}" y="${my + mH/2 + 1}" text-anchor="end" dominant-baseline="central" font-size="9" font-family="IBM Plex Mono, monospace" fill="#9EA1AB" pointer-events="none">${m.lineItems} LI</text>`;
+      }
+
+      my += mH;
+    });
+
+    xOffset += clW + gap;
+  });
+
+  svg.innerHTML = s;
+})();
+
+// ═══════════════════════════════════════════════════════
+// FIX ORDER — PIPELINE DIAGRAM
+// ═══════════════════════════════════════════════════════
+(function renderFixPipeline() {
+  const svg = document.getElementById('fix-pipeline');
+  const W = 1260, H = 340;
+  let s = '';
+
+  s += '<defs><marker id="arrow-fix" viewBox="0 0 12 8" refX="12" refY="4" markerWidth="8" markerHeight="6" orient="auto"><path d="M0 1L10 4L0 7" fill="none" stroke="#175AA6" stroke-width="1.2" stroke-linecap="round"/></marker></defs>';
+
+  // Fix order based on dependency depth (leaves first)
+  const fixOrder = [
+    { phase: 1, label: 'Phase 1 — Leaf nodes', mods: ['SLP05','DEM30','DEM31','CPM08'] },
+    { phase: 2, label: 'Phase 2 — Mid-tier', mods: ['DEM05','DEM07','SLP01','SCE13'] },
+    { phase: 3, label: 'Phase 3 — Hubs', mods: ['DEM03','DEM06','DCW10','CPM04'] },
+    { phase: 4, label: 'Phase 4 — Root nodes', mods: ['DEM01','DCW03','PM01'] },
+  ];
+
+  const phaseW = 280;
+  const startX = 40;
+  const laneY = 80;
+
+  // Phase backgrounds
+  fixOrder.forEach((ph, pi) => {
+    const px = startX + pi * (phaseW + 16);
+    const intensity = 0.03 + pi * 0.02;
+
+    s += `<rect x="${px}" y="${laneY - 30}" width="${phaseW}" height="${H - laneY - 20}" rx="10" fill="rgba(23,90,166,${intensity})" class="anim-node" style="animation-delay:${pi*0.1}s"/>`;
+    s += `<text x="${px + phaseW/2}" y="${laneY - 10}" text-anchor="middle" font-size="11" font-weight="700" fill="#175AA6" class="anim-fade" style="animation-delay:${pi*0.12}s">${ph.label}</text>`;
+
+    // Arrow between phases
+    if (pi < fixOrder.length - 1) {
+      const ax = px + phaseW + 2;
+      s += `<line x1="${ax}" y1="${laneY + (H - laneY - 20)/2 - 30}" x2="${ax + 12}" y2="${laneY + (H - laneY - 20)/2 - 30}" stroke="#175AA6" stroke-width="2" marker-end="url(#arrow-fix)" opacity="0.4" class="anim-edge" style="animation-delay:${pi*0.15}s"/>`;
+    }
+
+    // Module nodes
+    ph.mods.forEach((mid, mi) => {
+      const m = modById(mid);
+      if (!m) return;
+      const col = COLORS[m.severity];
+      const nx = px + 24 + (mi % 2) * (phaseW / 2 - 12);
+      const ny = laneY + 20 + Math.floor(mi / 2) * 70;
+      const rw = phaseW / 2 - 24;
+      const rh = 54;
+
+      s += `<rect x="${nx}" y="${ny}" width="${rw}" height="${rh}" rx="8" fill="#fff" stroke="${col}" stroke-width="1.5" class="anim-node" style="animation-delay:${pi*0.1+mi*0.05}s;cursor:pointer"`;
+      s += ` onmouseenter="showTip(event,'<strong>${m.name}</strong>Score ${m.score} · ${m.issues} issues · ${m.lineItems} LI<div class=tt-meta>Fix in phase ${ph.phase}</div>')" onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${m.name}</strong>Score ${m.score} · ${m.issues} issues · ${m.lineItems} LI<div class=tt-meta>Fix in phase ${ph.phase}</div>')"/>`;
+
+      // Severity dot
+      s += `<circle cx="${nx + 14}" cy="${ny + 18}" r="4" fill="${col}"/>`;
+      s += `<text x="${nx + 24}" y="${ny + 21}" font-size="10" font-weight="600" fill="#1C2129">${m.id}</text>`;
+      s += `<text x="${nx + 14}" y="${ny + 38}" font-size="9" fill="#9EA1AB" font-family="IBM Plex Mono, monospace">${m.lineItems} LI · Score ${m.score}</text>`;
+
+      // Score bar
+      s += `<rect x="${nx + rw - 44}" y="${ny + 12}" width="34" height="4" rx="2" fill="#E8E4DB"/>`;
+      s += `<rect x="${nx + rw - 44}" y="${ny + 12}" width="${Math.round(34 * m.score / 100)}" height="4" rx="2" fill="${col}" opacity="0.6"/>`;
+    });
+  });
+
+  // Top label
+  s += '<text x="40" y="40" font-size="10" font-family="IBM Plex Mono, monospace" fill="#9EA1AB" class="anim-fade">FIX DIRECTION →  Leaves first, hubs last — dependency-safe ordering</text>';
+
+  svg.innerHTML = s;
+})();
+
+// ═══════════════════════════════════════════════════════
+// FIX ORDER — SWIM LANES
+// ═══════════════════════════════════════════════════════
+(function renderFixSwim() {
+  const svg = document.getElementById('fix-swim');
+  const W = 1260, H = 380;
+  let s = '';
+
+  s += '<defs><marker id="arrow-sw" viewBox="0 0 10 8" refX="10" refY="4" markerWidth="7" markerHeight="5" orient="auto"><path d="M0 1L9 4L0 7" fill="none" stroke="#4A4E5A" stroke-width="1.2" stroke-linecap="round"/></marker></defs>';
+
+  const lanes = [
+    { label: 'INPUT / DATA', y: 55, h: 70, mods: ['SLP05','DEM05'] },
+    { label: 'CALCULATION', y: 140, h: 140, mods: ['DCW03','DCW10','SLP01','DEM01','DEM03','DEM06','DEM07','CPM04','PM01','SCE13'] },
+    { label: 'OUTPUT', y: 300, h: 65, mods: ['DEM30','DEM31','CPM08'] },
+  ];
+
+  // Lane backgrounds
+  lanes.forEach((lane, li) => {
+    s += `<rect x="80" y="${lane.y}" width="${W - 100}" height="${lane.h}" rx="6" fill="${li % 2 === 0 ? 'rgba(23,90,166,0.04)' : 'rgba(23,90,166,0.015)'}" class="anim-fade" style="animation-delay:${li*0.08}s"/>`;
+    s += `<text x="22" y="${lane.y + lane.h/2 + 1}" dominant-baseline="central" font-size="9" font-family="IBM Plex Mono, monospace" font-weight="600" letter-spacing=".08em" fill="#B8BAC2" transform="rotate(-90, 22, ${lane.y + lane.h/2})" text-anchor="middle">${lane.label}</text>`;
+  });
+
+  // Place nodes — INPUT row across top, CALC in 2 staggered rows, OUTPUT across bottom
+  const nodePositions = {};
+  function placeLane(lane, mods) {
+    const count = mods.length;
+    const startX = 140;
+    const spacing = Math.min(100, (W - 240) / count);
+    mods.forEach((mid, i) => {
+      const m = modById(mid);
+      if (!m) return;
+      const x = startX + i * spacing;
+      const y = lane.y + (lane.h > 100 ? 35 + (i % 2) * 70 : lane.h / 2);
+      nodePositions[mid] = { x, y };
+    });
+  }
+  placeLane(lanes[0], lanes[0].mods);
+  placeLane(lanes[1], lanes[1].mods);
+  placeLane(lanes[2], lanes[2].mods);
+
+  // Edges — bezier curves
+  MODULES.forEach(m => {
+    if (!nodePositions[m.id]) return;
+    m.deps.forEach(dep => {
+      if (!nodePositions[dep]) return;
+      const from = nodePositions[m.id], to = nodePositions[dep];
+      const cpx = (from.x + to.x) / 2;
+      s += `<path d="M${from.x} ${from.y} C${cpx} ${from.y} ${cpx} ${to.y} ${to.x} ${to.y}" fill="none" stroke="${COLORS[m.severity]}" stroke-width="1.5" opacity="0.25" marker-end="url(#arrow-sw)" class="anim-edge"/>`;
+    });
+  });
+
+  // Nodes on top
+  Object.entries(nodePositions).forEach(([mid, p], i) => {
+    const m = modById(mid);
+    if (!m) return;
+    const col = COLORS[m.severity];
+    const r = Math.max(16, Math.min(22, m.lineItems / 2.5));
+    s += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${col}" stroke="#fff" stroke-width="2" class="anim-node" style="animation-delay:${i*0.03}s;cursor:pointer"`;
+    s += ` onmouseenter="showTip(event,'<strong>${m.name}</strong>${m.issues} issues · ${m.lineItems} LI · Score ${m.score}<div class=tt-meta>${m.role} · ${m.severity}</div>')" onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${m.name}</strong>${m.issues} issues · ${m.lineItems} LI · Score ${m.score}<div class=tt-meta>${m.role} · ${m.severity}</div>')"/>`;
+    s += `<text x="${p.x}" y="${p.y + 1}" text-anchor="middle" dominant-baseline="central" font-size="${r > 18 ? 9 : 8}" font-weight="600" fill="#fff" pointer-events="none">${m.id}</text>`;
+  });
+
+  // Direction arrow at top
+  s += '<text x="640" y="30" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="#B8BAC2" class="anim-fade">ARCHITECTURAL LAYERS — data flows downward through calculation to output</text>';
+
+  svg.innerHTML = s;
+})();
+
+// ═══════════════════════════════════════════════════════
+// BOTTLENECK — RADIAL FAN-OUT
+// ═══════════════════════════════════════════════════════
+(function renderBnRadial() {
+  const svg = document.getElementById('bn-radial');
+  const W = 1260, H = 480;
+  let s = '';
+
+  s += '<defs>';
+  s += '<marker id="arrow-bn" viewBox="0 0 10 8" refX="10" refY="4" markerWidth="7" markerHeight="5" orient="auto"><path d="M0 1L9 4L0 7" fill="none" stroke="#C0392B" stroke-width="1" stroke-linecap="round"/></marker>';
+  s += '</defs>';
+
+  // Top 3 bottlenecks
+  const bottlenecks = [
+    { mod: modById('DEM06'), fanout: ['DEM07','DEM30','DEM31','SCE13'], cx: 220, cy: 240 },
+    { mod: modById('DCW03'), fanout: ['DCW10','SLP01'], cx: 630, cy: 240 },
+    { mod: modById('PM01'), fanout: ['DEM01','CPM04'], cx: 1040, cy: 240 },
+  ];
+
+  bottlenecks.forEach((bn, bi) => {
+    const m = bn.mod;
+    const col = COLORS[m.severity];
+    const hubR = 32;
+
+    // Label
+    s += `<text x="${bn.cx}" y="${bn.cy - 130}" text-anchor="middle" font-size="13" font-weight="700" fill="#1C2129" class="anim-fade" style="animation-delay:${bi*0.1}s">${m.name}</text>`;
+    s += `<text x="${bn.cx}" y="${bn.cy - 114}" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="#9EA1AB" class="anim-fade" style="animation-delay:${bi*0.12}s">Fan-out: ${bn.fanout.length} modules · ${m.issues} issues</text>`;
+
+    // Concentric pulse rings
+    [60, 90, 120].forEach((r, ri) => {
+      s += `<circle cx="${bn.cx}" cy="${bn.cy}" r="${r}" fill="none" stroke="${col}" stroke-width="1" opacity="${0.2 - ri * 0.04}" stroke-dasharray="3 4"/>`;
+    });
+
+    // Spokes
+    bn.fanout.forEach((depId, di) => {
+      const dep = modById(depId);
+      if (!dep) return;
+      const angle = -Math.PI/2 + (2 * Math.PI * di / bn.fanout.length);
+      const spokeR = 95;
+      const dx = bn.cx + Math.cos(angle) * spokeR;
+      const dy = bn.cy + Math.sin(angle) * spokeR;
+      const depCol = COLORS[dep.severity];
+      const depR = Math.max(14, Math.min(22, dep.lineItems / 2.5));
+      const thickness = Math.max(1.5, Math.min(4, dep.lineItems / 20));
+
+      // Spoke line
+      s += `<line x1="${bn.cx}" y1="${bn.cy}" x2="${dx}" y2="${dy}" stroke="${col}" stroke-width="${thickness}" opacity="0.5" marker-end="url(#arrow-bn)" class="anim-edge" style="animation-delay:${bi*0.1+di*0.08}s"/>`;
+
+      // Dep node
+      s += `<circle cx="${dx}" cy="${dy}" r="${depR}" fill="${depCol}" stroke="#fff" stroke-width="2" class="anim-node" style="animation-delay:${bi*0.1+di*0.06}s;cursor:pointer"`;
+      s += ` onmouseenter="showTip(event,'<strong>${dep.name}</strong>${dep.issues} issues · ${dep.lineItems} LI<div class=tt-meta>Downstream of ${m.id}</div>')" onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${dep.name}</strong>${dep.issues} issues · ${dep.lineItems} LI<div class=tt-meta>Downstream of ${m.id}</div>')"/>`;
+      s += `<text x="${dx}" y="${dy + 1}" text-anchor="middle" dominant-baseline="central" font-size="8" font-weight="600" fill="#fff" pointer-events="none">${dep.id}</text>`;
+
+      // Line item label on spoke
+      s += `<text x="${(bn.cx + dx)/2 + 8}" y="${(bn.cy + dy)/2 - 6}" font-size="8" font-family="IBM Plex Mono, monospace" fill="#B8BAC2" text-anchor="middle">${dep.lineItems} LI</text>`;
+    });
+
+    // Hub node (on top)
+    s += `<circle cx="${bn.cx}" cy="${bn.cy}" r="${hubR}" fill="${col}" stroke="#fff" stroke-width="3" class="anim-node" style="animation-delay:${bi*0.08}s;cursor:pointer"`;
+    s += ` onmouseenter="showTip(event,'<strong>${m.name}</strong>BOTTLENECK · ${m.issues} issues · ${m.lineItems} LI<div class=tt-meta>Score ${m.score} · Fan-out ${bn.fanout.length}</div>')" onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${m.name}</strong>BOTTLENECK · ${m.issues} issues · ${m.lineItems} LI<div class=tt-meta>Score ${m.score} · Fan-out ${bn.fanout.length}</div>')"/>`;
+    s += `<text x="${bn.cx}" y="${bn.cy - 4}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" pointer-events="none">${m.id}</text>`;
+    s += `<text x="${bn.cx}" y="${bn.cy + 9}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.6)" font-family="IBM Plex Mono, monospace" pointer-events="none">${m.lineItems} LI</text>`;
+
+    // Impact bar below
+    const barY = bn.cy + 160;
+    const barW = 160;
+    const impactPct = (100 - m.score) / 100;
+    s += `<rect x="${bn.cx - barW/2}" y="${barY}" width="${barW}" height="6" rx="3" fill="#E8E4DB"/>`;
+    s += `<rect x="${bn.cx - barW/2}" y="${barY}" width="${Math.round(barW * impactPct)}" height="6" rx="3" fill="${col}" opacity="0.7"/>`;
+    s += `<text x="${bn.cx}" y="${barY + 18}" text-anchor="middle" font-size="9" font-family="IBM Plex Mono, monospace" fill="#9EA1AB">Risk: ${100 - m.score}%</text>`;
+  });
+
+  svg.innerHTML = s;
+})();
+
+// ═══════════════════════════════════════════════════════
+// BOTTLENECK — SANKEY FLOW
+// ═══════════════════════════════════════════════════════
+(function renderBnSankey() {
+  const svg = document.getElementById('bn-sankey');
+  const W = 1260, H = 480;
+  let s = '';
+
+  // Columns: bottlenecks → immediate deps → further deps
+  const col1 = [modById('PM01'), modById('DEM06'), modById('DCW03')];
+  const col2 = [modById('DEM01'), modById('CPM04'), modById('DEM07'), modById('DEM30'), modById('DEM31'), modById('SCE13'), modById('DCW10'), modById('SLP01')];
+  const col3 = [modById('DEM03'), modById('SLP05'), modById('CPM08')];
+
+  const colX = [120, 520, 920];
+  const colLabels = ['Bottleneck Hubs', 'Primary Dependents', 'Downstream'];
+
+  // Column labels
+  colLabels.forEach((label, i) => {
+    s += `<text x="${colX[i] + 80}" y="36" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="600" letter-spacing=".06em" fill="#B8BAC2" text-transform="uppercase" class="anim-fade">${label.toUpperCase()}</text>`;
+  });
+
+  function drawCol(col, x, spacing) {
+    const pos = {};
+    const startY = 70;
+    col.forEach((m, i) => {
+      if (!m) return;
+      const ny = startY + i * spacing;
+      const nH = Math.max(28, Math.min(50, m.lineItems * 0.7));
+      const col2 = COLORS[m.severity];
+      pos[m.id] = { x, y: ny, h: nH };
+
+      s += `<rect x="${x}" y="${ny}" width="160" height="${nH}" rx="6" fill="${col2}" opacity="0.1" stroke="${col2}" stroke-width="1" class="anim-node" style="animation-delay:${i*0.05}s;cursor:pointer"`;
+      s += ` onmouseenter="showTip(event,'<strong>${m.name}</strong>${m.issues} issues · ${m.lineItems} LI · Score ${m.score}<div class=tt-meta>${m.role} · ${m.severity}</div>')" onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${m.name}</strong>${m.issues} issues · ${m.lineItems} LI · Score ${m.score}<div class=tt-meta>${m.role} · ${m.severity}</div>')"/>`;
+
+      s += `<circle cx="${x + 14}" cy="${ny + nH/2}" r="4" fill="${col2}"/>`;
+      s += `<text x="${x + 24}" y="${ny + nH/2 + 1}" dominant-baseline="central" font-size="10" font-weight="600" fill="#1C2129" pointer-events="none">${m.id}</text>`;
+      s += `<text x="${x + 148}" y="${ny + nH/2 + 1}" text-anchor="end" dominant-baseline="central" font-size="9" font-family="IBM Plex Mono, monospace" fill="#9EA1AB" pointer-events="none">${m.lineItems} LI</text>`;
+    });
+    return pos;
+  }
+
+  const pos1 = drawCol(col1, colX[0], 130);
+  const pos2 = drawCol(col2, colX[1], 48);
+  const pos3 = drawCol(col3, colX[2], 80);
+
+  const allPos = { ...pos1, ...pos2, ...pos3 };
+
+  // Draw Sankey curves
+  function sankeyPath(fromId, toId) {
+    const f = allPos[fromId], t = allPos[toId];
+    if (!f || !t) return;
+    const fromM = modById(fromId), toM = modById(toId);
+    const thickness = Math.max(2, Math.min(8, (toM?.lineItems || 20) / 10));
+    const col = COLORS[fromM?.severity || 'medium'];
+    const x1 = f.x + 160, y1 = f.y + f.h / 2;
+    const x2 = t.x, y2 = t.y + t.h / 2;
+    const cpx = (x1 + x2) / 2;
+    s += `<path d="M${x1} ${y1} C${cpx} ${y1} ${cpx} ${y2} ${x2} ${y2}" fill="none" stroke="${col}" stroke-width="${thickness}" opacity="0.35" class="anim-edge"/>`;
+  }
+
+  // Col1 → Col2 edges
+  sankeyPath('PM01', 'DEM01');
+  sankeyPath('PM01', 'CPM04');
+  sankeyPath('DEM06', 'DEM07');
+  sankeyPath('DEM06', 'DEM30');
+  sankeyPath('DEM06', 'DEM31');
+  sankeyPath('DEM06', 'SCE13');
+  sankeyPath('DCW03', 'DCW10');
+  sankeyPath('DCW03', 'SLP01');
+
+  // Col2 → Col3 edges
+  sankeyPath('DEM07', 'DEM03');  // actually DEM03 depends on DEM07 via graph
+  sankeyPath('SLP01', 'SLP05');
+  sankeyPath('CPM04', 'CPM08');
+  sankeyPath('SCE13', 'DEM30');
+
+  svg.innerHTML = s;
+})();
+
+// ═══════════════════════════════════════════════════════
+// MODULE TABLE — SPARK BARS + ARCS
+// ═══════════════════════════════════════════════════════
+(function renderModTableSpark() {
+  const wrap = document.getElementById('tbl-spark-wrap');
+  const sorted = [...MODULES].sort((a, b) => a.score - b.score);
+
+  let html = '<table class="mod-tbl"><thead><tr>';
+  html += '<th style="width:28px"></th><th>Module</th><th>Role</th><th>Issues</th><th>Line Items</th><th>Score</th><th>Dependencies</th><th>Severity</th>';
+  html += '</tr></thead><tbody>';
+
+  sorted.forEach((m, i) => {
+    const col = COLORS[m.severity];
+    const depCount = m.deps.length;
+    // Mini arc SVG for dependencies
+    let depSvg = `<svg width="60" height="24" viewBox="0 0 60 24"><text x="0" y="16" font-size="10" font-family="IBM Plex Mono, monospace" fill="#9EA1AB">${depCount}</text>`;
+    for (let d = 0; d < Math.min(depCount, 4); d++) {
+      const arcX = 20 + d * 10;
+      depSvg += `<circle cx="${arcX}" cy="12" r="4" fill="${COLORS[modById(m.deps[d])?.severity || 'medium']}" opacity="0.6" stroke="#fff" stroke-width="0.5"/>`;
+    }
+    if (depCount > 4) depSvg += `<text x="62" y="16" font-size="8" fill="#B8BAC2">+${depCount - 4}</text>`;
+    depSvg += '</svg>';
+
+    html += `<tr style="animation:fadeUp .3s ease-out ${i * 0.03}s both">`;
+    html += `<td><div style="width:3px;height:28px;border-radius:2px;background:${col};opacity:0.7;margin:auto"></div></td>`;
+    html += `<td><span class="mod-name">${m.id}</span><span style="color:#9EA1AB;font-size:11px;margin-left:6px">${m.name.split(' - ')[1] || ''}</span></td>`;
+    html += `<td><span class="mod-role">${m.role}</span></td>`;
+    html += `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:${col}">${m.issues}</td>`;
+    html += `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${m.lineItems}</td>`;
+    html += `<td><div style="display:flex;align-items:center;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:${col}">${m.score}</span><div class="mini-bar"><div class="mini-bar-fill" style="width:${m.score}%;background:${col};opacity:0.6"></div></div></div></td>`;
+    html += `<td>${depSvg}</td>`;
+    html += `<td><span class="sev-chip sev-${m.severity}">${m.severity}</span></td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+})();
+
+// ═══════════════════════════════════════════════════════
+// MODULE TABLE — HEAT STRIP
+// ═══════════════════════════════════════════════════════
+(function renderModTableHeat() {
+  const wrap = document.getElementById('tbl-heat-wrap');
+  const sorted = [...MODULES].sort((a, b) => a.score - b.score);
+
+  let html = '<div style="padding:20px">';
+  html += '<div style="display:flex;gap:3px;margin-bottom:20px;height:8px;border-radius:4px;overflow:hidden">';
+  sorted.forEach(m => {
+    const w = Math.max(3, (m.lineItems / MODULES.reduce((a, x) => a + x.lineItems, 0)) * 100);
+    html += `<div style="flex:${m.lineItems};background:${COLORS[m.severity]};opacity:0.7;transition:opacity .15s;cursor:pointer" title="${m.name}" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.7"></div>`;
+  });
+  html += '</div>';
+
+  sorted.forEach((m, i) => {
+    const col = COLORS[m.severity];
+    const pct = (100 - m.score);
+    html += `<div style="display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid #E8E4DB;animation:fadeUp .3s ease-out ${i*0.03}s both">`;
+    html += `<div style="width:4px;height:32px;border-radius:2px;background:${col};opacity:0.8;flex-shrink:0"></div>`;
+    html += `<div style="width:80px;flex-shrink:0"><span style="font-size:12px;font-weight:700;color:#1C2129">${m.id}</span></div>`;
+    html += `<div style="flex:1;position:relative;height:24px;background:#F2EFE8;border-radius:4px;overflow:hidden">`;
+    html += `<div style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:${col};opacity:0.12;border-radius:4px"></div>`;
+    html += `<div style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:500;color:#4A4E5A">${m.name.split(' - ')[1] || m.name}</div>`;
+    html += `<div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;font-family:'IBM Plex Mono',monospace;color:${col};font-weight:600">${m.score}</div>`;
+    html += `</div>`;
+    html += `<div style="width:50px;text-align:right;font-size:10px;font-family:'IBM Plex Mono',monospace;color:#9EA1AB;flex-shrink:0">${m.lineItems} LI</div>`;
+    html += `<span class="sev-chip sev-${m.severity}" style="flex-shrink:0">${m.severity}</span>`;
+    html += `</div>`;
+  });
+
+  html += '</div>';
+  wrap.innerHTML = html;
+})();
+</script>
+
+</body>
+</html>

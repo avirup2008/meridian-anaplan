@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meridian — Model Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root {
+  --bg: #f8f7f4;
+  --bg2: #f1efe9;
+  --bg3: #e8e5dd;
+  --surface: #ffffff;
+  --surface2: #fafaf8;
+  --ink: #111318;
+  --ink2: #23272f;
+  --ink3: #3d424d;
+  --text: #111318;
+  --text2: #4a5060;
+  --text3: #6b7280;
+  --text4: #9ca3af;
+  --border: #e2dfd8;
+  --border2: #d1cdc4;
+
+  --critical: #dc2626;
+  --critical-light: #fef2f2;
+  --critical-mid: #fee2e2;
+  --critical-border: #fca5a5;
+  --high: #d97706;
+  --high-light: #fffbeb;
+  --high-mid: #fef3c7;
+  --high-border: #fcd34d;
+  --medium: #2563eb;
+  --medium-light: #eff6ff;
+  --medium-mid: #dbeafe;
+  --medium-border: #93c5fd;
+  --clean: #16a34a;
+  --clean-light: #f0fdf4;
+  --clean-mid: #dcfce7;
+  --clean-border: #86efac;
+
+  --accent: #4f46e5;
+
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Instrument Sans', -apple-system, sans-serif;
+  --display: 'Space Grotesk', sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ═══ LAYOUT ═══ */
+.page { max-width: 1160px; margin: 0 auto; padding: 0 40px 100px; }
+
+/* ═══ TOP BAR ═══ */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 0; margin-bottom: 40px;
+  border-bottom: 1px solid var(--border);
+}
+.topbar-brand { font-family: var(--display); font-size: 14px; font-weight: 600; letter-spacing: -.02em; color: var(--ink2); }
+.topbar-brand span { color: var(--accent); }
+.topbar-meta { font-family: var(--mono); font-size: 10px; color: var(--text4); }
+
+/* ═══ HERO ═══ */
+.hero {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 48px;
+  align-items: start;
+  margin-bottom: 52px;
+  padding: 20px 0 36px;
+}
+
+/* Health Gauge */
+.health-gauge { position: relative; width: 300px; height: 300px; display: flex; align-items: center; justify-content: center; }
+.health-gauge svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.gauge-bg { fill: none; stroke: var(--bg2); stroke-width: 6; }
+.gauge-arc { fill: none; stroke-width: 6; stroke-linecap: round; }
+.gauge-severity-critical { stroke: var(--critical); filter: drop-shadow(0 0 4px rgba(220,38,38,.2)); }
+.gauge-severity-high { stroke: var(--high); filter: drop-shadow(0 0 4px rgba(217,119,6,.2)); }
+.gauge-severity-medium { stroke: var(--medium); filter: drop-shadow(0 0 4px rgba(37,99,235,.15)); }
+.gauge-severity-clean { stroke: var(--clean); filter: drop-shadow(0 0 4px rgba(22,163,74,.15)); }
+.gauge-tick { stroke: var(--border2); stroke-width: .5; }
+.gauge-tick-major { stroke: var(--text4); stroke-width: 1; }
+
+.health-center { position: relative; z-index: 1; text-align: center; }
+.health-number {
+  font-family: var(--display); font-size: 68px; font-weight: 700;
+  letter-spacing: -.06em; line-height: 1; color: var(--ink);
+}
+.health-label { font-family: var(--mono); font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: .16em; color: var(--text4); margin-top: 6px; }
+.health-verdict {
+  margin-top: 12px; display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 100px;
+  background: var(--high-light); border: 1px solid var(--high-border);
+}
+.health-verdict-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--high); }
+.health-verdict-text { font-family: var(--mono); font-size: 10px; font-weight: 500; color: var(--high); letter-spacing: .02em; }
+
+/* Severity Distribution */
+.severity-panel { padding-top: 8px; }
+.severity-title { font-family: var(--mono); font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: .14em; color: var(--text4); margin-bottom: 20px; }
+.severity-bars { display: flex; flex-direction: column; gap: 14px; }
+.sev-row { display: grid; grid-template-columns: 72px 1fr 36px; align-items: center; gap: 12px; }
+.sev-label { font-family: var(--mono); font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .02em; }
+.sev-label-critical { color: var(--critical); }
+.sev-label-high { color: var(--high); }
+.sev-label-medium { color: var(--medium); }
+.sev-label-clean { color: var(--clean); }
+.sev-track { height: 24px; background: var(--bg2); border-radius: 4px; position: relative; overflow: hidden; border: 1px solid var(--border); }
+.sev-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; }
+.sev-fill-critical { background: linear-gradient(90deg, var(--critical), #ef4444); }
+.sev-fill-high { background: linear-gradient(90deg, var(--high), #f59e0b); }
+.sev-fill-medium { background: linear-gradient(90deg, var(--medium), #3b82f6); }
+.sev-fill-clean { background: linear-gradient(90deg, var(--clean), #22c55e); }
+.sev-count { font-family: var(--display); font-size: 18px; font-weight: 700; letter-spacing: -.03em; text-align: right; }
+.sev-count-critical { color: var(--critical); }
+.sev-count-high { color: var(--high); }
+.sev-count-medium { color: var(--medium); }
+.sev-count-clean { color: var(--clean); }
+
+.severity-total { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.total-bar { height: 5px; border-radius: 3px; display: flex; overflow: hidden; background: var(--bg3); gap: 2px; }
+.total-seg { height: 100%; border-radius: 3px; }
+.total-seg-critical { background: var(--critical); }
+.total-seg-high { background: var(--high); }
+.total-seg-medium { background: var(--medium); }
+.total-seg-clean { background: var(--clean); }
+
+/* ═══ SECTION ═══ */
+.section { margin-bottom: 40px; }
+.section-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px;
+}
+.section-icon {
+  width: 26px; height: 26px; border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+}
+.section-icon svg { width: 13px; height: 13px; color: var(--text3); }
+.section-title { font-family: var(--display); font-size: 13px; font-weight: 600; letter-spacing: -.01em; color: var(--ink); }
+.section-count { font-family: var(--mono); font-size: 9px; color: var(--text4); background: var(--bg2); padding: 2px 7px; border-radius: 100px; border: 1px solid var(--border); }
+
+/* ═══ MODULE TABLE — collapsed/expandable ═══ */
+.mod-table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+}
+.mod-thead {
+  display: grid;
+  grid-template-columns: 28px 1fr 90px 70px 1fr;
+  padding: 10px 20px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.mod-thead span {
+  font-family: var(--mono); font-size: 9px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text4);
+}
+
+.mod-row { border-bottom: 1px solid var(--border); }
+.mod-row:last-child { border-bottom: none; }
+
+/* Collapsed summary row */
+.mod-row-summary {
+  display: grid;
+  grid-template-columns: 28px 1fr 90px 70px 1fr;
+  padding: 12px 20px;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background .12s;
+  user-select: none;
+}
+.mod-row-summary:hover { background: var(--surface2); }
+.mod-row.is-open .mod-row-summary { background: var(--surface2); }
+
+.mod-chevron {
+  width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+  transition: transform .2s;
+}
+.mod-chevron svg { width: 14px; height: 14px; color: var(--text4); }
+.mod-row.is-open .mod-chevron { transform: rotate(90deg); }
+
+.mod-name-col {}
+.mod-name { font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: -.01em; }
+.mod-purpose { font-family: var(--mono); font-size: 9px; color: var(--text4); margin-top: 1px; }
+
+.mod-sev {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 4px; width: fit-content;
+}
+.mod-sev-critical { background: var(--critical-light); border: 1px solid var(--critical-border); }
+.mod-sev-high { background: var(--high-light); border: 1px solid var(--high-border); }
+.mod-sev-medium { background: var(--medium-light); border: 1px solid var(--medium-border); }
+.mod-sev-clean { background: var(--clean-light); border: 1px solid var(--clean-border); }
+.mod-sev-dot { width: 6px; height: 6px; border-radius: 50%; }
+.mod-sev-text { font-family: var(--mono); font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
+
+.mod-issue-count {
+  font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: -.02em;
+}
+
+/* Collapsed: top issue preview */
+.mod-preview {
+  font-size: 12px; color: var(--text3); line-height: 1.4;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Expanded detail panel */
+.mod-detail {
+  display: none;
+  padding: 4px 24px 18px 60px;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+}
+.mod-row.is-open .mod-detail { display: block; }
+
+.mod-issues { display: flex; flex-direction: column; gap: 10px; }
+.mod-issue {
+  display: flex; align-items: start; gap: 10px;
+  font-size: 13px; color: var(--text2); line-height: 1.5;
+}
+.mod-issue-icon {
+  flex-shrink: 0; width: 16px; height: 16px; margin-top: 1px;
+  border-radius: 3px; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 8px; font-weight: 600; color: #fff;
+}
+.mod-issue-icon-critical { background: var(--critical); }
+.mod-issue-icon-high { background: var(--high); }
+.mod-issue-icon-medium { background: var(--medium); }
+
+.mod-issue-text { flex: 1; }
+.mod-issue-tag {
+  font-family: var(--mono); font-size: 8px; font-weight: 500;
+  padding: 1px 5px; border-radius: 3px; margin-left: 6px;
+  background: var(--bg2); color: var(--text3); white-space: nowrap;
+}
+
+/* ═══ RISK CLUSTERS ═══ */
+.clusters-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.cluster-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+}
+.cluster-header {
+  padding: 14px 18px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.cluster-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.cluster-severity {
+  font-family: var(--mono); font-size: 9px; font-weight: 600;
+  padding: 2px 8px; border-radius: 100px;
+}
+.cluster-sev-critical { background: var(--critical-light); color: var(--critical); border: 1px solid var(--critical-border); }
+.cluster-sev-high { background: var(--high-light); color: var(--high); border: 1px solid var(--high-border); }
+
+/* Mini graph inside cluster */
+.cluster-graph {
+  padding: 4px 18px 8px;
+  height: 80px;
+  position: relative;
+}
+.cluster-graph svg { width: 100%; height: 100%; }
+.cg-edge { stroke: var(--border2); stroke-width: 1.5; fill: none; }
+.cg-node { }
+.cg-node-dot { stroke-width: 2; }
+.cg-node-label { font-family: var(--mono); font-size: 7px; fill: var(--text3); text-anchor: middle; }
+
+.cluster-detail {
+  padding: 0 18px 14px;
+  font-size: 11px; color: var(--text3); line-height: 1.5;
+}
+.cluster-modules {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 8px 18px 14px;
+}
+.cluster-mod-tag {
+  font-family: var(--mono); font-size: 9px; font-weight: 500;
+  padding: 3px 7px; border-radius: 4px;
+  background: var(--bg2); border: 1px solid var(--border); color: var(--text2);
+}
+
+/* ═══ REMEDIATION — compact Gantt-like ═══ */
+.remediation {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+}
+.rem-header-row {
+  display: grid;
+  grid-template-columns: 28px 200px 60px 1fr 70px;
+  padding: 10px 20px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.rem-header-row span {
+  font-family: var(--mono); font-size: 9px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--text4);
+}
+
+.rem-row {
+  display: grid;
+  grid-template-columns: 28px 200px 60px 1fr 70px;
+  padding: 12px 20px;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
+}
+.rem-row:last-child { border-bottom: none; }
+.rem-row:hover { background: var(--surface2); }
+
+.rem-step {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 10px; font-weight: 600; color: #fff;
+}
+.rem-step-critical { background: var(--critical); }
+.rem-step-high { background: var(--high); }
+.rem-step-medium { background: var(--medium); }
+
+.rem-module { }
+.rem-module-name { font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: -.01em; }
+.rem-module-why { font-size: 11px; color: var(--text3); margin-top: 2px; line-height: 1.4; }
+
+.rem-impact {
+  font-family: var(--display); font-size: 15px; font-weight: 700;
+  letter-spacing: -.02em;
+}
+.rem-impact-critical { color: var(--critical); }
+.rem-impact-high { color: var(--high); }
+.rem-impact-medium { color: var(--medium); }
+
+/* Dependency bar visualization */
+.rem-bar-container { position: relative; height: 28px; }
+.rem-bar-track {
+  position: absolute; top: 12px; left: 0; right: 0;
+  height: 4px; background: var(--bg3); border-radius: 2px;
+}
+.rem-bar-fill {
+  height: 100%; border-radius: 2px;
+  position: absolute; top: 0; left: 0;
+}
+.rem-bar-critical { background: var(--critical); }
+.rem-bar-high { background: var(--high); }
+.rem-bar-medium { background: var(--medium); }
+/* Dependency arrow markers */
+.rem-dep-markers {
+  position: absolute; top: 0; left: 0; right: 0; height: 100%;
+  display: flex; align-items: center;
+}
+.rem-dep-tag {
+  position: absolute;
+  font-family: var(--mono); font-size: 7px; color: var(--text4);
+  top: 0;
+}
+.rem-blocked {
+  font-family: var(--mono); font-size: 9px; color: var(--text4);
+}
+.rem-blocked strong { color: var(--text2); font-weight: 600; }
+
+/* ═══ BOTTLENECKS ═══ */
+.bottlenecks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.bn-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+}
+.bn-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; border-radius: 12px 12px 0 0;
+}
+.bn-card-critical::before { background: var(--critical); }
+.bn-card-high::before { background: var(--high); }
+
+.bn-top { display: flex; align-items: start; justify-content: space-between; margin-bottom: 10px; }
+.bn-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.bn-fanout-wrap { text-align: right; }
+.bn-fanout { font-family: var(--display); font-size: 28px; font-weight: 700; line-height: 1; letter-spacing: -.04em; }
+.bn-fanout-critical { color: var(--critical); }
+.bn-fanout-high { color: var(--high); }
+.bn-fanout-label { font-family: var(--mono); font-size: 7px; text-transform: uppercase; letter-spacing: .1em; color: var(--text4); }
+
+.bn-why {
+  font-size: 11px; color: var(--text3); line-height: 1.45; margin-bottom: 10px;
+}
+
+/* Fan-out visualization — proportional circles */
+.bn-viz {
+  display: flex; align-items: center; gap: 3px;
+  margin-bottom: 8px;
+}
+.bn-viz-dot {
+  border-radius: 50%; border: 1.5px solid;
+}
+
+.bn-deps { display: flex; flex-wrap: wrap; gap: 3px; }
+.bn-dep {
+  font-family: var(--mono); font-size: 8px; font-weight: 500;
+  padding: 2px 6px; border-radius: 3px;
+  background: var(--bg2); border: 1px solid var(--border); color: var(--text3);
+}
+
+/* ═══ EVIDENCE ═══ */
+.evidence {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 22px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+}
+.ev-title { font-family: var(--mono); font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: .1em; color: var(--text4); margin-bottom: 12px; }
+.ev-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.ev-stat { text-align: center; padding: 12px 0; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
+.ev-stat-val { font-family: var(--display); font-size: 20px; font-weight: 700; color: var(--ink); letter-spacing: -.03em; }
+.ev-stat-label { font-family: var(--mono); font-size: 8px; color: var(--text4); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.hero { animation: fadeUp .5s cubic-bezier(.16,1,.3,1) both; }
+.section:nth-child(2) { animation: fadeUp .5s .08s cubic-bezier(.16,1,.3,1) both; }
+.section:nth-child(3) { animation: fadeUp .5s .14s cubic-bezier(.16,1,.3,1) both; }
+.section:nth-child(4) { animation: fadeUp .5s .2s cubic-bezier(.16,1,.3,1) both; }
+.section:nth-child(5) { animation: fadeUp .5s .26s cubic-bezier(.16,1,.3,1) both; }
+.section:nth-child(6) { animation: fadeUp .5s .32s cubic-bezier(.16,1,.3,1) both; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="topbar">
+  <div class="topbar-brand"><span>meridian</span> / intelligence</div>
+  <div class="topbar-meta">Revenue Planning FY25 · 31 modules · Scanned 2 min ago</div>
+</div>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <div class="health-gauge">
+    <svg viewBox="0 0 300 300">
+      <g id="ticks"></g>
+      <circle cx="150" cy="150" r="130" class="gauge-bg"/>
+      <!-- Severity outer segments -->
+      <circle cx="150" cy="150" r="140" class="gauge-arc gauge-severity-critical"
+        stroke-dasharray="22 878" stroke-dashoffset="0" transform="rotate(-90 150 150)"/>
+      <circle cx="150" cy="150" r="140" class="gauge-arc gauge-severity-high"
+        stroke-dasharray="44 878" stroke-dashoffset="-24" transform="rotate(-90 150 150)"/>
+      <circle cx="150" cy="150" r="140" class="gauge-arc gauge-severity-medium"
+        stroke-dasharray="58 878" stroke-dashoffset="-70" transform="rotate(-90 150 150)"/>
+      <circle cx="150" cy="150" r="140" class="gauge-arc gauge-severity-clean"
+        stroke-dasharray="88 878" stroke-dashoffset="-130" transform="rotate(-90 150 150)"/>
+      <!-- Score inner arc -->
+      <circle cx="150" cy="150" r="118" class="gauge-bg" stroke-width="10"/>
+      <circle cx="150" cy="150" r="118"
+        style="fill:none;stroke:url(#sg);stroke-width:10;stroke-linecap:round;stroke-dasharray:741;stroke-dashoffset:267"
+        transform="rotate(-90 150 150)"/>
+      <defs>
+        <linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#d97706"/>
+          <stop offset="70%" stop-color="#f59e0b"/>
+          <stop offset="100%" stop-color="#16a34a"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="health-center">
+      <div class="health-number">64</div>
+      <div class="health-label">Model Health</div>
+      <div class="health-verdict">
+        <div class="health-verdict-dot"></div>
+        <div class="health-verdict-text">Needs Attention</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="severity-panel">
+    <div class="severity-title">Severity Distribution</div>
+    <div class="severity-bars">
+      <div class="sev-row">
+        <span class="sev-label sev-label-critical">Critical</span>
+        <div class="sev-track"><div class="sev-fill sev-fill-critical" style="width:18%"></div></div>
+        <span class="sev-count sev-count-critical">3</span>
+      </div>
+      <div class="sev-row">
+        <span class="sev-label sev-label-high">High</span>
+        <div class="sev-track"><div class="sev-fill sev-fill-high" style="width:35%"></div></div>
+        <span class="sev-count sev-count-high">6</span>
+      </div>
+      <div class="sev-row">
+        <span class="sev-label sev-label-medium">Medium</span>
+        <div class="sev-track"><div class="sev-fill sev-fill-medium" style="width:53%"></div></div>
+        <span class="sev-count sev-count-medium">9</span>
+      </div>
+      <div class="sev-row">
+        <span class="sev-label sev-label-clean">Clean</span>
+        <div class="sev-track"><div class="sev-fill sev-fill-clean" style="width:76%"></div></div>
+        <span class="sev-count sev-count-clean">13</span>
+      </div>
+    </div>
+    <div class="severity-total">
+      <div class="total-bar">
+        <div class="total-seg total-seg-critical" style="width:10%"></div>
+        <div class="total-seg total-seg-high" style="width:19%"></div>
+        <div class="total-seg total-seg-medium" style="width:29%"></div>
+        <div class="total-seg total-seg-clean" style="width:42%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODULE RISK TABLE ═══ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z"/></svg></div>
+    <span class="section-title">Module Risk Assessment</span>
+    <span class="section-count">31 modules · showing top 6</span>
+  </div>
+  <div class="mod-table">
+    <div class="mod-thead">
+      <span></span>
+      <span>Module</span>
+      <span>Severity</span>
+      <span>Issues</span>
+      <span>Top Issue</span>
+    </div>
+
+    <!-- REV01 — expanded by default -->
+    <div class="mod-row is-open">
+      <div class="mod-row-summary" onclick="this.parentElement.classList.toggle('is-open')">
+        <div class="mod-chevron"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg></div>
+        <div class="mod-name-col">
+          <div class="mod-name">REV01 Revenue Calc</div>
+          <div class="mod-purpose">Revenue calculation engine · 42 line items</div>
+        </div>
+        <div class="mod-sev mod-sev-critical">
+          <div class="mod-sev-dot" style="background:var(--critical)"></div>
+          <span class="mod-sev-text" style="color:var(--critical)">Critical</span>
+        </div>
+        <div class="mod-issue-count" style="color:var(--critical)">7</div>
+        <div class="mod-preview">Circular reference in forecast lines — self-referencing SUM across time</div>
+      </div>
+      <div class="mod-detail">
+        <div class="mod-issues">
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-critical">!</div><span class="mod-issue-text">Circular reference in forecast lines — self-referencing SUM across time periods<span class="mod-issue-tag">CIRCULAR_REF</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-critical">!</div><span class="mod-issue-text">Missing PREVIOUS/NEXT guards on 3 time-dependent formulas<span class="mod-issue-tag">TEMPORAL</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-critical">!</div><span class="mod-issue-text">No version separation — actuals and forecast mixed in same view<span class="mod-issue-tag">VERSION</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-high">!</div><span class="mod-issue-text">Oversized time dimension applies full calendar to rate line items<span class="mod-issue-tag">TIME_RANGE</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-high">!</div><span class="mod-issue-text">SUM aggregation applied to 4 ratio/rate fields<span class="mod-issue-tag">AGGREGATION</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-medium">!</div><span class="mod-issue-text">2 line items have no formula and no incoming import<span class="mod-issue-tag">ORPHAN</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-medium">!</div><span class="mod-issue-text">Module exceeds 40 line items — candidate for decomposition<span class="mod-issue-tag">SIZE</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMP03 — collapsed -->
+    <div class="mod-row">
+      <div class="mod-row-summary" onclick="this.parentElement.classList.toggle('is-open')">
+        <div class="mod-chevron"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg></div>
+        <div class="mod-name-col">
+          <div class="mod-name">EMP03 Headcount Plan</div>
+          <div class="mod-purpose">Workforce planning · 28 line items</div>
+        </div>
+        <div class="mod-sev mod-sev-critical">
+          <div class="mod-sev-dot" style="background:var(--critical)"></div>
+          <span class="mod-sev-text" style="color:var(--critical)">Critical</span>
+        </div>
+        <div class="mod-issue-count" style="color:var(--critical)">5</div>
+        <div class="mod-preview">SUM aggregation on cost-per-head rate fields produces incorrect totals</div>
+      </div>
+      <div class="mod-detail">
+        <div class="mod-issues">
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-critical">!</div><span class="mod-issue-text">Full calendar applied to headcount — monthly granularity wasted on annual hires<span class="mod-issue-tag">TIME_RANGE</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-critical">!</div><span class="mod-issue-text">SUM aggregation on cost-per-head rate fields produces incorrect totals<span class="mod-issue-tag">AGGREGATION</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-high">!</div><span class="mod-issue-text">Employee list (2,400 items) applied to 3 line items — sparse data<span class="mod-issue-tag">LIST_SIZE</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-high">!</div><span class="mod-issue-text">No subsidiary dimension — cannot consolidate by entity<span class="mod-issue-tag">DIMENSION</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-medium">!</div><span class="mod-issue-text">Hardcoded FTE conversion factor (2080 hrs) embedded in formula<span class="mod-issue-tag">HARDCODE</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FIN02 — collapsed -->
+    <div class="mod-row">
+      <div class="mod-row-summary" onclick="this.parentElement.classList.toggle('is-open')">
+        <div class="mod-chevron"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg></div>
+        <div class="mod-name-col">
+          <div class="mod-name">FIN02 COGS Model</div>
+          <div class="mod-purpose">Cost of goods · 19 line items</div>
+        </div>
+        <div class="mod-sev mod-sev-critical">
+          <div class="mod-sev-dot" style="background:var(--critical)"></div>
+          <span class="mod-sev-text" style="color:var(--critical)">Critical</span>
+        </div>
+        <div class="mod-issue-count" style="color:var(--critical)">4</div>
+        <div class="mod-preview">Hardcoded allocation % bypasses driver inputs — changes require formula edits</div>
+      </div>
+      <div class="mod-detail">
+        <div class="mod-issues">
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-critical">!</div><span class="mod-issue-text">Hardcoded allocation % bypasses driver inputs — changes require formula edits<span class="mod-issue-tag">HARDCODE</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-critical">!</div><span class="mod-issue-text">No version separation between actuals and forecast periods<span class="mod-issue-tag">VERSION</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-high">!</div><span class="mod-issue-text">SELECT on a list with no matching dimension — returns first item silently<span class="mod-issue-tag">LOOKUP</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-medium">!</div><span class="mod-issue-text">3 line items duplicated from REV01 — should reference, not copy<span class="mod-issue-tag">DUPLICATE</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPS07 — collapsed -->
+    <div class="mod-row">
+      <div class="mod-row-summary" onclick="this.parentElement.classList.toggle('is-open')">
+        <div class="mod-chevron"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg></div>
+        <div class="mod-name-col">
+          <div class="mod-name">OPS07 Supply Chain</div>
+          <div class="mod-purpose">Supply chain optimization · 15 line items</div>
+        </div>
+        <div class="mod-sev mod-sev-high">
+          <div class="mod-sev-dot" style="background:var(--high)"></div>
+          <span class="mod-sev-text" style="color:var(--high)">High</span>
+        </div>
+        <div class="mod-issue-count" style="color:var(--high)">4</div>
+        <div class="mod-preview">Unfiltered product list (2,400 items) applied to 3 line items</div>
+      </div>
+      <div class="mod-detail">
+        <div class="mod-issues">
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-high">!</div><span class="mod-issue-text">Unfiltered product list (2,400 items) applied to 3 line items<span class="mod-issue-tag">LIST_SIZE</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-high">!</div><span class="mod-issue-text">Missing subsidiary dimension creates orphaned data in consolidation<span class="mod-issue-tag">DIMENSION</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-medium">!</div><span class="mod-issue-text">Lead time formula uses IF/THEN with 8 nested conditions<span class="mod-issue-tag">COMPLEXITY</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-medium">!</div><span class="mod-issue-text">No PREVIOUS() guard on inventory balance calculation<span class="mod-issue-tag">TEMPORAL</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FIN05 — collapsed -->
+    <div class="mod-row">
+      <div class="mod-row-summary" onclick="this.parentElement.classList.toggle('is-open')">
+        <div class="mod-chevron"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg></div>
+        <div class="mod-name-col">
+          <div class="mod-name">FIN05 P&L Roll-up</div>
+          <div class="mod-purpose">Consolidation · 22 line items</div>
+        </div>
+        <div class="mod-sev mod-sev-high">
+          <div class="mod-sev-dot" style="background:var(--high)"></div>
+          <span class="mod-sev-text" style="color:var(--high)">High</span>
+        </div>
+        <div class="mod-issue-count" style="color:var(--high)">3</div>
+        <div class="mod-preview">Pulls from stale snapshot modules instead of live calculation chains</div>
+      </div>
+      <div class="mod-detail">
+        <div class="mod-issues">
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-high">!</div><span class="mod-issue-text">Pulls from stale snapshot modules instead of live calculation chains<span class="mod-issue-tag">STALE_REF</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-high">!</div><span class="mod-issue-text">No elimination entries for intercompany transactions<span class="mod-issue-tag">CONSOLIDATION</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-medium">!</div><span class="mod-issue-text">Variance formulas reference prior year via hardcoded offset<span class="mod-issue-tag">HARDCODE</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MKT01 — collapsed -->
+    <div class="mod-row">
+      <div class="mod-row-summary" onclick="this.parentElement.classList.toggle('is-open')">
+        <div class="mod-chevron"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg></div>
+        <div class="mod-name-col">
+          <div class="mod-name">MKT01 Pipeline Forecast</div>
+          <div class="mod-purpose">Marketing pipeline · 11 line items</div>
+        </div>
+        <div class="mod-sev mod-sev-medium">
+          <div class="mod-sev-dot" style="background:var(--medium)"></div>
+          <span class="mod-sev-text" style="color:var(--medium)">Medium</span>
+        </div>
+        <div class="mod-issue-count" style="color:var(--medium)">2</div>
+        <div class="mod-preview">Conversion rates stored as text-formatted numbers — breaks downstream math</div>
+      </div>
+      <div class="mod-detail">
+        <div class="mod-issues">
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-medium">!</div><span class="mod-issue-text">Conversion rates stored as text-formatted numbers — breaks downstream math<span class="mod-issue-tag">FORMAT</span></span></div>
+          <div class="mod-issue"><div class="mod-issue-icon mod-issue-icon-medium">!</div><span class="mod-issue-text">Region dimension missing 2 levels in hierarchy vs. master list<span class="mod-issue-tag">HIERARCHY</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RISK CLUSTERS ═══ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg></div>
+    <span class="section-title">Risk Clusters</span>
+    <span class="section-count">3 clusters</span>
+  </div>
+  <div class="clusters-container">
+
+    <!-- Cluster 1 -->
+    <div class="cluster-card">
+      <div class="cluster-header">
+        <span class="cluster-name">Revenue Chain</span>
+        <span class="cluster-severity cluster-sev-critical">Critical</span>
+      </div>
+      <div class="cluster-graph">
+        <svg viewBox="0 0 380 70">
+          <path d="M40,35 C80,35 80,15 120,15" class="cg-edge"/>
+          <path d="M40,35 C80,35 80,55 120,55" class="cg-edge"/>
+          <path d="M120,15 C170,15 170,35 210,35" class="cg-edge"/>
+          <path d="M120,55 C170,55 170,35 210,35" class="cg-edge"/>
+          <path d="M210,35 C250,35 250,20 290,20" class="cg-edge"/>
+          <path d="M210,35 C250,35 250,50 290,50" class="cg-edge"/>
+          <circle cx="40" cy="35" r="8" fill="none" stroke="var(--critical)" stroke-width="2"/><circle cx="40" cy="35" r="3" fill="var(--critical)"/>
+          <text x="40" y="55" class="cg-node-label">REV01</text>
+          <circle cx="120" cy="15" r="6" fill="none" stroke="var(--critical)" stroke-width="2"/><circle cx="120" cy="15" r="2.5" fill="var(--critical)"/>
+          <text x="120" y="5" class="cg-node-label">FIN02</text>
+          <circle cx="120" cy="55" r="6" fill="none" stroke="var(--critical)" stroke-width="2"/><circle cx="120" cy="55" r="2.5" fill="var(--critical)"/>
+          <text x="120" y="68" class="cg-node-label">EMP03</text>
+          <circle cx="210" cy="35" r="7" fill="none" stroke="var(--high)" stroke-width="2"/><circle cx="210" cy="35" r="2.5" fill="var(--high)"/>
+          <text x="210" y="52" class="cg-node-label">FIN05</text>
+          <circle cx="290" cy="20" r="5" fill="none" stroke="var(--medium)" stroke-width="2"/><circle cx="290" cy="20" r="2" fill="var(--medium)"/>
+          <text x="290" y="10" class="cg-node-label">MKT01</text>
+          <circle cx="290" cy="50" r="5" fill="none" stroke="var(--clean)" stroke-width="2"/><circle cx="290" cy="50" r="2" fill="var(--clean)"/>
+          <text x="290" y="63" class="cg-node-label">DRV02</text>
+        </svg>
+      </div>
+      <div class="cluster-detail">REV01 has circular SUM refs. FIN02/EMP03 inherit bad data. FIN05 consolidates stale snapshots. Fix REV01 first — unblocks 5 modules.</div>
+      <div class="cluster-modules">
+        <span class="cluster-mod-tag">REV01</span>
+        <span class="cluster-mod-tag">FIN02</span>
+        <span class="cluster-mod-tag">EMP03</span>
+        <span class="cluster-mod-tag">FIN05</span>
+        <span class="cluster-mod-tag">MKT01</span>
+        <span class="cluster-mod-tag">DRV02</span>
+      </div>
+    </div>
+
+    <!-- Cluster 2 -->
+    <div class="cluster-card">
+      <div class="cluster-header">
+        <span class="cluster-name">Supply & Ops</span>
+        <span class="cluster-severity cluster-sev-high">High</span>
+      </div>
+      <div class="cluster-graph">
+        <svg viewBox="0 0 380 70">
+          <path d="M80,35 C140,35 140,15 200,15" class="cg-edge"/>
+          <path d="M80,35 C140,35 140,55 200,55" class="cg-edge"/>
+          <circle cx="80" cy="35" r="7" fill="none" stroke="var(--high)" stroke-width="2"/><circle cx="80" cy="35" r="2.5" fill="var(--high)"/>
+          <text x="80" y="52" class="cg-node-label">OPS07</text>
+          <circle cx="200" cy="15" r="5" fill="none" stroke="var(--medium)" stroke-width="2"/><circle cx="200" cy="15" r="2" fill="var(--medium)"/>
+          <text x="200" y="5" class="cg-node-label">INV01</text>
+          <circle cx="200" cy="55" r="5" fill="none" stroke="var(--medium)" stroke-width="2"/><circle cx="200" cy="55" r="2" fill="var(--medium)"/>
+          <text x="200" y="68" class="cg-node-label">LOG02</text>
+        </svg>
+      </div>
+      <div class="cluster-detail">OPS07 applies unfiltered 2,400-item list to 3 line items. Missing subsidiary dimension creates orphans in INV01 and LOG02.</div>
+      <div class="cluster-modules">
+        <span class="cluster-mod-tag">OPS07</span>
+        <span class="cluster-mod-tag">INV01</span>
+        <span class="cluster-mod-tag">LOG02</span>
+      </div>
+    </div>
+
+    <!-- Cluster 3 -->
+    <div class="cluster-card">
+      <div class="cluster-header">
+        <span class="cluster-name">CapEx Isolated</span>
+        <span class="cluster-severity cluster-sev-high">High</span>
+      </div>
+      <div class="cluster-graph">
+        <svg viewBox="0 0 380 70">
+          <path d="M80,35 C140,35 140,15 200,15" class="cg-edge"/>
+          <path d="M80,35 C140,35 140,55 200,55" class="cg-edge"/>
+          <circle cx="80" cy="35" r="7" fill="none" stroke="var(--high)" stroke-width="2"/><circle cx="80" cy="35" r="2.5" fill="var(--high)"/>
+          <text x="80" y="52" class="cg-node-label">CAP01</text>
+          <circle cx="200" cy="15" r="5" fill="none" stroke="var(--medium)" stroke-width="2"/><circle cx="200" cy="15" r="2" fill="var(--medium)"/>
+          <text x="200" y="5" class="cg-node-label">CAP02</text>
+          <circle cx="200" cy="55" r="5" fill="none" stroke="var(--medium)" stroke-width="2"/><circle cx="200" cy="55" r="2" fill="var(--medium)"/>
+          <text x="200" y="68" class="cg-node-label">CAP03</text>
+        </svg>
+      </div>
+      <div class="cluster-detail">CAP01 depreciation uses hardcoded useful-life years (not asset-class drivers). CAP02/CAP03 inherit wrong schedules. No link to revenue chain.</div>
+      <div class="cluster-modules">
+        <span class="cluster-mod-tag">CAP01</span>
+        <span class="cluster-mod-tag">CAP02</span>
+        <span class="cluster-mod-tag">CAP03</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ REMEDIATION ORDER ═══ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12"/></svg></div>
+    <span class="section-title">Remediation Order</span>
+    <span class="section-count">6 steps</span>
+  </div>
+  <div class="remediation">
+    <div class="rem-header-row">
+      <span>#</span>
+      <span>Module</span>
+      <span>Impact</span>
+      <span>Key Action</span>
+      <span>Blocked By</span>
+    </div>
+    <div class="rem-row">
+      <div class="rem-step rem-step-critical">1</div>
+      <div class="rem-module">
+        <div class="rem-module-name">REV01 Revenue Calc</div>
+        <div class="rem-module-why">Root node — 12 modules depend on this</div>
+      </div>
+      <div class="rem-impact rem-impact-critical">+18 pts</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.4">Break circular refs in forecast lines, add PREVIOUS/NEXT guards, separate versions</div>
+      <div class="rem-blocked">—</div>
+    </div>
+    <div class="rem-row">
+      <div class="rem-step rem-step-critical">2</div>
+      <div class="rem-module">
+        <div class="rem-module-name">EMP03 Headcount</div>
+        <div class="rem-module-why">8 downstream dependencies</div>
+      </div>
+      <div class="rem-impact rem-impact-critical">+12 pts</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.4">Narrow time dimension scope, fix SUM→AVERAGE on rate fields</div>
+      <div class="rem-blocked"><strong>REV01</strong></div>
+    </div>
+    <div class="rem-row">
+      <div class="rem-step rem-step-critical">3</div>
+      <div class="rem-module">
+        <div class="rem-module-name">FIN02 COGS</div>
+        <div class="rem-module-why">6 downstream dependencies</div>
+      </div>
+      <div class="rem-impact rem-impact-critical">+9 pts</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.4">Replace hardcoded allocations with driver module, add version switchover</div>
+      <div class="rem-blocked"><strong>REV01</strong></div>
+    </div>
+    <div class="rem-row">
+      <div class="rem-step rem-step-high">4</div>
+      <div class="rem-module">
+        <div class="rem-module-name">OPS07 Supply Chain</div>
+        <div class="rem-module-why">4 downstream dependencies</div>
+      </div>
+      <div class="rem-impact rem-impact-high">+7 pts</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.4">Filter product list to active SKUs, add subsidiary dimension</div>
+      <div class="rem-blocked"><strong>EMP03</strong></div>
+    </div>
+    <div class="rem-row">
+      <div class="rem-step rem-step-high">5</div>
+      <div class="rem-module">
+        <div class="rem-module-name">FIN05 P&L Roll-up</div>
+        <div class="rem-module-why">3 downstream dependencies</div>
+      </div>
+      <div class="rem-impact rem-impact-high">+5 pts</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.4">Rewire to live calc chains, add intercompany elimination entries</div>
+      <div class="rem-blocked"><strong>FIN02, EMP03</strong></div>
+    </div>
+    <div class="rem-row">
+      <div class="rem-step rem-step-medium">6</div>
+      <div class="rem-module">
+        <div class="rem-module-name">MKT01 Pipeline</div>
+        <div class="rem-module-why">1 downstream dependency</div>
+      </div>
+      <div class="rem-impact rem-impact-medium">+3 pts</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.4">Reformat conversion rates to numeric, add missing hierarchy levels</div>
+      <div class="rem-blocked"><strong>FIN05</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BOTTLENECKS ═══ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg></div>
+    <span class="section-title">Bottleneck Analysis</span>
+    <span class="section-count">3 identified</span>
+  </div>
+  <div class="bottlenecks">
+    <div class="bn-card bn-card-critical">
+      <div class="bn-top">
+        <div class="bn-name">REV01 Revenue Calc</div>
+        <div class="bn-fanout-wrap">
+          <div class="bn-fanout bn-fanout-critical">12</div>
+          <div class="bn-fanout-label">Fan-out</div>
+        </div>
+      </div>
+      <div class="bn-why">Highest-risk single point of failure. Circular references cascade into 12 downstream modules across all functional areas.</div>
+      <div class="bn-viz">
+        <div class="bn-viz-dot" style="width:14px;height:14px;background:var(--critical-light);border-color:var(--critical)"></div>
+        <div class="bn-viz-dot" style="width:10px;height:10px;background:var(--critical-light);border-color:var(--critical)"></div>
+        <div class="bn-viz-dot" style="width:10px;height:10px;background:var(--high-light);border-color:var(--high)"></div>
+        <div class="bn-viz-dot" style="width:8px;height:8px;background:var(--high-light);border-color:var(--high)"></div>
+        <div class="bn-viz-dot" style="width:8px;height:8px;background:var(--medium-light);border-color:var(--medium)"></div>
+        <div class="bn-viz-dot" style="width:6px;height:6px;background:var(--medium-light);border-color:var(--medium)"></div>
+        <div class="bn-viz-dot" style="width:6px;height:6px;background:var(--clean-light);border-color:var(--clean)"></div>
+        <div class="bn-viz-dot" style="width:6px;height:6px;background:var(--clean-light);border-color:var(--clean)"></div>
+        <div class="bn-viz-dot" style="width:5px;height:5px;background:var(--clean-light);border-color:var(--clean)"></div>
+        <div class="bn-viz-dot" style="width:5px;height:5px;background:var(--clean-light);border-color:var(--clean)"></div>
+        <div class="bn-viz-dot" style="width:5px;height:5px;background:var(--clean-light);border-color:var(--clean)"></div>
+        <div class="bn-viz-dot" style="width:5px;height:5px;background:var(--clean-light);border-color:var(--clean)"></div>
+      </div>
+      <div class="bn-deps">
+        <span class="bn-dep">EMP03</span><span class="bn-dep">FIN02</span><span class="bn-dep">FIN05</span>
+        <span class="bn-dep">OPS07</span><span class="bn-dep">MKT01</span><span class="bn-dep">DRV02</span>
+        <span class="bn-dep">+6</span>
+      </div>
+    </div>
+
+    <div class="bn-card bn-card-critical">
+      <div class="bn-top">
+        <div class="bn-name">EMP03 Headcount</div>
+        <div class="bn-fanout-wrap">
+          <div class="bn-fanout bn-fanout-critical">8</div>
+          <div class="bn-fanout-label">Fan-out</div>
+        </div>
+      </div>
+      <div class="bn-why">Workforce costs feed into every cost center. Incorrect aggregation on rate fields corrupts all downstream P&L lines.</div>
+      <div class="bn-viz">
+        <div class="bn-viz-dot" style="width:12px;height:12px;background:var(--critical-light);border-color:var(--critical)"></div>
+        <div class="bn-viz-dot" style="width:10px;height:10px;background:var(--high-light);border-color:var(--high)"></div>
+        <div class="bn-viz-dot" style="width:8px;height:8px;background:var(--high-light);border-color:var(--high)"></div>
+        <div class="bn-viz-dot" style="width:8px;height:8px;background:var(--medium-light);border-color:var(--medium)"></div>
+        <div class="bn-viz-dot" style="width:6px;height:6px;background:var(--medium-light);border-color:var(--medium)"></div>
+        <div class="bn-viz-dot" style="width:6px;height:6px;background:var(--clean-light);border-color:var(--clean)"></div>
+        <div class="bn-viz-dot" style="width:6px;height:6px;background:var(--clean-light);border-color:var(--clean)"></div>
+        <div class="bn-viz-dot" style="width:5px;height:5px;background:var(--clean-light);border-color:var(--clean)"></div>
+      </div>
+      <div class="bn-deps">
+        <span class="bn-dep">FIN05</span><span class="bn-dep">OPS07</span><span class="bn-dep">CAP01</span>
+        <span class="bn-dep">BUD02</span><span class="bn-dep">+4</span>
+      </div>
+    </div>
+
+    <div class="bn-card bn-card-high">
+      <div class="bn-top">
+        <div class="bn-name">FIN02 COGS</div>
+        <div class="bn-fanout-wrap">
+          <div class="bn-fanout bn-fanout-high">6</div>
+          <div class="bn-fanout-label">Fan-out</div>
+        </div>
+      </div>
+      <div class="bn-why">Hardcoded allocations mean any cost structure change requires manual formula edits across 6 consuming modules.</div>
+      <div class="bn-viz">
+        <div class="bn-viz-dot" style="width:10px;height:10px;background:var(--high-light);border-color:var(--high)"></div>
+        <div class="bn-viz-dot" style="width:8px;height:8px;background:var(--high-light);border-color:var(--high)"></div>
+        <div class="bn-viz-dot" style="width:8px;height:8px;background:var(--medium-light);border-color:var(--medium)"></div>
+        <div class="bn-viz-dot" style="width:6px;height:6px;background:var(--medium-light);border-color:var(--medium)"></div>
+        <div class="bn-viz-dot" style="width:6px;height:6px;background:var(--clean-light);border-color:var(--clean)"></div>
+        <div class="bn-viz-dot" style="width:5px;height:5px;background:var(--clean-light);border-color:var(--clean)"></div>
+      </div>
+      <div class="bn-deps">
+        <span class="bn-dep">FIN05</span><span class="bn-dep">REP01</span><span class="bn-dep">BUD01</span>
+        <span class="bn-dep">+3</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EVIDENCE ═══ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/></svg></div>
+    <span class="section-title">Evidence Boundaries</span>
+  </div>
+  <div class="evidence">
+    <div class="ev-title">Analysis Scope & Limitations</div>
+    <div class="ev-grid">
+      <div class="ev-stat">
+        <div class="ev-stat-val">31</div>
+        <div class="ev-stat-label">Modules</div>
+      </div>
+      <div class="ev-stat">
+        <div class="ev-stat-val">847</div>
+        <div class="ev-stat-label">Line Items</div>
+      </div>
+      <div class="ev-stat">
+        <div class="ev-stat-val">12</div>
+        <div class="ev-stat-label">Lists</div>
+      </div>
+      <div class="ev-stat">
+        <div class="ev-stat-val">156</div>
+        <div class="ev-stat-label">Formulas Parsed</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+(function(){
+  const t=document.getElementById('ticks');
+  const cx=150,cy=150,r=148;
+  for(let i=0;i<60;i++){
+    const a=(i/60)*360-90,rad=a*Math.PI/180;
+    const len=i%5===0?6:3;
+    const x1=cx+(r-len)*Math.cos(rad),y1=cy+(r-len)*Math.sin(rad);
+    const x2=cx+r*Math.cos(rad),y2=cy+r*Math.sin(rad);
+    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1',x1);l.setAttribute('y1',y1);
+    l.setAttribute('x2',x2);l.setAttribute('y2',y2);
+    l.setAttribute('class',i%5===0?'gauge-tick-major':'gauge-tick');
+    t.appendChild(l);
+  }
+})();
+</script>
+</body>
+</html>

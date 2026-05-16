@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meridian Intelligence — Mockup v2</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:#f7f5f2;color:#1c2129;-webkit-font-smoothing:antialiased}
+:root{
+  --bg:#f7f5f2;--bg2:#f0ede8;--surface:#fff;
+  --text:#1c2129;--text2:#4a4f5a;--text3:#7a7f8a;--text4:#a0a4ae;
+  --border:#e2dfd9;--border2:#ccc8c0;
+  --neg:#c0392b;--neg-light:#e74c3c;--neg-pale:#fdf2f0;
+  --gold:#b8860b;--gold-light:#d4a017;--gold-pale:#fdf6e8;
+  --accent:#4a6fa5;--accent-pale:#eef2f8;
+  --pos:#2d7d46;--pos-pale:#f0f8f2;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --sh-md:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+  --sh-lg:0 8px 24px rgba(0,0,0,.1),0 4px 8px rgba(0,0,0,.06);
+}
+
+/* ─── Layout ─────────────────────────────────────── */
+.page{max-width:960px;margin:0 auto;padding:0 24px 80px}
+
+/* ─── Hero — dark header with score ring ─────────── */
+.hero{background:linear-gradient(135deg,#1c2129 0%,#2a3040 100%);border-radius:0 0 20px 20px;padding:40px 40px 0;margin:0 -24px;color:#fff;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:rgba(74,111,165,.12)}
+.hero::after{content:'';position:absolute;bottom:-40px;left:30%;width:300px;height:100px;border-radius:50%;background:rgba(74,111,165,.06)}
+.hero-top{display:flex;align-items:center;gap:8px;margin-bottom:20px}
+.hero-domain{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.5)}
+.hero-grid{display:grid;grid-template-columns:1fr auto;gap:40px;align-items:center;padding-bottom:36px}
+.hero-left{}
+.hero-title{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-bottom:12px}
+.hero-title span{color:var(--gold-light)}
+.hero-sub{font-size:13px;color:rgba(255,255,255,.55);line-height:1.6;max-width:440px}
+.hero-meta{display:flex;gap:20px;margin-top:16px}
+.hero-meta-item{display:flex;flex-direction:column;gap:2px}
+.hero-meta-label{font-family:'IBM Plex Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.35)}
+.hero-meta-val{font-size:13px;font-weight:600;color:rgba(255,255,255,.85)}
+
+/* Score Ring */
+.score-ring{position:relative;width:160px;height:160px;flex-shrink:0}
+.score-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.score-ring-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:10}
+.score-ring-fill{fill:none;stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .8s ease}
+.score-ring-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-num{font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.score-denom{font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(255,255,255,.4);margin-top:2px}
+.score-label{font-family:'IBM Plex Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.35);margin-top:4px}
+
+/* ─── Severity Bar — floating card overlapping hero ─ */
+.sev-bar-wrap{margin:-28px 16px 0;position:relative;z-index:2}
+.sev-bar{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--sh-lg);display:grid;grid-template-columns:repeat(4,1fr);overflow:hidden}
+.sev-cell{padding:20px 16px;text-align:center;position:relative}
+.sev-cell+.sev-cell{border-left:1px solid var(--border)}
+.sev-num{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:4px}
+.sev-num-crit{color:var(--neg)}
+.sev-num-high{color:var(--gold)}
+.sev-num-clean{color:var(--pos)}
+.sev-label{font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text4)}
+/* Severity mini-bar under each cell */
+.sev-minibar{height:3px;border-radius:2px;margin:8px auto 0;width:60%}
+.sev-minibar-crit{background:linear-gradient(90deg,var(--neg),var(--neg-light))}
+.sev-minibar-high{background:linear-gradient(90deg,var(--gold),var(--gold-light))}
+.sev-minibar-clean{background:linear-gradient(90deg,var(--pos),#4caf50)}
+.sev-minibar-total{background:var(--border2)}
+
+/* ─── Stacked severity distribution bar ──────────── */
+.dist-bar-wrap{margin:28px 16px 0;padding:0 16px}
+.dist-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--bg2)}
+.dist-seg{transition:width .6s ease}
+.dist-seg-crit{background:var(--neg)}
+.dist-seg-high{background:var(--gold)}
+.dist-seg-med{background:var(--accent)}
+.dist-seg-clean{background:#d4dce4}
+.dist-legend{display:flex;gap:16px;margin-top:8px;justify-content:center}
+.dist-legend-item{display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3)}
+.dist-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* ─── Section Headers ────────────────────────────── */
+.section{margin-top:44px;padding:0 16px}
+.section-hd{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.section-label{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--text4);white-space:nowrap}
+.section-rule{flex:1;height:1px;background:var(--border);opacity:.5}
+.section-count{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);white-space:nowrap}
+
+/* ─── Module Table — real table layout ───────────── */
+.mod-table{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--sh);overflow:hidden}
+.mod-table-hd{display:grid;grid-template-columns:4px 1fr 100px 70px 80px 30px;padding:8px 16px 8px 0;border-bottom:1px solid var(--border);background:var(--bg2)}
+.mod-table-hd span{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text4)}
+.mod-table-hd span:first-child{width:4px}
+.mod-row{display:grid;grid-template-columns:4px 1fr 100px 70px 80px 30px;align-items:center;border-bottom:1px solid var(--border);transition:background .12s;cursor:pointer}
+.mod-row:last-child{border-bottom:0}
+.mod-row:hover{background:var(--bg2)}
+.mod-row.expanded{background:var(--bg2);border-bottom-color:transparent}
+.mod-accent{width:4px;align-self:stretch}
+.mod-accent-crit{background:var(--neg)}
+.mod-accent-high{background:var(--gold)}
+.mod-accent-med{background:var(--accent)}
+.mod-accent-low{background:var(--border2)}
+.mod-name-cell{padding:12px 16px;min-width:0}
+.mod-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mod-purpose{font-size:11px;color:var(--text3);line-height:1.45;margin-top:3px;display:none;white-space:normal}
+.expanded .mod-purpose{display:block}
+/* Inline severity bar per row */
+.mod-sev-cell{padding:0 12px}
+.mod-sev-bar{height:6px;border-radius:3px;background:var(--bg2);overflow:hidden;width:80px}
+.mod-sev-fill{height:100%;border-radius:3px}
+.mod-sev-fill-crit{background:var(--neg);width:90%}
+.mod-sev-fill-high{background:var(--gold);width:70%}
+.mod-sev-fill-med{background:var(--accent);width:45%}
+.mod-sev-fill-low{background:var(--border2);width:20%}
+.mod-items-cell{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);padding:0 12px;text-align:right}
+.mod-badge-cell{padding:0 8px}
+.mod-badge{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:3px 7px;border-radius:4px;text-align:center;display:inline-block}
+.badge-crit{background:var(--neg);color:#fff}
+.badge-high{background:var(--gold);color:#fff}
+.badge-med{background:var(--accent-pale);color:var(--accent)}
+.badge-low{background:var(--bg2);color:var(--text4)}
+.mod-chevron-cell{text-align:center;color:var(--text4);font-size:9px;padding:0 8px}
+.mod-chevron{transition:transform .2s ease;display:inline-block}
+.expanded .mod-chevron{transform:rotate(90deg)}
+
+/* Expanded detail row */
+.mod-detail{display:none;background:var(--bg2);border-bottom:1px solid var(--border);padding:4px 20px 16px 20px}
+.mod-detail.open{display:block}
+.issue{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-top:8px;transition:border-color .15s}
+.issue:hover{border-color:var(--border2)}
+.issue-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:8px}
+.issue-rows{display:flex;flex-direction:column;gap:5px}
+.issue-row{display:flex;align-items:baseline;gap:8px}
+.issue-tag{font-family:'IBM Plex Mono',monospace;font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:3px;flex-shrink:0;min-width:32px;text-align:center}
+.tag-risk{color:var(--neg);background:var(--neg-pale)}
+.tag-fix{color:var(--pos);background:var(--pos-pale)}
+.issue-text{font-size:11px;color:var(--text2);line-height:1.5}
+.detail-footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px}
+.detail-stats{display:flex;gap:14px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4)}
+.detail-more{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--accent);cursor:pointer}
+
+/* ─── Risk Clusters ──────────────────────────────── */
+.cluster{background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--sh);overflow:hidden;margin-bottom:8px;display:grid;grid-template-columns:4px 1fr auto;transition:border-color .15s}
+.cluster:hover{border-color:var(--border2)}
+.cluster-body{padding:12px 16px}
+.cluster-trigger{font-size:12.5px;font-weight:500;color:var(--text);line-height:1.4}
+.cluster-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);margin-top:3px}
+.cluster-right{display:flex;align-items:center;padding:0 16px}
+
+/* ─── Two-Column Bottom ──────────────────────────── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+.col-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--sh);padding:20px}
+.col-card-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+
+/* Fix Steps */
+.fix-step{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);position:relative}
+.fix-step:last-child{border-bottom:0}
+.fix-step::before{content:'';position:absolute;left:10px;top:34px;bottom:-2px;width:1px;background:var(--border)}
+.fix-step:last-child::before{display:none}
+.fix-num{min-width:22px;height:22px;border-radius:50%;background:var(--text);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;flex-shrink:0;z-index:1}
+.fix-body{min-width:0;padding-top:2px}
+.fix-pills{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.fix-pill{font-size:10px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;color:var(--text2);white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}
+.fix-overflow{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4)}
+.fix-tag{font-family:'IBM Plex Mono',monospace;font-size:7.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-top:3px}
+
+/* Bottlenecks */
+.bn-item{display:grid;grid-template-columns:1fr auto;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px}
+.bn-item:last-child{border-bottom:0}
+.bn-name{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px}
+.bn-name b{font-weight:600}
+.bn-fan{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);white-space:nowrap;margin-left:12px}
+/* Fan-out mini bar */
+.bn-bar-wrap{display:flex;align-items:center;gap:6px}
+.bn-bar{height:4px;border-radius:2px;background:var(--accent);min-width:4px}
+
+/* ─── Evidence Boundaries ────────────────────────── */
+.evidence{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 22px}
+.ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.ev-hd{font-size:10.5px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.ev-hd-pos{color:var(--pos)}
+.ev-hd-neg{color:var(--text4)}
+.ev-icon{width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700}
+.ev-icon-pos{background:var(--pos-pale);color:var(--pos)}
+.ev-icon-neg{background:var(--bg2);color:var(--text4);border:1px solid var(--border)}
+.ev-list{font-size:10px;color:var(--text3);line-height:1.8;padding-left:14px;margin:0;list-style:none}
+.ev-list li{position:relative;padding-left:10px}
+.ev-list li::before{content:'';position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%}
+.ev-list-pos li::before{background:var(--pos)}
+.ev-list-neg li::before{background:var(--text4);opacity:.4}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- DARK HERO — health score ring, domain context              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-top">
+    <span class="hero-domain">Supply Chain Planning &middot; Model Intelligence Report</span>
+  </div>
+  <div class="hero-grid">
+    <div class="hero-left">
+      <h1 class="hero-title">15 modules need attention<br>across <span>214</span> analysed</h1>
+      <p class="hero-sub">Deterministic analysis of every formula, dependency, and aggregation pattern. Issues are ranked by blast radius — how many downstream outputs they affect.</p>
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Naming</span>
+          <span class="hero-meta-val">Client-prefix</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Formula Risk</span>
+          <span class="hero-meta-val">High</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Evidence</span>
+          <span class="hero-meta-val">Qualified</span>
+        </div>
+      </div>
+    </div>
+    <div class="score-ring">
+      <svg viewBox="0 0 120 120">
+        <circle class="score-ring-bg" cx="60" cy="60" r="52"/>
+        <circle class="score-ring-fill" cx="60" cy="60" r="52"
+          stroke="#4caf50"
+          stroke-dasharray="326.7"
+          stroke-dashoffset="29.4"/>
+      </svg>
+      <div class="score-ring-val">
+        <div class="score-num">91</div>
+        <div class="score-denom">/100</div>
+        <div class="score-label">Health</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SEVERITY STRIP — floating card overlapping hero            -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="page">
+<div class="sev-bar-wrap">
+  <div class="sev-bar">
+    <div class="sev-cell">
+      <div class="sev-num">214</div>
+      <div class="sev-label">Modules</div>
+      <div class="sev-minibar sev-minibar-total"></div>
+    </div>
+    <div class="sev-cell">
+      <div class="sev-num sev-num-crit">33</div>
+      <div class="sev-label">Critical</div>
+      <div class="sev-minibar sev-minibar-crit"></div>
+    </div>
+    <div class="sev-cell">
+      <div class="sev-num sev-num-high">31</div>
+      <div class="sev-label">High</div>
+      <div class="sev-minibar sev-minibar-high"></div>
+    </div>
+    <div class="sev-cell">
+      <div class="sev-num sev-num-clean">58</div>
+      <div class="sev-label">Clean</div>
+      <div class="sev-minibar sev-minibar-clean"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Severity distribution bar -->
+<div class="dist-bar-wrap">
+  <div class="dist-bar">
+    <div class="dist-seg dist-seg-crit" style="width:15.4%"></div>
+    <div class="dist-seg dist-seg-high" style="width:14.5%"></div>
+    <div class="dist-seg dist-seg-med" style="width:43%"></div>
+    <div class="dist-seg dist-seg-clean" style="width:27.1%"></div>
+  </div>
+  <div class="dist-legend">
+    <span class="dist-legend-item"><span class="dist-dot" style="background:var(--neg)"></span>Critical 33</span>
+    <span class="dist-legend-item"><span class="dist-dot" style="background:var(--gold)"></span>High 31</span>
+    <span class="dist-legend-item"><span class="dist-dot" style="background:var(--accent)"></span>Medium 92</span>
+    <span class="dist-legend-item"><span class="dist-dot" style="background:#d4dce4"></span>Clean 58</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MODULE TABLE — sortable, inline severity bars              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-hd">
+    <span class="section-label">Highest-Risk Modules</span>
+    <span class="section-rule"></span>
+    <span class="section-count">showing 8 of 156</span>
+  </div>
+
+  <div class="mod-table">
+    <div class="mod-table-hd">
+      <span></span>
+      <span style="padding-left:16px">Module</span>
+      <span>Severity</span>
+      <span style="text-align:right">Items</span>
+      <span>Rating</span>
+      <span></span>
+    </div>
+
+    <!-- Row 1 — Expanded -->
+    <div class="mod-row expanded" onclick="this.classList.toggle('expanded');this.nextElementSibling.classList.toggle('open')">
+      <div class="mod-accent mod-accent-crit"></div>
+      <div class="mod-name-cell">
+        <div class="mod-name">DEM06 - Opportunity Management</div>
+        <div class="mod-purpose">Core calculation hub — reads from SLP04, SLP05, SYS03 and feeds SYS14, DEM01, DEM03. Operates at PR06 - Opportunity grain.</div>
+      </div>
+      <div class="mod-sev-cell"><div class="mod-sev-bar"><div class="mod-sev-fill mod-sev-fill-crit"></div></div></div>
+      <div class="mod-items-cell">92</div>
+      <div class="mod-badge-cell"><span class="mod-badge badge-crit">Critical</span></div>
+      <div class="mod-chevron-cell"><span class="mod-chevron">&#9654;</span></div>
+    </div>
+    <div class="mod-detail open">
+      <div class="issue">
+        <div class="issue-name">Range hardcodes a list member name in SELECT</div>
+        <div class="issue-rows">
+          <div class="issue-row"><span class="issue-tag tag-risk">Risk</span><span class="issue-text">If that member is renamed, this formula silently returns zero</span></div>
+          <div class="issue-row"><span class="issue-tag tag-fix">Fix</span><span class="issue-text">Replace the hardcoded SELECT with a system module lookup or driver list reference</span></div>
+        </div>
+      </div>
+      <div class="issue">
+        <div class="issue-name">Stage Risk Category uses 5 levels of nested IF logic</div>
+        <div class="issue-rows">
+          <div class="issue-row"><span class="issue-tag tag-risk">Risk</span><span class="issue-text">Deepest branches cannot be isolated or tested — edge-case inputs silently return wrong values</span></div>
+          <div class="issue-row"><span class="issue-tag tag-fix">Fix</span><span class="issue-text">Extract conditions into a mapping/driver module and resolve with LOOKUP</span></div>
+        </div>
+      </div>
+      <div class="detail-footer">
+        <div class="detail-stats">
+          <span>80 formulas</span>
+          <span>91 dependencies</span>
+          <span>PR06 - Opportunity</span>
+        </div>
+        <div class="detail-more">+4 more issues</div>
+      </div>
+    </div>
+
+    <!-- Row 2 -->
+    <div class="mod-row" onclick="this.classList.toggle('expanded');this.nextElementSibling.classList.toggle('open')">
+      <div class="mod-accent mod-accent-crit"></div>
+      <div class="mod-name-cell"><div class="mod-name">SLP05 - Slots</div></div>
+      <div class="mod-sev-cell"><div class="mod-sev-bar"><div class="mod-sev-fill mod-sev-fill-crit" style="width:85%"></div></div></div>
+      <div class="mod-items-cell">58</div>
+      <div class="mod-badge-cell"><span class="mod-badge badge-crit">Critical</span></div>
+      <div class="mod-chevron-cell"><span class="mod-chevron">&#9654;</span></div>
+    </div>
+    <div class="mod-detail"></div>
+
+    <!-- Row 3 -->
+    <div class="mod-row" onclick="this.classList.toggle('expanded');this.nextElementSibling.classList.toggle('open')">
+      <div class="mod-accent mod-accent-crit"></div>
+      <div class="mod-name-cell"><div class="mod-name">MOD01 - General Settings</div></div>
+      <div class="mod-sev-cell"><div class="mod-sev-bar"><div class="mod-sev-fill mod-sev-fill-crit" style="width:75%"></div></div></div>
+      <div class="mod-items-cell">40</div>
+      <div class="mod-badge-cell"><span class="mod-badge badge-crit">Critical</span></div>
+      <div class="mod-chevron-cell"><span class="mod-chevron">&#9654;</span></div>
+    </div>
+    <div class="mod-detail"></div>
+
+    <!-- Row 4 -->
+    <div class="mod-row" onclick="this.classList.toggle('expanded');this.nextElementSibling.classList.toggle('open')">
+      <div class="mod-accent mod-accent-crit"></div>
+      <div class="mod-name-cell"><div class="mod-name">DCW03 - Stat Calculations</div></div>
+      <div class="mod-sev-cell"><div class="mod-sev-bar"><div class="mod-sev-fill mod-sev-fill-crit" style="width:95%"></div></div></div>
+      <div class="mod-items-cell">195</div>
+      <div class="mod-badge-cell"><span class="mod-badge badge-crit">Critical</span></div>
+      <div class="mod-chevron-cell"><span class="mod-chevron">&#9654;</span></div>
+    </div>
+    <div class="mod-detail"></div>
+
+    <!-- Row 5 — High -->
+    <div class="mod-row" onclick="this.classList.toggle('expanded');this.nextElementSibling.classList.toggle('open')">
+      <div class="mod-accent mod-accent-high"></div>
+      <div class="mod-name-cell"><div class="mod-name">SUP04 - Calculations Weekly</div></div>
+      <div class="mod-sev-cell"><div class="mod-sev-bar"><div class="mod-sev-fill mod-sev-fill-high"></div></div></div>
+      <div class="mod-items-cell">120</div>
+      <div class="mod-badge-cell"><span class="mod-badge badge-high">High</span></div>
+      <div class="mod-chevron-cell"><span class="mod-chevron">&#9654;</span></div>
+    </div>
+    <div class="mod-detail"></div>
+
+    <!-- Row 6 — Medium -->
+    <div class="mod-row" onclick="this.classList.toggle('expanded');this.nextElementSibling.classList.toggle('open')">
+      <div class="mod-accent mod-accent-med"></div>
+      <div class="mod-name-cell"><div class="mod-name">Income Statement</div></div>
+      <div class="mod-sev-cell"><div class="mod-sev-bar"><div class="mod-sev-fill mod-sev-fill-med"></div></div></div>
+      <div class="mod-items-cell">45</div>
+      <div class="mod-badge-cell"><span class="mod-badge badge-med">Medium</span></div>
+      <div class="mod-chevron-cell"><span class="mod-chevron">&#9654;</span></div>
+    </div>
+    <div class="mod-detail"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- RISK CLUSTERS                                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-hd">
+    <span class="section-label">Risk Clusters</span>
+    <span class="section-rule"></span>
+  </div>
+  <div class="cluster">
+    <div class="mod-accent mod-accent-crit"></div>
+    <div class="cluster-body">
+      <div class="cluster-trigger">Rename of 'Actual' in Versions</div>
+      <div class="cluster-meta">12 items across 5 modules — all formulas break simultaneously</div>
+    </div>
+    <div class="cluster-right"><span class="mod-badge badge-crit">Critical</span></div>
+  </div>
+  <div class="cluster">
+    <div class="mod-accent mod-accent-high"></div>
+    <div class="cluster-body">
+      <div class="cluster-trigger">Connected modules with critical findings — errors propagate downstream</div>
+      <div class="cluster-meta">340 items across 4 modules</div>
+    </div>
+    <div class="cluster-right"><span class="mod-badge badge-high">High</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FIX ORDER + BOTTLENECKS                                    -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="two-col">
+    <div class="col-card">
+      <div class="col-card-title">Recommended Fix Order</div>
+      <div class="fix-step">
+        <div class="fix-num">1</div>
+        <div class="fix-body">
+          <div class="fix-pills">
+            <span class="fix-pill">SLP05 - Slots</span>
+            <span class="fix-pill">MOD01 - General Settings</span>
+            <span class="fix-overflow">+28</span>
+          </div>
+          <div class="fix-tag">parallel</div>
+        </div>
+      </div>
+      <div class="fix-step">
+        <div class="fix-num">2</div>
+        <div class="fix-body">
+          <div class="fix-pills">
+            <span class="fix-pill">Income Statement</span>
+            <span class="fix-pill">SLP01 - Slot Hours</span>
+            <span class="fix-overflow">+10</span>
+          </div>
+          <div class="fix-tag">parallel</div>
+        </div>
+      </div>
+      <div class="fix-step">
+        <div class="fix-num">3</div>
+        <div class="fix-body">
+          <div class="fix-pills">
+            <span class="fix-pill">SUP04 - Calculations Weekly</span>
+            <span class="fix-pill">SUP15 - SO View</span>
+          </div>
+          <div class="fix-tag">parallel</div>
+        </div>
+      </div>
+      <div class="fix-step">
+        <div class="fix-num">4</div>
+        <div class="fix-body">
+          <div class="fix-pills">
+            <span class="fix-pill">SUP07 - Alerts</span>
+            <span class="fix-pill">SUP21 - Supply Planning</span>
+          </div>
+          <div class="fix-tag">parallel</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-card">
+      <div class="col-card-title">Bottlenecks</div>
+      <div class="bn-item">
+        <div class="bn-name"><b>DCW03</b>.History</div>
+        <div class="bn-bar-wrap"><div class="bn-bar" style="width:33px"></div><span class="bn-fan">33 out</span></div>
+      </div>
+      <div class="bn-item">
+        <div class="bn-name"><b>DEM06</b>.Product</div>
+        <div class="bn-bar-wrap"><div class="bn-bar" style="width:30px"></div><span class="bn-fan">30 out</span></div>
+      </div>
+      <div class="bn-item">
+        <div class="bn-name"><b>MOD01</b>.Current Period</div>
+        <div class="bn-bar-wrap"><div class="bn-bar" style="width:28px"></div><span class="bn-fan">28 out</span></div>
+      </div>
+      <div class="bn-item">
+        <div class="bn-name"><b>SLP05</b>.Product</div>
+        <div class="bn-bar-wrap"><div class="bn-bar" style="width:24px"></div><span class="bn-fan">24 out</span></div>
+      </div>
+      <div class="bn-item">
+        <div class="bn-name"><b>DEM06</b>.Customer</div>
+        <div class="bn-bar-wrap"><div class="bn-bar" style="width:22px"></div><span class="bn-fan">22 out</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- EVIDENCE BOUNDARIES                                        -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-hd">
+    <span class="section-label">Evidence Boundaries</span>
+    <span class="section-rule"></span>
+  </div>
+  <div class="evidence">
+    <div class="ev-grid">
+      <div>
+        <div class="ev-hd ev-hd-pos"><span class="ev-icon ev-icon-pos">&#10003;</span> Confirmed</div>
+        <ul class="ev-list ev-list-pos">
+          <li>Formula-level dependencies between all line items</li>
+          <li>Exact blast radius for any change</li>
+          <li>Hardcoded references that break on rename</li>
+          <li>Dimensional flow and aggregation patterns</li>
+          <li>Business calculation patterns</li>
+          <li>Remediation order respecting dependency chains</li>
+        </ul>
+      </div>
+      <div>
+        <div class="ev-hd ev-hd-neg"><span class="ev-icon ev-icon-neg">&#8212;</span> Cannot determine</div>
+        <ul class="ev-list ev-list-neg">
+          <li>Actual recalculation performance or memory usage</li>
+          <li>Whether a finding is intentional</li>
+          <li>Cell count without Polaris/HyperConnect metadata</li>
+          <li>User-facing page layout and dashboard config</li>
+          <li>Import/export scheduling and data freshness</li>
+          <li>User permissions and access patterns</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- .page -->
+</body>
+</html>

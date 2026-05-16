@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meridian Intelligence — v3</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --ink:#0f1114;--ink2:#1a1d23;--ink3:#282c35;
+  --paper:#fafaf8;--paper2:#f3f2ee;--paper3:#eae8e3;
+  --text:#0f1114;--text2:#3d424d;--text3:#6b7080;--text4:#9ca1ad;
+  --border:#ddd9d2;--border2:#c8c3ba;
+  --red:#dc2626;--red-bg:#fef2f2;--red-bd:#fecaca;
+  --amber:#d97706;--amber-bg:#fffbeb;--amber-bd:#fde68a;
+  --blue:#2563eb;--blue-bg:#eff6ff;--blue-bd:#bfdbfe;
+  --green:#16a34a;--green-bg:#f0fdf4;--green-bd:#bbf7d0;
+  --slate:#64748b;
+  --card:#ffffff;
+  --radius:10px;
+  --sh-xs:0 1px 2px rgba(0,0,0,.04);
+  --sh-sm:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --sh-md:0 4px 6px -1px rgba(0,0,0,.07),0 2px 4px -2px rgba(0,0,0,.05);
+  --sh-lg:0 10px 15px -3px rgba(0,0,0,.08),0 4px 6px -4px rgba(0,0,0,.05);
+  --sh-xl:0 20px 25px -5px rgba(0,0,0,.08),0 8px 10px -6px rgba(0,0,0,.04);
+  --mono:'JetBrains Mono',monospace;
+  --sans:'DM Sans',system-ui,sans-serif;
+}
+
+body{font-family:var(--sans);background:var(--paper);color:var(--text);-webkit-font-smoothing:antialiased;line-height:1.5}
+
+.page{max-width:1040px;margin:0 auto;padding:0 32px 100px}
+
+/* ═══ HEADER ═══ */
+.header{
+  background:var(--ink);
+  margin:0 -32px;padding:0 32px;
+  position:relative;overflow:hidden;
+}
+.header::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 600px 400px at 80% 20%, rgba(37,99,235,.06) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 300px at 20% 80%, rgba(220,38,38,.04) 0%, transparent 70%);
+  pointer-events:none;
+}
+.header-inner{
+  max-width:1040px;margin:0 auto;
+  display:grid;grid-template-columns:1fr 200px;gap:48px;align-items:center;
+  padding:44px 0 52px;position:relative;z-index:1;
+}
+.header-breadcrumb{
+  font-family:var(--mono);font-size:10px;font-weight:500;
+  text-transform:uppercase;letter-spacing:.14em;
+  color:rgba(255,255,255,.3);margin-bottom:20px;
+}
+.header-title{
+  font-size:32px;font-weight:700;letter-spacing:-.04em;line-height:1.12;
+  color:#fff;margin-bottom:14px;
+}
+.header-title em{font-style:normal;color:var(--amber)}
+.header-desc{font-size:13.5px;color:rgba(255,255,255,.45);line-height:1.65;max-width:500px}
+.header-tags{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap}
+.header-tag{
+  font-family:var(--mono);font-size:9px;font-weight:500;
+  letter-spacing:.04em;text-transform:uppercase;
+  padding:4px 10px;border-radius:100px;
+  border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.4);
+  background:rgba(255,255,255,.03);
+}
+
+/* Score Ring */
+.score{position:relative;width:180px;height:180px;flex-shrink:0}
+.score svg{width:100%;height:100%;transform:rotate(-90deg)}
+.score-track{fill:none;stroke:rgba(255,255,255,.06);stroke-width:8}
+.score-arc{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)}
+.score-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-number{font-size:52px;font-weight:700;color:#fff;letter-spacing:-.06em;line-height:1}
+.score-max{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.25);margin-top:2px}
+.score-word{font-family:var(--mono);font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:rgba(255,255,255,.3);margin-top:6px}
+
+/* ═══ KPI BRIDGE ═══ */
+.kpi-bridge{
+  margin:-32px auto 0;max-width:1040px;position:relative;z-index:2;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+  background:var(--border);border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--sh-xl);
+}
+.kpi{background:var(--card);padding:22px 20px;text-align:center}
+.kpi-val{font-size:32px;font-weight:700;letter-spacing:-.04em;line-height:1;margin-bottom:4px}
+.kpi-label{font-family:var(--mono);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--text4)}
+.kpi-val-red{color:var(--red)}
+.kpi-val-amber{color:var(--amber)}
+.kpi-val-green{color:var(--green)}
+.kpi-val-ink{color:var(--ink)}
+.kpi-micro{height:3px;border-radius:2px;margin:10px auto 0;width:48px}
+.kpi-micro-red{background:linear-gradient(90deg,var(--red),#ef4444)}
+.kpi-micro-amber{background:linear-gradient(90deg,var(--amber),#f59e0b)}
+.kpi-micro-green{background:linear-gradient(90deg,var(--green),#22c55e)}
+.kpi-micro-ink{background:var(--paper3)}
+
+/* ═══ DISTRIBUTION BAR ═══ */
+.dist{margin:28px 0 0}
+.dist-bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--paper3);gap:2px}
+.dist-seg{border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.dist-seg-red{background:var(--red)}
+.dist-seg-amber{background:var(--amber)}
+.dist-seg-blue{background:var(--blue)}
+.dist-seg-slate{background:var(--paper3)}
+.dist-legend{display:flex;gap:16px;margin-top:8px;justify-content:flex-end}
+.dist-legend-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--text4)}
+.dist-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+
+/* ═══ SECTIONS ═══ */
+.sect{margin-top:48px}
+.sect-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--ink)}
+.sect-title{font-size:13px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+.sect-aux{font-family:var(--mono);font-size:9px;color:var(--text4)}
+
+/* ═══ MODULE TABLE ═══ */
+.mtbl{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--sh-sm);overflow:hidden}
+.mtbl-hd{display:grid;grid-template-columns:3px 1fr 110px 60px 72px 28px;padding:10px 14px 10px 0;border-bottom:2px solid var(--paper3);background:var(--paper2)}
+.mtbl-hd span{font-family:var(--mono);font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text4)}
+.mtbl-row{display:grid;grid-template-columns:3px 1fr 110px 60px 72px 28px;align-items:center;border-bottom:1px solid var(--paper3);transition:background .1s;cursor:pointer}
+.mtbl-row:last-child{border-bottom:0}
+.mtbl-row:hover{background:var(--paper)}
+.mtbl-row.is-open{background:var(--paper)}
+.mtbl-accent{align-self:stretch}
+.mtbl-accent-red{background:var(--red)}
+.mtbl-accent-amber{background:var(--amber)}
+.mtbl-accent-blue{background:var(--blue)}
+.mtbl-accent-slate{background:var(--slate)}
+.mtbl-name{padding:11px 14px;min-width:0}
+.mtbl-name-text{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mtbl-name-desc{font-size:11px;color:var(--text3);line-height:1.45;margin-top:3px;display:none;white-space:normal}
+.is-open .mtbl-name-desc{display:block}
+.mtbl-meter{padding:0 10px}
+.meter{width:90px;height:5px;border-radius:3px;background:var(--paper3);overflow:hidden;position:relative}
+.meter-fill{height:100%;border-radius:3px;position:absolute;left:0;top:0}
+.meter-fill-red{background:var(--red)}
+.meter-fill-amber{background:var(--amber)}
+.meter-fill-blue{background:var(--blue)}
+.meter-fill-slate{background:var(--slate)}
+.mtbl-items{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:right;padding:0 10px}
+.mtbl-badge-cell{padding:0 6px}
+.badge{font-family:var(--mono);font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:4px;display:inline-block}
+.badge-red{background:var(--red);color:#fff}
+.badge-amber{background:var(--amber);color:#fff}
+.badge-blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bd)}
+.badge-slate{background:var(--paper2);color:var(--text4);border:1px solid var(--border)}
+.mtbl-chev{text-align:center;color:var(--text4);font-size:8px}
+.mtbl-chev-icon{display:inline-block;transition:transform .2s ease}
+.is-open .mtbl-chev-icon{transform:rotate(90deg)}
+
+.mtbl-detail{display:none;border-bottom:1px solid var(--paper3);background:var(--paper);padding:0 14px 16px 17px}
+.mtbl-detail.is-open{display:block;animation:fadeIn .15s ease}
+.issue-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-top:8px;transition:border-color .15s}
+.issue-card:hover{border-color:var(--border2)}
+.issue-title{font-size:12px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:8px}
+.issue-pair{display:flex;gap:8px;align-items:baseline;margin-top:5px}
+.issue-label{font-family:var(--mono);font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 6px;border-radius:3px;flex-shrink:0;min-width:30px;text-align:center}
+.label-risk{color:var(--red);background:var(--red-bg)}
+.label-fix{color:var(--green);background:var(--green-bg)}
+.issue-text{font-size:11px;color:var(--text2);line-height:1.55}
+.detail-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:8px;border-top:1px solid var(--paper3)}
+.detail-stats{display:flex;gap:14px;font-family:var(--mono);font-size:9px;color:var(--text4)}
+.detail-more{font-family:var(--mono);font-size:9px;color:var(--blue);cursor:pointer;font-weight:500}
+
+/* ═══ RISK CLUSTERS ═══ */
+.cluster{background:var(--card);border:1px solid var(--border);border-radius:8px;display:grid;grid-template-columns:3px 1fr auto;overflow:hidden;margin-bottom:6px;transition:border-color .15s;box-shadow:var(--sh-xs)}
+.cluster:hover{border-color:var(--border2)}
+.cluster-body{padding:12px 16px}
+.cluster-name{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.4}
+.cluster-meta{font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px}
+.cluster-right{display:flex;align-items:center;padding:0 14px}
+
+/* ═══ TWO-COL ═══ */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--sh-sm);padding:20px}
+.panel-title{font-family:var(--mono);font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--paper3)}
+
+.step{display:flex;gap:12px;padding:10px 0;position:relative}
+.step+.step{border-top:1px solid var(--paper3)}
+.step::after{content:'';position:absolute;left:11px;top:34px;bottom:-12px;width:1px;background:var(--paper3)}
+.step:last-child::after{display:none}
+.step-num{min-width:22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;font-weight:700;flex-shrink:0;z-index:1}
+.step-body{min-width:0;padding-top:2px}
+.step-pills{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.step-pill{font-size:10px;background:var(--paper);border:1px solid var(--border);border-radius:4px;padding:2px 8px;color:var(--text2);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis;transition:border-color .15s}
+.step-pill:hover{border-color:var(--border2)}
+.step-of{font-family:var(--mono);font-size:9px;color:var(--text4)}
+.step-tag{font-family:var(--mono);font-size:7.5px;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+
+.bn{display:grid;grid-template-columns:1fr auto;align-items:center;padding:9px 0}
+.bn+.bn{border-top:1px solid var(--paper3)}
+.bn-name{font-size:11.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bn-name strong{font-weight:600}
+.bn-right{display:flex;align-items:center;gap:8px}
+.bn-bar{height:4px;border-radius:2px;background:var(--blue);min-width:4px}
+.bn-fan{font-family:var(--mono);font-size:9px;color:var(--text4);white-space:nowrap}
+
+/* ═══ EVIDENCE ═══ */
+.evidence{background:var(--paper2);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px}
+.ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.ev-head{font-size:11px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ev-head-green{color:var(--green)}
+.ev-head-slate{color:var(--text4)}
+.ev-icon{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+.ev-icon-green{background:var(--green-bg);color:var(--green)}
+.ev-icon-slate{background:var(--paper3);color:var(--text4)}
+.ev-list{font-size:10.5px;color:var(--text3);line-height:1.85;padding-left:0;margin:0;list-style:none}
+.ev-list li{position:relative;padding-left:14px}
+.ev-list li::before{content:'';position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%}
+.ev-list-green li::before{background:var(--green)}
+.ev-list-slate li::before{background:var(--text4);opacity:.3}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <div class="header-breadcrumb">Supply Chain Planning &middot; Model Intelligence</div>
+      <h1 class="header-title">15 modules need attention<br>across <em>214</em> analysed</h1>
+      <p class="header-desc">Deterministic analysis of every formula, dependency, and aggregation pattern. Issues ranked by blast radius — downstream outputs affected.</p>
+      <div class="header-tags">
+        <span class="header-tag">Naming: Client-prefix</span>
+        <span class="header-tag">Formula Risk: High</span>
+        <span class="header-tag">Evidence: Qualified</span>
+      </div>
+    </div>
+    <div class="score">
+      <svg viewBox="0 0 120 120">
+        <circle class="score-track" cx="60" cy="60" r="52"/>
+        <circle class="score-arc" cx="60" cy="60" r="52"
+          stroke="#22c55e"
+          stroke-dasharray="326.7"
+          stroke-dashoffset="29.4"/>
+      </svg>
+      <div class="score-center">
+        <div class="score-number">91</div>
+        <div class="score-max">/100</div>
+        <div class="score-word">Health</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+<div class="kpi-bridge">
+  <div class="kpi"><div class="kpi-val kpi-val-ink">214</div><div class="kpi-label">Modules</div><div class="kpi-micro kpi-micro-ink"></div></div>
+  <div class="kpi"><div class="kpi-val kpi-val-red">33</div><div class="kpi-label">Critical</div><div class="kpi-micro kpi-micro-red"></div></div>
+  <div class="kpi"><div class="kpi-val kpi-val-amber">31</div><div class="kpi-label">High</div><div class="kpi-micro kpi-micro-amber"></div></div>
+  <div class="kpi"><div class="kpi-val kpi-val-green">58</div><div class="kpi-label">Clean</div><div class="kpi-micro kpi-micro-green"></div></div>
+</div>
+
+<div class="dist">
+  <div class="dist-bar">
+    <div class="dist-seg dist-seg-red" style="width:15.4%"></div>
+    <div class="dist-seg dist-seg-amber" style="width:14.5%"></div>
+    <div class="dist-seg dist-seg-blue" style="width:43%"></div>
+    <div class="dist-seg dist-seg-slate" style="width:27.1%"></div>
+  </div>
+  <div class="dist-legend">
+    <span class="dist-legend-item"><span class="dist-dot" style="background:var(--red)"></span>Critical 33</span>
+    <span class="dist-legend-item"><span class="dist-dot" style="background:var(--amber)"></span>High 31</span>
+    <span class="dist-legend-item"><span class="dist-dot" style="background:var(--blue)"></span>Medium 92</span>
+    <span class="dist-legend-item"><span class="dist-dot" style="background:var(--paper3)"></span>Clean 58</span>
+  </div>
+</div>
+
+<div class="sect">
+  <div class="sect-head">
+    <span class="sect-title">Highest-Risk Modules</span>
+    <span class="sect-aux">8 of 156</span>
+  </div>
+  <div class="mtbl">
+    <div class="mtbl-hd">
+      <span></span>
+      <span style="padding-left:14px">Module</span>
+      <span>Severity</span>
+      <span style="text-align:right">Items</span>
+      <span>Rating</span>
+      <span></span>
+    </div>
+    <div class="mtbl-row is-open" onclick="toggleRow(this)">
+      <div class="mtbl-accent mtbl-accent-red"></div>
+      <div class="mtbl-name">
+        <div class="mtbl-name-text">DEM06 – Opportunity Management</div>
+        <div class="mtbl-name-desc">Core calculation hub — reads from SLP04, SLP05, SYS03 and feeds SYS14, DEM01, DEM03. Operates at PR06 – Opportunity grain.</div>
+      </div>
+      <div class="mtbl-meter"><div class="meter"><div class="meter-fill meter-fill-red" style="width:92%"></div></div></div>
+      <div class="mtbl-items">92</div>
+      <div class="mtbl-badge-cell"><span class="badge badge-red">Critical</span></div>
+      <div class="mtbl-chev"><span class="mtbl-chev-icon">&#9654;</span></div>
+    </div>
+    <div class="mtbl-detail is-open">
+      <div class="issue-card">
+        <div class="issue-title">Range hardcodes a list member name in SELECT</div>
+        <div class="issue-pair"><span class="issue-label label-risk">Risk</span><span class="issue-text">If that member is renamed, this formula silently returns zero</span></div>
+        <div class="issue-pair"><span class="issue-label label-fix">Fix</span><span class="issue-text">Replace the hardcoded SELECT with a system module lookup or driver list reference</span></div>
+      </div>
+      <div class="issue-card">
+        <div class="issue-title">Stage Risk Category uses 5 levels of nested IF logic</div>
+        <div class="issue-pair"><span class="issue-label label-risk">Risk</span><span class="issue-text">Deepest branches cannot be isolated or tested — edge-case inputs silently return wrong values</span></div>
+        <div class="issue-pair"><span class="issue-label label-fix">Fix</span><span class="issue-text">Extract conditions into a mapping/driver module and resolve with LOOKUP</span></div>
+      </div>
+      <div class="detail-foot">
+        <div class="detail-stats"><span>80 formulas</span><span>91 dependencies</span><span>PR06 – Opportunity</span></div>
+        <div class="detail-more">+4 more issues</div>
+      </div>
+    </div>
+    <div class="mtbl-row" onclick="toggleRow(this)">
+      <div class="mtbl-accent mtbl-accent-red"></div>
+      <div class="mtbl-name"><div class="mtbl-name-text">SLP05 – Slots</div></div>
+      <div class="mtbl-meter"><div class="meter"><div class="meter-fill meter-fill-red" style="width:85%"></div></div></div>
+      <div class="mtbl-items">58</div>
+      <div class="mtbl-badge-cell"><span class="badge badge-red">Critical</span></div>
+      <div class="mtbl-chev"><span class="mtbl-chev-icon">&#9654;</span></div>
+    </div>
+    <div class="mtbl-detail"></div>
+    <div class="mtbl-row" onclick="toggleRow(this)">
+      <div class="mtbl-accent mtbl-accent-red"></div>
+      <div class="mtbl-name"><div class="mtbl-name-text">MOD01 – General Settings</div></div>
+      <div class="mtbl-meter"><div class="meter"><div class="meter-fill meter-fill-red" style="width:72%"></div></div></div>
+      <div class="mtbl-items">48</div>
+      <div class="mtbl-badge-cell"><span class="badge badge-red">Critical</span></div>
+      <div class="mtbl-chev"><span class="mtbl-chev-icon">&#9654;</span></div>
+    </div>
+    <div class="mtbl-detail"></div>
+    <div class="mtbl-row" onclick="toggleRow(this)">
+      <div class="mtbl-accent mtbl-accent-red"></div>
+      <div class="mtbl-name"><div class="mtbl-name-text">DCW03 – Stat Calculations</div></div>
+      <div class="mtbl-meter"><div class="meter"><div class="meter-fill meter-fill-red" style="width:96%"></div></div></div>
+      <div class="mtbl-items">195</div>
+      <div class="mtbl-badge-cell"><span class="badge badge-red">Critical</span></div>
+      <div class="mtbl-chev"><span class="mtbl-chev-icon">&#9654;</span></div>
+    </div>
+    <div class="mtbl-detail"></div>
+    <div class="mtbl-row" onclick="toggleRow(this)">
+      <div class="mtbl-accent mtbl-accent-amber"></div>
+      <div class="mtbl-name"><div class="mtbl-name-text">SUP04 – Calculations Weekly</div></div>
+      <div class="mtbl-meter"><div class="meter"><div class="meter-fill meter-fill-amber" style="width:65%"></div></div></div>
+      <div class="mtbl-items">120</div>
+      <div class="mtbl-badge-cell"><span class="badge badge-amber">High</span></div>
+      <div class="mtbl-chev"><span class="mtbl-chev-icon">&#9654;</span></div>
+    </div>
+    <div class="mtbl-detail"></div>
+    <div class="mtbl-row" onclick="toggleRow(this)">
+      <div class="mtbl-accent mtbl-accent-blue"></div>
+      <div class="mtbl-name"><div class="mtbl-name-text">Income Statement</div></div>
+      <div class="mtbl-meter"><div class="meter"><div class="meter-fill meter-fill-blue" style="width:42%"></div></div></div>
+      <div class="mtbl-items">45</div>
+      <div class="mtbl-badge-cell"><span class="badge badge-blue">Medium</span></div>
+      <div class="mtbl-chev"><span class="mtbl-chev-icon">&#9654;</span></div>
+    </div>
+    <div class="mtbl-detail"></div>
+  </div>
+</div>
+
+<div class="sect">
+  <div class="sect-head">
+    <span class="sect-title">Risk Clusters</span>
+    <span class="sect-aux">2 identified</span>
+  </div>
+  <div class="cluster">
+    <div class="mtbl-accent mtbl-accent-red"></div>
+    <div class="cluster-body">
+      <div class="cluster-name">Rename of 'Actual' in Versions</div>
+      <div class="cluster-meta">12 items across 5 modules — all formulas break simultaneously</div>
+    </div>
+    <div class="cluster-right"><span class="badge badge-red">Critical</span></div>
+  </div>
+  <div class="cluster">
+    <div class="mtbl-accent mtbl-accent-amber"></div>
+    <div class="cluster-body">
+      <div class="cluster-name">Connected modules with critical findings — errors propagate downstream</div>
+      <div class="cluster-meta">340 items across 4 modules</div>
+    </div>
+    <div class="cluster-right"><span class="badge badge-amber">High</span></div>
+  </div>
+</div>
+
+<div class="sect">
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title">Recommended Fix Order</div>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-pills"><span class="step-pill">SLP05 – Slots</span><span class="step-pill">MOD01 – General Settings</span><span class="step-of">+28</span></div>
+          <div class="step-tag">parallel</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-pills"><span class="step-pill">Income Statement</span><span class="step-pill">SLP01 – Slot Hours</span><span class="step-of">+10</span></div>
+          <div class="step-tag">parallel</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-pills"><span class="step-pill">SUP04 – Calculations W…</span><span class="step-pill">SUP15 – SO View</span></div>
+          <div class="step-tag">parallel</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-pills"><span class="step-pill">SUP07 – Alerts</span><span class="step-pill">SUP21 – Supply Planning</span></div>
+          <div class="step-tag">parallel</div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Bottlenecks</div>
+      <div class="bn"><div class="bn-name"><strong>DCW03</strong>.History</div><div class="bn-right"><div class="bn-bar" style="width:40px"></div><span class="bn-fan">33 out</span></div></div>
+      <div class="bn"><div class="bn-name"><strong>DEM06</strong>.Product</div><div class="bn-right"><div class="bn-bar" style="width:36px"></div><span class="bn-fan">30 out</span></div></div>
+      <div class="bn"><div class="bn-name"><strong>MOD01</strong>.Current Period</div><div class="bn-right"><div class="bn-bar" style="width:33px"></div><span class="bn-fan">28 out</span></div></div>
+      <div class="bn"><div class="bn-name"><strong>SLP05</strong>.Product</div><div class="bn-right"><div class="bn-bar" style="width:29px"></div><span class="bn-fan">24 out</span></div></div>
+      <div class="bn"><div class="bn-name"><strong>DEM06</strong>.Customer</div><div class="bn-right"><div class="bn-bar" style="width:26px"></div><span class="bn-fan">22 out</span></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="sect">
+  <div class="sect-head">
+    <span class="sect-title">Evidence Boundaries</span>
+    <span class="sect-aux"></span>
+  </div>
+  <div class="evidence">
+    <div class="ev-grid">
+      <div>
+        <div class="ev-head ev-head-green"><span class="ev-icon ev-icon-green">&#10003;</span> Confirmed</div>
+        <ul class="ev-list ev-list-green">
+          <li>Formula-level dependencies between all line items</li>
+          <li>Exact blast radius for any change</li>
+          <li>Hardcoded references that break on rename</li>
+          <li>Dimensional flow and aggregation patterns</li>
+          <li>Business calculation patterns</li>
+          <li>Remediation order respecting dependency chains</li>
+        </ul>
+      </div>
+      <div>
+        <div class="ev-head ev-head-slate"><span class="ev-icon ev-icon-slate">&#8212;</span> Cannot determine</div>
+        <ul class="ev-list ev-list-slate">
+          <li>Actual recalculation performance or memory usage</li>
+          <li>Whether a finding is intentional</li>
+          <li>Cell count without Polaris/HyperConnect metadata</li>
+          <li>User-facing page layout and dashboard config</li>
+          <li>Import/export scheduling and data freshness</li>
+          <li>User permissions and access patterns</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+function toggleRow(row){
+  row.classList.toggle('is-open');
+  const detail = row.nextElementSibling;
+  if(detail) detail.classList.toggle('is-open');
+}
+</script>
+</body>
+</html>

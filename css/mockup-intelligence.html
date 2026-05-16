@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meridian Intelligence — UX Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ─── Reset & Base ─────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:#f7f5f2;color:#1c2129;-webkit-font-smoothing:antialiased}
+.mono{font-family:'IBM Plex Mono',monospace}
+
+/* ─── Tokens — from existing Meridian design system ───── */
+:root{
+  --bg:#f7f5f2;--bg2:#f0ede8;--surface:#fff;
+  --text:#1c2129;--text2:#4a4f5a;--text3:#7a7f8a;--text4:#a0a4ae;
+  --border:#e2dfd9;--border2:#ccc8c0;
+  --neg:#c0392b;--neg-pale:#fdf2f0;--neg-bd:#e8c4be;
+  --gold:#b8860b;--gold-pale:#fdf6e8;--gold-bd:#e0d0a0;
+  --accent:#4a6fa5;--accent-pale:#eef2f8;--accent-bd:#b8c8e0;
+  --pos:#2d7d46;--pos-pale:#f0f8f2;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --sh-md:0 4px 6px rgba(0,0,0,.05),0 2px 4px rgba(0,0,0,.03);
+  --r:8px;
+}
+
+/* ─── Layout ──────────────────────────────────────────── */
+.container{max-width:880px;margin:0 auto;padding:40px 24px 80px}
+.section{margin-top:48px}
+.section:first-child{margin-top:0}
+
+/* ─── Section Headers — SonarQube style ───────────────── */
+.section-hd{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.section-label{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--text4);white-space:nowrap}
+.section-rule{flex:1;height:1px;background:var(--border);opacity:.5}
+
+/* ─── Health Hero — Inspired by SonarQube quality gate ── */
+.health-hero{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px 32px;box-shadow:var(--sh);display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center}
+.health-left{}
+.health-domain{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:6px}
+.health-headline{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.02em;line-height:1.2}
+.health-meta{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text3);margin-top:8px;display:flex;gap:16px;flex-wrap:wrap}
+.health-meta span{display:flex;align-items:center;gap:4px}
+.health-score{text-align:center}
+.health-score-num{font-size:52px;font-weight:800;letter-spacing:-.04em;line-height:1;color:var(--text)}
+.health-score-denom{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--text4);font-weight:400}
+.health-score-label{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-top:4px}
+
+/* ─── Severity Strip — Stripe-style KPIs ─────────────── */
+.severity-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:24px}
+.sev-cell{background:var(--surface);padding:16px 12px;text-align:center}
+.sev-cell:first-child{border-radius:9px 0 0 9px}
+.sev-cell:last-child{border-radius:0 9px 9px 0}
+.sev-num{font-size:26px;font-weight:700;line-height:1;margin-bottom:4px;letter-spacing:-.02em}
+.sev-num-crit{color:var(--neg)}
+.sev-num-high{color:var(--gold)}
+.sev-num-med{color:var(--accent)}
+.sev-num-clean{color:var(--pos)}
+.sev-label{font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text4)}
+
+/* ─── Module Cards — Sentry issue-list style ─────────── */
+.mod-list{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface);box-shadow:var(--sh)}
+.mod-item{display:grid;grid-template-columns:4px 1fr auto;border-bottom:1px solid var(--border);transition:background .12s ease}
+.mod-item:last-child{border-bottom:0}
+.mod-item:hover{background:var(--bg2)}
+.mod-item.expanded{background:var(--bg2)}
+.mod-accent{width:4px}
+.mod-accent-crit{background:var(--neg)}
+.mod-accent-high{background:var(--gold)}
+.mod-accent-med{background:var(--accent)}
+.mod-accent-low{background:var(--border2)}
+.mod-main{padding:14px 16px;min-width:0;cursor:pointer}
+.mod-name{font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mod-purpose{font-size:11.5px;color:var(--text3);line-height:1.45;margin-top:3px;display:none}
+.expanded .mod-purpose{display:block}
+.mod-right{display:flex;align-items:center;gap:10px;padding:14px 16px 14px 0;flex-shrink:0}
+.mod-badge{font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:3px 8px;border-radius:4px}
+.badge-crit{background:var(--neg);color:#fff}
+.badge-high{background:var(--gold);color:#fff}
+.badge-med{background:var(--accent-pale);color:var(--accent);border:1px solid var(--accent-bd)}
+.badge-low{background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
+.mod-stat{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);white-space:nowrap}
+.mod-chevron{color:var(--text4);font-size:10px;transition:transform .2s ease;width:16px;text-align:center}
+.expanded .mod-chevron{transform:rotate(90deg)}
+
+/* ─── Issue Detail — inside expanded card ────────────── */
+.mod-detail{display:none;padding:0 16px 16px;margin-left:4px;border-bottom:1px solid var(--border)}
+.expanded + .mod-detail{display:block}
+.issue{display:grid;grid-template-columns:1fr;gap:2px;padding:12px 0;border-bottom:1px solid rgba(0,0,0,.04)}
+.issue:last-child{border-bottom:0}
+.issue-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.4}
+.issue-rows{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.issue-row{display:flex;align-items:baseline;gap:8px}
+.issue-tag{font-family:'IBM Plex Mono',monospace;font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:3px;flex-shrink:0;min-width:34px;text-align:center}
+.tag-risk{color:var(--neg);background:var(--neg-pale)}
+.tag-fix{color:var(--pos);background:var(--pos-pale)}
+.issue-text{font-size:11px;color:var(--text2);line-height:1.5}
+.mod-footer{display:flex;gap:16px;padding:8px 0 0;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4)}
+.more-link{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);padding:4px 0;text-align:center}
+
+/* ─── Risk Clusters — Datadog alert-style ────────────── */
+.cluster-list{display:flex;flex-direction:column;gap:6px}
+.cluster{background:var(--surface);border:1px solid var(--border);border-radius:8px;display:grid;grid-template-columns:4px 1fr auto;overflow:hidden;transition:border-color .15s}
+.cluster:hover{border-color:var(--border2)}
+.cluster-body{padding:10px 14px}
+.cluster-trigger{font-size:12px;font-weight:500;color:var(--text);line-height:1.4}
+.cluster-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);margin-top:2px}
+.cluster-badge{display:flex;align-items:center;padding:0 14px}
+
+/* ─── Two-Column Grid ────────────────────────────────── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+
+/* ─── Fix Order — Timeline ───────────────────────────── */
+.fix-list{display:flex;flex-direction:column;gap:0}
+.fix-step{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);position:relative}
+.fix-step:last-child{border-bottom:0}
+.fix-num{min-width:22px;height:22px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;flex-shrink:0}
+.fix-body{display:flex;flex-direction:column;gap:3px;min-width:0;padding-top:2px}
+.fix-pills{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.fix-pill{font-size:10px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px;color:var(--text2);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis;transition:border-color .15s}
+.fix-pill:hover{border-color:var(--border2)}
+.fix-overflow{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4)}
+.fix-tag{font-family:'IBM Plex Mono',monospace;font-size:7.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+
+/* ─── Bottlenecks ────────────────────────────────────── */
+.bn-list{display:flex;flex-direction:column}
+.bn-item{display:grid;grid-template-columns:1fr auto;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.bn-item:last-child{border-bottom:0}
+.bn-name{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bn-name b{font-weight:600}
+.bn-fan{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);white-space:nowrap;margin-left:12px}
+
+/* ─── Evidence Boundaries — subtle footer ────────────── */
+.evidence{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 20px}
+.ev-title{font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.ev-hd{font-size:10px;font-weight:600;margin-bottom:4px}
+.ev-hd-pos{color:var(--pos)}
+.ev-hd-neg{color:var(--text4)}
+.ev-list{font-size:10px;color:var(--text3);line-height:1.75;padding-left:14px;margin:0}
+.ev-list-neg{color:var(--text4)}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- HEALTH HERO — SonarQube quality-gate inspired          -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="health-hero">
+    <div class="health-left">
+      <div class="health-domain">Supply Chain Planning</div>
+      <div class="health-headline">214 modules analysed, 15 with findings</div>
+      <div class="health-meta">
+        <span>client-prefix naming</span>
+        <span>&middot;</span>
+        <span>high formula risk</span>
+        <span>&middot;</span>
+        <span>qualified evidence</span>
+      </div>
+    </div>
+    <div class="health-score">
+      <div class="health-score-num">91<span class="health-score-denom">/100</span></div>
+      <div class="health-score-label">Health Score</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- SEVERITY STRIP — Stripe metric cards, joined           -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="severity-strip">
+    <div class="sev-cell">
+      <div class="sev-num">214</div>
+      <div class="sev-label">Modules</div>
+    </div>
+    <div class="sev-cell">
+      <div class="sev-num sev-num-crit">33</div>
+      <div class="sev-label">Critical</div>
+    </div>
+    <div class="sev-cell">
+      <div class="sev-num sev-num-high">31</div>
+      <div class="sev-label">High</div>
+    </div>
+    <div class="sev-cell">
+      <div class="sev-num sev-num-clean">58</div>
+      <div class="sev-label">Clean</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- HIGHEST-RISK MODULES — Sentry issue list               -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-hd">
+      <span class="section-label">Highest-Risk Modules</span>
+      <span class="section-rule"></span>
+    </div>
+
+    <div class="mod-list">
+      <!-- Card 1 — Expanded -->
+      <div class="mod-item expanded" onclick="this.classList.toggle('expanded');this.nextElementSibling.style.display=this.classList.contains('expanded')?'block':'none'">
+        <div class="mod-accent mod-accent-crit"></div>
+        <div class="mod-main">
+          <div class="mod-name">DEM06 - Opportunity Management</div>
+          <div class="mod-purpose">Core calculation hub — reads from SLP04 - Order and Opportunities, SLP05 - Slots, SYS03 - Time Display and feeds SYS14 - Product Naming. Operates at PR06 - Opportunity grain.</div>
+        </div>
+        <div class="mod-right">
+          <span class="mod-badge badge-crit">Critical</span>
+          <span class="mod-stat">92 items</span>
+          <span class="mod-chevron">&#9654;</span>
+        </div>
+      </div>
+      <div class="mod-detail" style="display:block">
+        <div class="issue">
+          <div class="issue-name">Range hardcodes a list member name in SELECT</div>
+          <div class="issue-rows">
+            <div class="issue-row"><span class="issue-tag tag-risk">Risk</span><span class="issue-text">If that member is renamed, this formula silently returns zero</span></div>
+            <div class="issue-row"><span class="issue-tag tag-fix">Fix</span><span class="issue-text">Replace the hardcoded SELECT with a system module lookup or driver list reference</span></div>
+          </div>
+        </div>
+        <div class="issue">
+          <div class="issue-name">Stage Risk Category uses 5 levels of nested IF logic</div>
+          <div class="issue-rows">
+            <div class="issue-row"><span class="issue-tag tag-risk">Risk</span><span class="issue-text">Deepest branches cannot be isolated or tested — edge-case inputs silently return wrong values</span></div>
+            <div class="issue-row"><span class="issue-tag tag-fix">Fix</span><span class="issue-text">Extract conditions into a mapping/driver module and resolve with LOOKUP (reduces depth to 1-2)</span></div>
+          </div>
+        </div>
+        <div class="issue">
+          <div class="issue-name">Probability Category uses 4 levels of nested IF logic</div>
+          <div class="issue-rows">
+            <div class="issue-row"><span class="issue-tag tag-risk">Risk</span><span class="issue-text">Deepest branches cannot be isolated or tested — edge-case inputs silently return wrong values</span></div>
+            <div class="issue-row"><span class="issue-tag tag-fix">Fix</span><span class="issue-text">Extract conditions into a mapping/driver module and resolve with LOOKUP (reduces depth to 1-2)</span></div>
+          </div>
+        </div>
+        <div class="more-link">+2 more</div>
+        <div class="mod-footer">
+          <span>80 formulas</span>
+          <span>91 dependencies</span>
+          <span>PR06 - Opportunity</span>
+        </div>
+      </div>
+
+      <!-- Card 2 — Collapsed -->
+      <div class="mod-item" onclick="this.classList.toggle('expanded');this.nextElementSibling.style.display=this.classList.contains('expanded')?'block':'none'">
+        <div class="mod-accent mod-accent-crit"></div>
+        <div class="mod-main">
+          <div class="mod-name">SLP05 - Slots</div>
+        </div>
+        <div class="mod-right">
+          <span class="mod-badge badge-crit">Critical</span>
+          <span class="mod-stat">58 items</span>
+          <span class="mod-chevron">&#9654;</span>
+        </div>
+      </div>
+      <div class="mod-detail"></div>
+
+      <!-- Card 3 — Collapsed -->
+      <div class="mod-item" onclick="this.classList.toggle('expanded');this.nextElementSibling.style.display=this.classList.contains('expanded')?'block':'none'">
+        <div class="mod-accent mod-accent-crit"></div>
+        <div class="mod-main">
+          <div class="mod-name">MOD01 - General Settings</div>
+        </div>
+        <div class="mod-right">
+          <span class="mod-badge badge-crit">Critical</span>
+          <span class="mod-stat">40 items</span>
+          <span class="mod-chevron">&#9654;</span>
+        </div>
+      </div>
+      <div class="mod-detail"></div>
+
+      <!-- Card 4 — Collapsed -->
+      <div class="mod-item" onclick="this.classList.toggle('expanded');this.nextElementSibling.style.display=this.classList.contains('expanded')?'block':'none'">
+        <div class="mod-accent mod-accent-crit"></div>
+        <div class="mod-main">
+          <div class="mod-name">DCW03 - Stat Calculations</div>
+        </div>
+        <div class="mod-right">
+          <span class="mod-badge badge-crit">Critical</span>
+          <span class="mod-stat">195 items</span>
+          <span class="mod-chevron">&#9654;</span>
+        </div>
+      </div>
+      <div class="mod-detail"></div>
+
+      <!-- Card 5 — High -->
+      <div class="mod-item" onclick="this.classList.toggle('expanded');this.nextElementSibling.style.display=this.classList.contains('expanded')?'block':'none'">
+        <div class="mod-accent mod-accent-high"></div>
+        <div class="mod-main">
+          <div class="mod-name">SUP04 - Calculations Weekly</div>
+        </div>
+        <div class="mod-right">
+          <span class="mod-badge badge-high">High</span>
+          <span class="mod-stat">120 items</span>
+          <span class="mod-chevron">&#9654;</span>
+        </div>
+      </div>
+      <div class="mod-detail"></div>
+
+      <!-- Card 6 — Medium -->
+      <div class="mod-item" onclick="this.classList.toggle('expanded');this.nextElementSibling.style.display=this.classList.contains('expanded')?'block':'none'">
+        <div class="mod-accent mod-accent-med"></div>
+        <div class="mod-main">
+          <div class="mod-name">Income Statement</div>
+        </div>
+        <div class="mod-right">
+          <span class="mod-badge badge-med">Medium</span>
+          <span class="mod-stat">45 items</span>
+          <span class="mod-chevron">&#9654;</span>
+        </div>
+      </div>
+      <div class="mod-detail"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- RISK CLUSTERS                                          -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-hd">
+      <span class="section-label">Risk Clusters</span>
+      <span class="section-rule"></span>
+    </div>
+    <div class="cluster-list">
+      <div class="cluster">
+        <div class="mod-accent mod-accent-crit"></div>
+        <div class="cluster-body">
+          <div class="cluster-trigger">Rename of 'Actual' in Versions</div>
+          <div class="cluster-meta">12 items &middot; 5 modules</div>
+        </div>
+        <div class="cluster-badge"><span class="mod-badge badge-crit">Critical</span></div>
+      </div>
+      <div class="cluster">
+        <div class="mod-accent mod-accent-high"></div>
+        <div class="cluster-body">
+          <div class="cluster-trigger">Connected modules with critical findings — errors propagate downstream</div>
+          <div class="cluster-meta">340 items &middot; 4 modules</div>
+        </div>
+        <div class="cluster-badge"><span class="mod-badge badge-high">High</span></div>
+      </div>
+      <div class="cluster">
+        <div class="mod-accent mod-accent-med"></div>
+        <div class="cluster-body">
+          <div class="cluster-trigger">Rename of 'Weekly' in Time Periods</div>
+          <div class="cluster-meta">6 items &middot; 3 modules</div>
+        </div>
+        <div class="cluster-badge"><span class="mod-badge badge-med">Medium</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- FIX ORDER + BOTTLENECKS — Two columns                  -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="two-col">
+      <div>
+        <div class="section-hd">
+          <span class="section-label">Fix Order</span>
+          <span class="section-rule"></span>
+        </div>
+        <div class="fix-list">
+          <div class="fix-step">
+            <div class="fix-num">1</div>
+            <div class="fix-body">
+              <div class="fix-pills">
+                <span class="fix-pill">SLP05 - Slots</span>
+                <span class="fix-pill">MOD01 - General Settings</span>
+                <span class="fix-pill">Data upload alert cle...</span>
+                <span class="fix-overflow">+28</span>
+              </div>
+              <div class="fix-tag">parallel</div>
+            </div>
+          </div>
+          <div class="fix-step">
+            <div class="fix-num">2</div>
+            <div class="fix-body">
+              <div class="fix-pills">
+                <span class="fix-pill">Income Statement</span>
+                <span class="fix-pill">SLP01 - Slot Hours</span>
+                <span class="fix-pill">SYS01 - Purchase Orders</span>
+                <span class="fix-overflow">+10</span>
+              </div>
+              <div class="fix-tag">parallel</div>
+            </div>
+          </div>
+          <div class="fix-step">
+            <div class="fix-num">3</div>
+            <div class="fix-body">
+              <div class="fix-pills">
+                <span class="fix-pill">SUP04 - Calculations Weekly</span>
+                <span class="fix-pill">SUP15 - SO View &amp; Confirm...</span>
+                <span class="fix-overflow">+1</span>
+              </div>
+              <div class="fix-tag">parallel</div>
+            </div>
+          </div>
+          <div class="fix-step">
+            <div class="fix-num">4</div>
+            <div class="fix-body">
+              <div class="fix-pills">
+                <span class="fix-pill">SUP07 - Alerts on Warehou...</span>
+                <span class="fix-pill">SUP21 - Supply Planning Al...</span>
+              </div>
+              <div class="fix-tag">parallel</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-hd">
+          <span class="section-label">Bottlenecks</span>
+          <span class="section-rule"></span>
+        </div>
+        <div class="bn-list">
+          <div class="bn-item"><div class="bn-name"><b>DCW03 - Stat Calculations</b>.History</div><div class="bn-fan">33 out &middot; 1 in</div></div>
+          <div class="bn-item"><div class="bn-name"><b>DEM06 - Opportunity Management</b>.Product</div><div class="bn-fan">30 out &middot; 1 in</div></div>
+          <div class="bn-item"><div class="bn-name"><b>MOD01 - General Settings</b>.Current Period</div><div class="bn-fan">28 out &middot; 0 in</div></div>
+          <div class="bn-item"><div class="bn-name"><b>SLP05 - Slots</b>.Product</div><div class="bn-fan">24 out &middot; 0 in</div></div>
+          <div class="bn-item"><div class="bn-name"><b>DEM06 - Opportunity Management</b>.Customer</div><div class="bn-fan">22 out &middot; 0 in</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- EVIDENCE BOUNDARIES                                     -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-hd">
+      <span class="section-label">Evidence Boundaries</span>
+      <span class="section-rule"></span>
+    </div>
+    <div class="evidence">
+      <div class="ev-grid">
+        <div>
+          <div class="ev-hd ev-hd-pos">Confirmed</div>
+          <ul class="ev-list">
+            <li>Formula-level dependencies between all line items</li>
+            <li>Exact blast radius for any change</li>
+            <li>Hardcoded references that break on rename</li>
+            <li>Dimensional flow and aggregation patterns</li>
+            <li>Business calculation patterns (accumulation, driver, variance)</li>
+            <li>Remediation order respecting dependency chains</li>
+          </ul>
+        </div>
+        <div>
+          <div class="ev-hd ev-hd-neg">Cannot determine</div>
+          <ul class="ev-list ev-list-neg">
+            <li>Actual recalculation performance or memory usage</li>
+            <li>Whether a finding is intentional (model-owner decision)</li>
+            <li>Cell count without Polaris/HyperConnect metadata</li>
+            <li>User-facing page layout and dashboard configuration</li>
+            <li>Import/export scheduling and data freshness</li>
+            <li>User permissions and access patterns</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

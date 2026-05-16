@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian — Intelligence Redesign</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#F4F1EB;--surface:#fff;--ink:#0F1318;--ink2:#1C2129;
+  --text:#1C2129;--text2:#4A4E5A;--text3:#8B8F99;
+  --border:#E2DED5;--border2:#CCC8BD;
+  --neg:#D63B2F;--neg-soft:#FDECEB;--neg-mid:#E8847B;
+  --warn:#C87A0A;--warn-soft:#FDF3E3;
+  --med:#2968A8;--med-soft:#E8F0FA;
+  --pos:#1A7A4A;--pos-soft:#E6F5ED;
+  --accent:#175AA6;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-family:'IBM Plex Sans',system-ui,sans-serif}
+
+/* ─── DARK MASTHEAD ─── */
+.mast{background:var(--ink);color:#fff;padding:48px 56px 44px;position:relative;overflow:hidden}
+.mast::after{content:'';position:absolute;top:0;right:0;width:50%;height:100%;background:linear-gradient(135deg,transparent 40%,rgba(23,90,166,0.06) 100%);pointer-events:none}
+.mast-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:36px}
+.mast-title{font-size:11px;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:6px}
+.mast-model{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
+.mast-meta{font-size:12px;color:rgba(255,255,255,0.35);font-family:'IBM Plex Mono',monospace}
+.mast-chips{display:flex;gap:6px;margin-top:10px}
+.mast-chip{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:.06em;padding:3px 10px;border-radius:3px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.45);text-transform:uppercase}
+
+/* Score ring */
+.score-ring{position:relative;width:140px;height:140px;flex-shrink:0}
+.score-ring svg{width:100%;height:100%}
+.score-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-num{font-size:44px;font-weight:300;letter-spacing:-.03em;line-height:1;color:#fff}
+.score-label{font-size:9px;font-family:'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-top:4px}
+
+/* ─── KPI BRIDGE ─── */
+.kpi-bridge{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:0 0 12px 12px;margin:-1px 56px 0;position:relative;z-index:2;box-shadow:0 8px 32px rgba(0,0,0,0.08)}
+.kpi-cell{flex:1;padding:22px 28px;text-align:center;border-right:1px solid var(--border)}
+.kpi-cell:last-child{border-right:none}
+.kpi-val{font-size:32px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.kpi-lbl{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-top:4px}
+.kpi-bar{height:3px;border-radius:2px;margin-top:8px}
+
+/* ─── SEVERITY STRIP ─── */
+.sev-strip{margin:32px 56px 0;display:flex;height:10px;border-radius:5px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,0.06)}
+.sev-strip div{height:100%;transition:width .6s ease}
+
+/* ─── BODY ─── */
+.body{padding:36px 56px 80px;display:flex;flex-direction:column;gap:24px}
+.body-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+
+/* ─── CARDS ─── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.card-hd{padding:18px 24px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:700;letter-spacing:-.01em}
+.card-count{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);background:var(--bg);padding:2px 8px;border-radius:4px}
+.card-body{padding:20px 24px}
+
+/* ─── CLUSTER CARDS ─── */
+.cluster{padding:20px 24px;border-bottom:1px solid var(--border)}
+.cluster:last-child{border-bottom:none}
+.cluster-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.cluster-name{font-size:14px;font-weight:700;letter-spacing:-.01em;margin-bottom:2px}
+.cluster-desc{font-size:11px;color:var(--text3);line-height:1.5;max-width:480px}
+.cluster-stats{text-align:right;flex-shrink:0}
+.cluster-li{font-size:28px;font-weight:300;letter-spacing:-.02em;line-height:1}
+.cluster-li-label{font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+
+/* Cluster module strip */
+.cluster-modules{display:flex;gap:3px;height:28px;border-radius:4px;overflow:hidden}
+.cluster-mod{display:flex;align-items:center;justify-content:center;font-size:8px;font-family:'IBM Plex Mono',monospace;font-weight:600;color:#fff;letter-spacing:.02em;border-radius:3px;cursor:default;position:relative;transition:flex .3s ease}
+.cluster-mod:hover{flex:2 !important}
+.cluster-mod .cm-tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:10px;padding:6px 10px;border-radius:5px;white-space:nowrap;z-index:10;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.2)}
+.cluster-mod:hover .cm-tip{display:block}
+
+/* ─── MODULE HEAT TABLE ─── */
+.heat-tbl{width:100%;border-collapse:collapse}
+.heat-tbl th{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:10px 14px;text-align:left;border-bottom:2px solid var(--border2);position:sticky;top:0;background:var(--surface)}
+.heat-tbl th:last-child{text-align:right}
+.heat-tbl td{padding:0;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+.heat-row{display:flex;align-items:center;padding:10px 14px;gap:12px;transition:background .1s}
+.heat-row:hover{background:rgba(23,90,166,0.03)}
+.heat-sev{width:4px;height:32px;border-radius:2px;flex-shrink:0}
+.heat-name{font-weight:600;white-space:nowrap;min-width:180px}
+.heat-role{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:.04em;min-width:36px;text-align:center}
+.heat-issues{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;min-width:32px;text-align:center}
+.heat-bar-wrap{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;min-width:120px}
+.heat-bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.heat-score{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;min-width:32px;text-align:right}
+.heat-deps{display:flex;gap:2px;min-width:60px;justify-content:flex-end}
+.heat-dep-dot{width:8px;height:8px;border-radius:50%;border:1px solid rgba(255,255,255,0.5)}
+.heat-sev-chip{font-size:8px;font-family:'IBM Plex Mono',monospace;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:3px;white-space:nowrap}
+
+/* ─── FIX ORDER TIMELINE ─── */
+.fix-timeline{display:flex;gap:0;align-items:stretch}
+.fix-phase{flex:1;position:relative;padding:16px 14px}
+.fix-phase::after{content:'';position:absolute;right:0;top:16px;bottom:16px;width:1px;background:var(--border)}
+.fix-phase:last-child::after{display:none}
+.fix-phase-hd{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.fix-phase-sub{font-size:9px;color:var(--text3);margin-bottom:12px}
+.fix-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:5px;margin-bottom:4px;transition:background .15s}
+.fix-item:hover{background:var(--bg)}
+.fix-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.fix-name{font-size:11px;font-weight:600;flex:1}
+.fix-score{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3)}
+
+/* ─── BOTTLENECK CARDS ─── */
+.bn-card{display:flex;align-items:center;gap:20px;padding:18px 24px;border-bottom:1px solid var(--border)}
+.bn-card:last-child{border-bottom:none}
+.bn-hub{width:56px;height:56px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;border:3px solid}
+.bn-hub-id{font-size:11px;font-weight:700;color:#fff}
+.bn-hub-li{font-size:8px;font-family:'IBM Plex Mono',monospace;color:rgba(255,255,255,0.7)}
+.bn-info{flex:1;min-width:0}
+.bn-name{font-size:13px;font-weight:700;margin-bottom:2px}
+.bn-desc{font-size:11px;color:var(--text3);line-height:1.4}
+.bn-fanout{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.bn-fan-chip{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:500;padding:3px 8px;border-radius:3px;background:var(--bg);color:var(--text2);border:1px solid var(--border)}
+.bn-impact{width:80px;flex-shrink:0;text-align:right}
+.bn-impact-val{font-size:22px;font-weight:300;letter-spacing:-.02em}
+.bn-impact-lbl{font-size:8px;font-family:'IBM Plex Mono',monospace;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+
+/* ─── ARCHITECTURE LAYER BAR ─── */
+.arch-bar{display:flex;height:40px;border-radius:6px;overflow:hidden;gap:2px}
+.arch-seg{display:flex;align-items:center;justify-content:center;flex-direction:column;transition:flex .3s}
+.arch-seg-label{font-size:8px;font-family:'IBM Plex Mono',monospace;font-weight:600;color:rgba(255,255,255,0.8);letter-spacing:.06em;text-transform:uppercase}
+.arch-seg-count{font-size:14px;font-weight:700;color:#fff}
+
+/* ─── RISK MATRIX ─── */
+.matrix{display:grid;grid-template-columns:auto repeat(4,1fr);gap:1px;background:var(--border)}
+.matrix-cell{background:var(--surface);padding:10px;text-align:center;font-size:11px}
+.matrix-hd{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);background:var(--bg);padding:8px 10px}
+.matrix-corner{background:var(--bg)}
+.matrix-val{font-size:20px;font-weight:700;line-height:1.2}
+.matrix-label{font-size:8px;font-family:'IBM Plex Mono',monospace;color:var(--text3);margin-top:2px}
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ DARK MASTHEAD ═══════════════════════════════ -->
+<div class="mast">
+  <div class="mast-top">
+    <div>
+      <div class="mast-title">Model Intelligence</div>
+      <div class="mast-model">COPS Demo — Supply Chain Planning</div>
+      <div class="mast-meta">214 modules · 3,847 line items · Analysed May 16 2026</div>
+      <div class="mast-chips">
+        <span class="mast-chip">Client-prefix naming</span>
+        <span class="mast-chip">Formula risk: high</span>
+        <span class="mast-chip">Evidence: qualified</span>
+      </div>
+    </div>
+    <div class="score-ring">
+      <svg viewBox="0 0 140 140">
+        <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+        <circle cx="70" cy="70" r="60" fill="none" stroke="#D63B2F" stroke-width="8" stroke-dasharray="314 377" stroke-dashoffset="-31" stroke-linecap="round" transform="rotate(-90 70 70)" opacity="0.25"/>
+        <circle cx="70" cy="70" r="60" fill="none" stroke="#C87A0A" stroke-width="8" stroke-dasharray="113 377" stroke-dashoffset="-345" stroke-linecap="round" transform="rotate(-90 70 70)" opacity="0.25"/>
+        <circle cx="70" cy="70" r="60" fill="none" stroke="url(#scoreGrad)" stroke-width="8" stroke-dasharray="242 377" stroke-linecap="round" transform="rotate(-90 70 70)"/>
+        <defs><linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#D63B2F"/><stop offset="60%" stop-color="#C87A0A"/><stop offset="100%" stop-color="#1A7A4A"/></linearGradient></defs>
+      </svg>
+      <div class="score-val">
+        <div class="score-num">64</div>
+        <div class="score-label">Health</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Severity distribution in masthead -->
+  <div style="display:flex;gap:48px;align-items:flex-end;">
+    <div style="flex:1">
+      <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:rgba(255,255,255,0.06);">
+        <div style="width:15.4%;background:#D63B2F;"></div>
+        <div style="width:14.5%;background:#C87A0A;"></div>
+        <div style="width:43%;background:#2968A8;"></div>
+        <div style="width:27.1%;background:#1A7A4A;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;">
+        <span style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:rgba(255,255,255,0.3);">● Critical 33 &nbsp; ● High 31 &nbsp; ● Medium 92 &nbsp; ● Clean 58</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ KPI BRIDGE ═══════════════════════════════ -->
+<div class="kpi-bridge">
+  <div class="kpi-cell">
+    <div class="kpi-val" style="color:var(--text)">214</div>
+    <div class="kpi-lbl">Modules</div>
+  </div>
+  <div class="kpi-cell">
+    <div class="kpi-val" style="color:var(--neg)">33</div>
+    <div class="kpi-lbl">Critical</div>
+    <div class="kpi-bar" style="background:var(--neg);opacity:0.3"></div>
+  </div>
+  <div class="kpi-cell">
+    <div class="kpi-val" style="color:var(--warn)">31</div>
+    <div class="kpi-lbl">High</div>
+    <div class="kpi-bar" style="background:var(--warn);opacity:0.3"></div>
+  </div>
+  <div class="kpi-cell">
+    <div class="kpi-val" style="color:var(--med)">92</div>
+    <div class="kpi-lbl">Medium</div>
+    <div class="kpi-bar" style="background:var(--med);opacity:0.2"></div>
+  </div>
+  <div class="kpi-cell">
+    <div class="kpi-val" style="color:var(--pos)">58</div>
+    <div class="kpi-lbl">Clean</div>
+    <div class="kpi-bar" style="background:var(--pos);opacity:0.2"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ ARCHITECTURE LAYER BAR ═══════════════════════════════ -->
+<div style="margin:28px 56px 0">
+  <div style="font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">Architecture Layers</div>
+  <div class="arch-bar">
+    <div class="arch-seg" style="flex:18;background:#6366F1"><div class="arch-seg-count">18</div><div class="arch-seg-label">SYS</div></div>
+    <div class="arch-seg" style="flex:42;background:#2968A8"><div class="arch-seg-count">42</div><div class="arch-seg-label">INP</div></div>
+    <div class="arch-seg" style="flex:86;background:#0F1318"><div class="arch-seg-count">86</div><div class="arch-seg-label">CAL</div></div>
+    <div class="arch-seg" style="flex:38;background:#C87A0A"><div class="arch-seg-count">38</div><div class="arch-seg-label">DAT</div></div>
+    <div class="arch-seg" style="flex:30;background:#1A7A4A"><div class="arch-seg-count">30</div><div class="arch-seg-label">OUT</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ BODY GRID ═══════════════════════════════ -->
+<div class="body">
+
+  <!-- ──── RISK CLUSTERS + BOTTLENECKS ──── -->
+  <div class="body-row">
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-title">Risk Clusters</div>
+        <div class="card-count">3 clusters</div>
+      </div>
+      <div id="clusters-body"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-title">Bottleneck Hubs</div>
+        <div class="card-count">3 hubs · 9 downstream</div>
+      </div>
+      <div id="bn-body"></div>
+    </div>
+  </div>
+
+  <!-- ──── FIX ORDER ──── -->
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-title">Remediation Sequence</div>
+      <div class="card-count">dependency-safe ordering</div>
+    </div>
+    <div class="card-body" style="padding:0" id="fix-body"></div>
+  </div>
+
+  <!-- ──── MODULE HEAT TABLE ──── -->
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-title">Highest-Risk Modules</div>
+      <div class="card-count">8 of 214</div>
+    </div>
+    <div style="max-height:480px;overflow-y:auto" id="heat-body"></div>
+  </div>
+
+  <!-- ──── RISK MATRIX + EVIDENCE ──── -->
+  <div class="body-row">
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-title">Severity × Layer Matrix</div>
+      </div>
+      <div class="card-body" style="padding:16px" id="matrix-body"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-title">Evidence Boundaries</div>
+      </div>
+      <div class="card-body" id="evidence-body"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const COLORS = { critical:'#D63B2F', high:'#C87A0A', medium:'#2968A8', clean:'#1A7A4A' };
+const COLORBG = { critical:'#FDECEB', high:'#FDF3E3', medium:'#E8F0FA', clean:'#E6F5ED' };
+
+const MODULES = [
+  { id:'PM01', name:'PM01 – Project', role:'CAL', severity:'critical', li:48, issues:5, score:18, deps:['DEM01','CPM04'] },
+  { id:'DEM06', name:'DEM06 – Opportunity Mgmt', role:'CAL', severity:'critical', li:55, issues:5, score:22, deps:['DEM07','DEM30','DEM31','SCE13'] },
+  { id:'DCW03', name:'DCW03 – Stat Calcs', role:'CAL', severity:'critical', li:67, issues:4, score:25, deps:['DCW10','SLP01'] },
+  { id:'DEM01', name:'DEM01 – Demand Forecast', role:'CAL', severity:'critical', li:42, issues:4, score:28, deps:['DEM03','DEM07','SLP01'] },
+  { id:'CPM04', name:'CPM04 – Milestone Track', role:'CAL', severity:'critical', li:22, issues:3, score:30, deps:['CPM08'] },
+  { id:'SCE13', name:'SCE13 – Scenario Specs', role:'SYS', severity:'critical', li:16, issues:3, score:31, deps:['DEM30','DEM31'] },
+  { id:'DEM03', name:'DEM03 – Pipeline Analysis', role:'CAL', severity:'critical', li:38, issues:3, score:35, deps:['DEM07','SCE13'] },
+  { id:'DCW10', name:'DCW10 – Units by Week', role:'CAL', severity:'high', li:136, issues:3, score:40, deps:['SLP01','SLP05'] },
+  { id:'SLP01', name:'SLP01 – Slot Hours', role:'CAL', severity:'high', li:44, issues:2, score:46, deps:['SLP05'] },
+  { id:'DEM07', name:'DEM07 – Opp. Specifics', role:'CAL', severity:'high', li:33, issues:2, score:48, deps:['DEM30'] },
+  { id:'DEM05', name:'DEM05 – Customer Details', role:'DAT', severity:'high', li:28, issues:2, score:52, deps:['DEM06'] },
+  { id:'DEM31', name:'DEM31 – Sales', role:'OUT', severity:'high', li:24, issues:2, score:55, deps:[] },
+  { id:'DEM30', name:'DEM30 – Budget', role:'OUT', severity:'medium', li:18, issues:1, score:68, deps:[] },
+  { id:'SLP05', name:'SLP05 – Slots', role:'INP', severity:'medium', li:12, issues:1, score:72, deps:[] },
+  { id:'CPM08', name:'CPM08 – Milestone Chart', role:'OUT', severity:'medium', li:8, issues:1, score:74, deps:[] },
+];
+
+const CLUSTERS = [
+  { label:'Demand Planning Chain', desc:'DEM06 cascades through 4 downstream modules — calculation dependencies propagate formula risk through the entire demand planning workflow.', severity:'critical', li:254, modules:['DEM06','DEM01','DEM03','DEM05','DEM07','DEM30','DEM31','SCE13'] },
+  { label:'Capacity & Scheduling', desc:'DCW03 statistical calculations bottleneck — drives unit calculations through the slot allocation pipeline, 203 affected line items.', severity:'critical', li:259, modules:['DCW03','DCW10','SLP01','SLP05'] },
+  { label:'Project Milestones', desc:'PM01 hub with FINDITEM + 5-level nested IF creates exponential degradation as project volume grows.', severity:'critical', li:78, modules:['PM01','CPM04','CPM08'] },
+];
+
+function modById(id) { return MODULES.find(m => m.id === id); }
+function e(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ─── RISK CLUSTERS ───
+(function() {
+  const el = document.getElementById('clusters-body');
+  let html = '';
+  CLUSTERS.forEach(cl => {
+    const col = COLORS[cl.severity];
+    html += '<div class="cluster">';
+    html += '<div class="cluster-top">';
+    html += '<div><div class="cluster-name">' + e(cl.label) + '</div>';
+    html += '<div class="cluster-desc">' + e(cl.desc) + '</div></div>';
+    html += '<div class="cluster-stats"><div class="cluster-li" style="color:' + col + '">' + cl.li + '</div>';
+    html += '<div class="cluster-li-label">line items</div></div>';
+    html += '</div>';
+    // Module strip — proportional to line items
+    const totalLI = cl.modules.reduce((a, id) => a + (modById(id)?.li || 0), 0);
+    html += '<div class="cluster-modules">';
+    cl.modules.forEach(id => {
+      const m = modById(id);
+      if (!m) return;
+      const mcol = COLORS[m.severity];
+      const flex = Math.max(1, Math.round(m.li / totalLI * 20));
+      html += '<div class="cluster-mod" style="flex:' + flex + ';background:' + mcol + '">';
+      html += '<span class="cm-tip">' + m.name + ' · ' + m.li + ' LI · Score ' + m.score + '</span>';
+      html += m.id;
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
+})();
+
+// ─── BOTTLENECKS ───
+(function() {
+  const el = document.getElementById('bn-body');
+  const bns = [
+    { id:'DEM06', fanout:['DEM07','DEM30','DEM31','SCE13'], impact:78 },
+    { id:'DCW03', fanout:['DCW10','SLP01'], impact:75 },
+    { id:'PM01', fanout:['DEM01','CPM04'], impact:82 },
+  ];
+  let html = '';
+  bns.forEach(bn => {
+    const m = modById(bn.id);
+    const col = COLORS[m.severity];
+    html += '<div class="bn-card">';
+    html += '<div class="bn-hub" style="background:' + col + ';border-color:' + col + '"><div class="bn-hub-id">' + m.id + '</div><div class="bn-hub-li">' + m.li + ' LI</div></div>';
+    html += '<div class="bn-info"><div class="bn-name">' + e(m.name) + '</div>';
+    html += '<div class="bn-desc">' + m.issues + ' issues · Score ' + m.score + ' · Fan-out ' + bn.fanout.length + '</div>';
+    html += '<div class="bn-fanout">';
+    bn.fanout.forEach(depId => {
+      const dep = modById(depId);
+      if (!dep) return;
+      html += '<span class="bn-fan-chip" style="border-left:3px solid ' + COLORS[dep.severity] + '">' + dep.id + ' <span style="color:var(--text3)">' + dep.li + ' LI</span></span>';
+    });
+    html += '</div></div>';
+    html += '<div class="bn-impact"><div class="bn-impact-val" style="color:' + col + '">' + bn.impact + '</div><div class="bn-impact-lbl">Risk %</div></div>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
+})();
+
+// ─── FIX ORDER ───
+(function() {
+  const el = document.getElementById('fix-body');
+  const phases = [
+    { label:'Phase 1', sub:'Leaf nodes — no downstream risk', mods:['SLP05','DEM30','DEM31','CPM08'] },
+    { label:'Phase 2', sub:'Mid-tier — moderate blast radius', mods:['DEM05','DEM07','SLP01','SCE13'] },
+    { label:'Phase 3', sub:'Hub modules — high fan-out', mods:['DEM03','DEM06','DCW10','CPM04'] },
+    { label:'Phase 4', sub:'Root nodes — fix last', mods:['DEM01','DCW03','PM01'] },
+  ];
+  let html = '<div class="fix-timeline">';
+  phases.forEach((ph, pi) => {
+    html += '<div class="fix-phase" style="background:rgba(23,90,166,' + (0.01 + pi * 0.015) + ')">';
+    html += '<div class="fix-phase-hd">' + ph.label + '</div>';
+    html += '<div class="fix-phase-sub">' + ph.sub + '</div>';
+    ph.mods.forEach(id => {
+      const m = modById(id);
+      if (!m) return;
+      const col = COLORS[m.severity];
+      html += '<div class="fix-item"><div class="fix-dot" style="background:' + col + '"></div>';
+      html += '<div class="fix-name">' + m.id + '</div>';
+      html += '<div class="fix-score" style="color:' + col + '">' + m.score + '</div></div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+})();
+
+// ─── MODULE HEAT TABLE ───
+(function() {
+  const el = document.getElementById('heat-body');
+  const top = MODULES.slice(0, 12);
+  let html = '<table class="heat-tbl"><thead><tr><th colspan="2">Module</th><th>Issues</th><th style="width:40%">Risk</th><th style="text-align:right">Score</th></tr></thead><tbody>';
+  top.forEach(m => {
+    const col = COLORS[m.severity];
+    const riskW = 100 - m.score;
+    html += '<tr><td colspan="5" style="padding:0">';
+    html += '<div class="heat-row">';
+    html += '<div class="heat-sev" style="background:' + col + '"></div>';
+    html += '<div class="heat-name">' + e(m.name) + ' <span class="heat-role">' + m.role + '</span></div>';
+    html += '<div class="heat-issues" style="color:' + col + '">' + m.issues + '</div>';
+    html += '<div class="heat-bar-wrap"><div class="heat-bar-fill" style="width:' + riskW + '%;background:' + col + ';opacity:0.5"></div></div>';
+    html += '<div class="heat-score" style="color:' + col + '">' + m.score + '</div>';
+    html += '<div class="heat-sev-chip" style="background:' + COLORBG[m.severity] + ';color:' + col + '">' + m.severity + '</div>';
+    html += '</div></td></tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+})();
+
+// ─── RISK MATRIX ───
+(function() {
+  const el = document.getElementById('matrix-body');
+  const layers = ['SYS','INP','CAL','DAT','OUT'];
+  const sevs = ['critical','high','medium','clean'];
+  // Count modules per layer×severity
+  const counts = {};
+  layers.forEach(l => { sevs.forEach(s => { counts[l+'_'+s] = 0; }); });
+  // Fake realistic distribution
+  const data = {SYS_critical:3,SYS_high:4,SYS_medium:8,SYS_clean:3,INP_critical:5,INP_high:8,INP_medium:18,INP_clean:11,CAL_critical:18,CAL_high:14,CAL_medium:34,CAL_clean:20,DAT_critical:4,DAT_high:3,DAT_medium:18,DAT_clean:13,OUT_critical:3,OUT_high:2,OUT_medium:14,OUT_clean:11};
+
+  let html = '<div class="matrix"><div class="matrix-corner matrix-hd"></div>';
+  sevs.forEach(s => { html += '<div class="matrix-hd" style="color:' + COLORS[s] + '">' + s + '</div>'; });
+  layers.forEach(l => {
+    html += '<div class="matrix-hd">' + l + '</div>';
+    sevs.forEach(s => {
+      const v = data[l + '_' + s] || 0;
+      const col = COLORS[s];
+      const intensity = Math.min(0.25, v / 40);
+      html += '<div class="matrix-cell" style="background:rgba(' + (s==='critical'?'214,59,47':s==='high'?'200,122,10':s==='medium'?'41,104,168':'26,122,74') + ',' + intensity + ')">';
+      html += '<div class="matrix-val" style="color:' + col + '">' + v + '</div>';
+      html += '</div>';
+    });
+  });
+  html += '</div>';
+  el.innerHTML = html;
+})();
+
+// ─── EVIDENCE BOUNDARIES ───
+(function() {
+  const el = document.getElementById('evidence-body');
+  const supported = ['Formula complexity scoring','Dependency graph analysis','Module classification (DISCO)','Naming convention validation','Cell count estimation','Cross-module reference chains'];
+  const limited = ['Runtime performance data','User access patterns','Version history diffs','Actual data volumes'];
+  let html = '<div style="margin-bottom:16px"><div style="font-size:10px;font-family:\'IBM Plex Mono\',monospace;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--pos);margin-bottom:8px">✓ Supported by evidence</div>';
+  supported.forEach(s => { html += '<div style="font-size:11px;color:var(--text2);padding:3px 0;border-bottom:1px solid var(--border)">' + s + '</div>'; });
+  html += '</div><div><div style="font-size:10px;font-family:\'IBM Plex Mono\',monospace;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--warn);margin-bottom:8px">◦ Not available from blueprint</div>';
+  limited.forEach(s => { html += '<div style="font-size:11px;color:var(--text3);padding:3px 0;border-bottom:1px solid var(--border)">' + s + '</div>'; });
+  html += '</div>';
+  el.innerHTML = html;
+})();
+</script>
+</body>
+</html>

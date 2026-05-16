@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian — Model Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root {
+  --bg: #F4F5F7;
+  --surface: #FFFFFF;
+  --surface2: #F8F9FB;
+  --border: #E3E5EA;
+  --border2: #D0D3DB;
+  --text: #1A1D24;
+  --text2: #4B5060;
+  --text3: #8A8F9E;
+  --text4: #B3B7C3;
+  --accent: #2563EB;
+  --accent-light: rgba(37,99,235,0.06);
+  --crit: #DC3545;
+  --high: #E07A00;
+  --med: #2563EB;
+  --clean: #0F8A4F;
+  --crit-bg: rgba(220,53,69,0.06);
+  --high-bg: rgba(224,122,0,0.06);
+  --med-bg: rgba(37,99,235,0.05);
+  --clean-bg: rgba(15,138,79,0.05);
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', system-ui, sans-serif;
+  --r: 10px;
+  --sh: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+  --sh-lg: 0 4px 16px rgba(0,0,0,0.06);
+}
+html,body { background:var(--bg); color:var(--text); font-family:var(--sans); -webkit-font-smoothing:antialiased; }
+
+/* Nav */
+.nav { position:sticky; top:0; z-index:100; background:rgba(255,255,255,0.92); backdrop-filter:blur(16px); border-bottom:1px solid var(--border); padding:0 32px; display:flex; align-items:center; height:52px; gap:6px; }
+.nav-brand { font:600 11px/1 var(--mono); letter-spacing:0.1em; text-transform:uppercase; color:var(--text3); margin-right:auto; }
+.nav-tab { font:500 12px/1 var(--sans); color:var(--text3); padding:6px 14px; border-radius:8px; cursor:pointer; transition:all .15s; border:1px solid transparent; }
+.nav-tab:hover { color:var(--text2); background:var(--surface2); }
+.nav-tab.active { color:var(--accent); background:var(--accent-light); border-color:rgba(37,99,235,0.12); font-weight:600; }
+
+/* Shell */
+.shell { max-width:1360px; margin:0 auto; padding:32px 32px 80px; }
+
+/* Section */
+.section { display:none; }
+.section.active { display:block; }
+.section-hd { margin-bottom:24px; }
+.section-hd h2 { font:700 20px/1.2 var(--sans); letter-spacing:-0.02em; color:var(--text); margin-bottom:4px; }
+.section-hd p { font:400 13px/1.5 var(--sans); color:var(--text3); }
+
+/* Card */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r); box-shadow:var(--sh); overflow:hidden; }
+.card + .card { margin-top:20px; }
+.card-hd { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.card-t { font:600 13px/1 var(--sans); color:var(--text); }
+.card-b { font:500 9px/1 var(--mono); letter-spacing:0.06em; text-transform:uppercase; padding:3px 8px; border-radius:4px; background:var(--surface2); color:var(--text3); }
+
+/* Tooltip */
+.tt { position:absolute; pointer-events:none; background:rgba(26,29,36,0.94); color:#fff; font:400 11px/1.5 var(--sans); padding:10px 14px; border-radius:8px; max-width:260px; z-index:200; opacity:0; transition:opacity .12s; backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.06); }
+.tt.show { opacity:1; }
+.tt strong { font-weight:600; display:block; margin-bottom:2px; }
+.tt-m { font:500 9px/1 var(--mono); color:rgba(255,255,255,0.5); letter-spacing:0.04em; text-transform:uppercase; margin-top:4px; }
+
+/* Sev chips */
+.sev { display:inline-flex; align-items:center; gap:3px; font:600 9px/1 var(--mono); letter-spacing:0.04em; text-transform:uppercase; padding:3px 9px; border-radius:100px; }
+.sev-critical { background:var(--crit-bg); color:var(--crit); border:1px solid rgba(220,53,69,0.15); }
+.sev-high { background:var(--high-bg); color:var(--high); border:1px solid rgba(224,122,0,0.15); }
+.sev-medium { background:var(--med-bg); color:var(--med); border:1px solid rgba(37,99,235,0.15); }
+.sev-clean { background:var(--clean-bg); color:var(--clean); border:1px solid rgba(15,138,79,0.15); }
+
+/* Animations — opacity only for SVG compatibility */
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes edgeDraw { from{stroke-dashoffset:1000} to{stroke-dashoffset:0} }
+.a-node { animation:fadeIn .4s ease-out both; }
+.a-edge { stroke-dasharray:1000; animation:edgeDraw 1s ease-out both; }
+.a-fade { animation:fadeIn .4s ease-out both; }
+
+svg text { font-family:'JetBrains Mono', monospace; }
+</style>
+</head>
+<body>
+
+<div class="tt" id="tip"></div>
+
+<nav class="nav">
+  <span class="nav-brand">Meridian</span>
+  <div class="nav-tab active" data-s="dep">Dependency Architecture</div>
+  <div class="nav-tab" data-s="clusters">Risk Clusters</div>
+  <div class="nav-tab" data-s="fix">Fix Order</div>
+  <div class="nav-tab" data-s="bn">Bottlenecks</div>
+</nav>
+
+<div class="shell">
+
+<!-- DEPENDENCY ARCHITECTURE -->
+<div class="section active" id="sec-dep">
+  <div class="section-hd">
+    <h2>Dependency Architecture</h2>
+    <p>Module relationships laid out by dependency depth. Colored by severity, sized by line item count.</p>
+  </div>
+  <div class="card">
+    <div id="dep-svg" style="padding:8px"></div>
+  </div>
+</div>
+
+<!-- RISK CLUSTERS — Concentric Rings -->
+<div class="section" id="sec-clusters">
+  <div class="section-hd">
+    <h2>Risk Clusters</h2>
+    <p>Modules grouped by shared critical dependencies. Concentric rings show severity distance from hub.</p>
+  </div>
+  <div class="card"><svg id="svg-cl-rings" width="100%" height="540" viewBox="0 0 1300 540"></svg></div>
+</div>
+
+<!-- FIX ORDER — Swim Lanes -->
+<div class="section" id="sec-fix">
+  <div class="section-hd">
+    <h2>Fix Order Pipeline</h2>
+    <p>Dependency-safe remediation sequence. Leaves first, root hubs last.</p>
+  </div>
+  <div class="card"><svg id="svg-fix-swim" width="100%" height="400" viewBox="0 0 1300 400"></svg></div>
+</div>
+
+<!-- BOTTLENECKS — Sankey Flow -->
+<div class="section" id="sec-bn">
+  <div class="section-hd">
+    <h2>Bottleneck Fan-out</h2>
+    <p>Hub modules that cascade risk to downstream dependents.</p>
+  </div>
+  <div class="card"><svg id="svg-bn-sank" width="100%" height="500" viewBox="0 0 1300 500"></svg></div>
+</div>
+
+</div><!-- shell -->
+
+<script>
+const C = { critical:'#DC3545', high:'#E07A00', medium:'#2563EB', clean:'#0F8A4F' };
+const CBG = { critical:'rgba(220,53,69,0.07)', high:'rgba(224,122,0,0.07)', medium:'rgba(37,99,235,0.05)', clean:'rgba(15,138,79,0.05)' };
+const MODS = [
+  {id:'PM01',name:'PM01 - Project',role:'CAL',sev:'critical',li:48,iss:5,score:18,deps:['DEM01','CPM04']},
+  {id:'DEM06',name:'DEM06 - Opportunity Mgmt',role:'CAL',sev:'critical',li:55,iss:5,score:22,deps:['DEM07','DEM30','DEM31','SCE13']},
+  {id:'DCW03',name:'DCW03 - Stat Calcs',role:'CAL',sev:'critical',li:67,iss:4,score:25,deps:['DCW10','SLP01']},
+  {id:'DEM01',name:'DEM01 - Demand Forecast',role:'CAL',sev:'critical',li:42,iss:4,score:28,deps:['DEM03','DEM07','SLP01']},
+  {id:'CPM04',name:'CPM04 - Milestone Track',role:'CAL',sev:'critical',li:22,iss:3,score:30,deps:['CPM08']},
+  {id:'SCE13',name:'SCE13 - Scenario Specs',role:'SYS',sev:'critical',li:16,iss:3,score:31,deps:['DEM30','DEM31']},
+  {id:'DEM03',name:'DEM03 - Pipeline Analysis',role:'CAL',sev:'critical',li:38,iss:3,score:35,deps:['DEM07','SCE13']},
+  {id:'DCW10',name:'DCW10 - Units by Week',role:'CAL',sev:'high',li:136,iss:3,score:40,deps:['SLP01','SLP05']},
+  {id:'SLP01',name:'SLP01 - Slot Hours',role:'CAL',sev:'high',li:44,iss:2,score:46,deps:['SLP05']},
+  {id:'DEM07',name:'DEM07 - Opp. Specifics',role:'CAL',sev:'high',li:33,iss:2,score:48,deps:['DEM30']},
+  {id:'DEM05',name:'DEM05 - Customer Details',role:'DAT',sev:'high',li:28,iss:2,score:52,deps:['DEM06']},
+  {id:'DEM31',name:'DEM31 - Sales',role:'OUT',sev:'high',li:24,iss:2,score:55,deps:[]},
+  {id:'DEM30',name:'DEM30 - Budget',role:'OUT',sev:'medium',li:18,iss:1,score:68,deps:[]},
+  {id:'SLP05',name:'SLP05 - Slots',role:'INP',sev:'medium',li:12,iss:1,score:72,deps:[]},
+  {id:'CPM08',name:'CPM08 - Milestone Chart',role:'OUT',sev:'medium',li:8,iss:1,score:74,deps:[]},
+];
+const CLUSTERS = [
+  {label:'Demand Planning',sev:'critical',mods:['DEM06','DEM01','DEM03','DEM05','DEM07','DEM30','DEM31','SCE13'],root:'DEM06',li:254},
+  {label:'Capacity & Scheduling',sev:'critical',mods:['DCW03','DCW10','SLP01','SLP05'],root:'DCW03',li:259},
+  {label:'Project Milestones',sev:'critical',mods:['PM01','CPM04','CPM08'],root:'PM01',li:78},
+];
+function m(id){return MODS.find(x=>x.id===id)}
+
+// NAV
+document.querySelectorAll('.nav-tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('sec-'+t.dataset.s).classList.add('active');
+  };
+});
+
+// Tooltip
+const tip=document.getElementById('tip');
+function showTip(e,html){tip.innerHTML=html;tip.classList.add('show');const r=tip.getBoundingClientRect();tip.style.left=Math.min(e.pageX+12,innerWidth-r.width-20)+'px';tip.style.top=(e.pageY-r.height-10)+'px';}
+function hideTip(){tip.classList.remove('show');}
+
+// DEPENDENCY ARCHITECTURE
+(function(){
+  const W=1300,H=540;
+  const pos={
+    'PM01':{x:100,y:80},'DEM06':{x:100,y:230},'DCW03':{x:100,y:400},
+    'CPM04':{x:340,y:50},'DEM01':{x:340,y:140},'DEM03':{x:340,y:270},'SCE13':{x:340,y:400},'DCW10':{x:340,y:480},
+    'DEM05':{x:580,y:170},'DEM07':{x:580,y:310},'SLP01':{x:580,y:440},
+    'CPM08':{x:820,y:50},'DEM31':{x:820,y:190},'DEM30':{x:820,y:310},'SLP05':{x:820,y:440},
+  };
+  const NW=150,NH=56,NR=8;
+  let s=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;min-height:440px">`;
+  s+=`<defs>`;
+  s+=`<marker id="da-arr" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 3.5L0 7z" fill="rgba(0,0,0,0.18)"/></marker>`;
+  Object.entries(C).forEach(([k,c])=>{
+    s+=`<filter id="ds-${k}"><feDropShadow dx="0" dy="1" stdDeviation="3" flood-color="${c}" flood-opacity="0.12"/></filter>`;
+  });
+  s+=`</defs>`;
+
+  // Column labels — min 10px
+  [{x:100,l:'Root Nodes'},{x:340,l:'Hub Modules'},{x:580,l:'Mid-Tier'},{x:820,l:'Leaf Nodes'}].forEach(p=>{
+    s+=`<text x="${p.x+NW/2}" y="24" font-size="10" font-weight="600" fill="#8A8F9E" text-anchor="middle" letter-spacing="0.1em">${p.l.toUpperCase()}</text>`;
+  });
+
+  // Edges — opacity >= 0.3
+  MODS.forEach(mod=>{
+    const f=pos[mod.id]; if(!f) return;
+    mod.deps.forEach(d=>{
+      const t=pos[d]; if(!t) return;
+      const x1=f.x+NW,y1=f.y+NH/2,x2=t.x,y2=t.y+NH/2,cpx=(x1+x2)/2;
+      s+=`<path d="M${x1} ${y1} C${cpx} ${y1} ${cpx} ${y2} ${x2} ${y2}" fill="none" stroke="${C[mod.sev]}" stroke-opacity="0.3" stroke-width="2" marker-end="url(#da-arr)"/>`;
+    });
+  });
+
+  // Nodes
+  MODS.forEach(mod=>{
+    const p=pos[mod.id]; if(!p) return;
+    const col=C[mod.sev];
+    s+=`<g filter="url(#ds-${mod.sev})">`;
+    s+=`<rect x="${p.x}" y="${p.y}" width="${NW}" height="${NH}" rx="${NR}" fill="#fff" stroke="${col}" stroke-width="1.5" stroke-opacity="0.5"/>`;
+    s+=`</g>`;
+    s+=`<rect x="${p.x}" y="${p.y}" width="4" height="${NH}" rx="2" fill="${col}"/>`;
+    s+=`<text x="${p.x+14}" y="${p.y+22}" font-size="11.5" font-weight="700" fill="${col}">${mod.id}</text>`;
+    s+=`<text x="${p.x+14}" y="${p.y+38}" font-size="10" fill="#8A8F9E">${mod.li} LI · Score ${mod.score}</text>`;
+    s+=`<circle cx="${p.x+NW-14}" cy="${p.y+14}" r="10" fill="${col}" fill-opacity="0.1"/>`;
+    s+=`<text x="${p.x+NW-14}" y="${p.y+17}" font-size="10" font-weight="700" fill="${col}" text-anchor="middle">${mod.iss}</text>`;
+    s+=`<rect x="${p.x+NW-42}" y="${p.y+NH-17}" width="30" height="13" rx="3" fill="rgba(0,0,0,0.03)"/>`;
+    s+=`<text x="${p.x+NW-27}" y="${p.y+NH-8}" font-size="9" font-weight="600" fill="#8A8F9E" text-anchor="middle">${mod.role}</text>`;
+  });
+
+  // Fix direction arrow — positioned below nodes with clearance
+  s+=`<line x1="80" y1="${H-16}" x2="500" y2="${H-16}" stroke="#D0D3DB" stroke-width="1.5" marker-end="url(#da-arr)"/>`;
+  s+=`<text x="290" y="${H-4}" font-size="10" font-weight="500" fill="#8A8F9E" text-anchor="middle" letter-spacing="0.06em">FIX DIRECTION: LEAVES FIRST, ROOTS LAST</text>`;
+  s+=`</svg>`;
+  document.getElementById('dep-svg').innerHTML=s;
+})();
+
+// RISK CLUSTERS — CONCENTRIC RINGS
+(function(){
+  const svg=document.getElementById('svg-cl-rings');
+  const W=1300,H=540;
+  let s='';
+  s+='<defs><marker id="arr-r" viewBox="0 0 10 8" refX="10" refY="4" markerWidth="7" markerHeight="5" orient="auto"><path d="M0 1L9 4L0 7" fill="none" stroke="#8A8F9E" stroke-width="1.2" stroke-linecap="round"/></marker></defs>';
+
+  const cens=[{cx:230,cy:290,cl:CLUSTERS[0]},{cx:680,cy:280,cl:CLUSTERS[1]},{cx:1080,cy:290,cl:CLUSTERS[2]}];
+
+  cens.forEach((cn,ci)=>{
+    const cl=cn.cl,root=m(cl.root);
+    const others=cl.mods.filter(id=>id!==cl.root).map(id=>m(id)).filter(Boolean);
+
+    s+=`<text x="${cn.cx}" y="68" text-anchor="middle" font-size="14" font-weight="700" fill="#1A1D24" font-family="Inter,sans-serif" class="a-fade" style="animation-delay:${ci*.1}s">${cl.label}</text>`;
+    s+=`<text x="${cn.cx}" y="86" text-anchor="middle" font-size="10" fill="#8A8F9E" class="a-fade" style="animation-delay:${ci*.12}s">${cl.li} line items · ${cl.mods.length} modules</text>`;
+
+    // Ring radii — spread out critical ring to avoid overlap with many nodes
+    const ringR={critical:75,high:120,medium:165};
+    Object.entries(ringR).forEach(([sev,r])=>{
+      s+=`<circle cx="${cn.cx}" cy="${cn.cy}" r="${r}" fill="none" stroke="${C[sev]}" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.35"/>`;
+      s+=`<text x="${cn.cx+r+5}" y="${cn.cy-4}" font-size="9" fill="${C[sev]}" opacity="0.7">${sev}</text>`;
+    });
+
+    if(root){
+      const col=C[root.sev];
+      s+=`<circle cx="${cn.cx}" cy="${cn.cy}" r="28" fill="${col}" stroke="#fff" stroke-width="3" class="a-node" style="animation-delay:${ci*.1}s;cursor:pointer"`;
+      s+=` onmouseenter="showTip(event,'<strong>${root.name}</strong>Hub · ${root.iss} issues · ${root.li} LI<div class=tt-m>Root of cluster</div>')" onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${root.name}</strong>Hub · ${root.iss} issues · ${root.li} LI<div class=tt-m>Root of cluster</div>')"/>`;
+      s+=`<text x="${cn.cx}" y="${cn.cy-3}" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" pointer-events="none">${root.id}</text>`;
+      s+=`<text x="${cn.cx}" y="${cn.cy+9}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.65)" pointer-events="none">${root.li} LI</text>`;
+    }
+
+    // Distribute nodes on rings — group by severity to avoid overlap
+    const bySev={critical:[],high:[],medium:[]};
+    others.forEach(mod=>{ if(bySev[mod.sev]) bySev[mod.sev].push(mod); else bySev.high.push(mod); });
+
+    Object.entries(bySev).forEach(([sev,mods])=>{
+      const rr=ringR[sev]||120;
+      const n=mods.length;
+      if(n===0) return;
+      mods.forEach((mod,i)=>{
+        const a=(2*Math.PI*i/n)-Math.PI/2;
+        const mx=cn.cx+Math.cos(a)*rr,my=cn.cy+Math.sin(a)*rr;
+        const nr=Math.max(18,Math.min(24,mod.li/2.2));
+        const col=C[mod.sev];
+        s+=`<line x1="${cn.cx}" y1="${cn.cy}" x2="${mx}" y2="${my}" stroke="${col}" stroke-width="1.5" opacity="0.45" marker-end="url(#arr-r)"/>`;
+        s+=`<circle cx="${mx}" cy="${my}" r="${nr}" fill="${col}" stroke="#fff" stroke-width="2.5" cursor="pointer"`;
+        s+=` onmouseenter="showTip(event,'<strong>${mod.name}</strong>${mod.iss} issues · ${mod.li} LI · Score ${mod.score}<div class=tt-m>${mod.role} · ${mod.sev}</div>')" onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${mod.name}</strong>${mod.iss} issues · ${mod.li} LI · Score ${mod.score}<div class=tt-m>${mod.role} · ${mod.sev}</div>')"/>`;
+        s+=`<text x="${mx}" y="${my+1}" text-anchor="middle" dominant-baseline="central" font-size="${nr>17?10:9}" font-weight="600" fill="#fff" pointer-events="none">${mod.id}</text>`;
+      });
+    });
+  });
+  s+='<g transform="translate(24,520)"><text x="0" y="4" font-size="10" fill="#B3B7C3" font-family="Inter,sans-serif">Rings = severity distance from hub · Center = root module · Node size = line item count</text></g>';
+  svg.innerHTML=s;
+})();
+
+// FIX ORDER — SWIM LANES
+(function(){
+  const svg=document.getElementById('svg-fix-swim');
+  const W=1300,H=400;
+  let s='';
+  s+='<defs><marker id="arr-sw" viewBox="0 0 10 8" refX="10" refY="4" markerWidth="7" markerHeight="5" orient="auto"><path d="M0 1L9 4L0 7" fill="none" stroke="#4B5060" stroke-width="1.2" stroke-linecap="round"/></marker></defs>';
+
+  const lanes=[
+    {label:'INPUT / DATA',y:60,h:70,mods:['SLP05','DEM05']},
+    {label:'CALCULATION',y:145,h:160,mods:['DCW03','DCW10','SLP01','DEM01','DEM03','DEM06','DEM07','CPM04','PM01','SCE13']},
+    {label:'OUTPUT',y:320,h:65,mods:['DEM30','DEM31','CPM08']},
+  ];
+
+  lanes.forEach((ln,li)=>{
+    s+=`<rect x="90" y="${ln.y}" width="${W-110}" height="${ln.h}" rx="6" fill="${li%2===0?'rgba(37,99,235,0.03)':'rgba(37,99,235,0.015)'}" class="a-fade" style="animation-delay:${li*.08}s"/>`;
+    s+=`<text x="28" y="${ln.y+ln.h/2+1}" dominant-baseline="central" font-size="10" font-weight="600" letter-spacing=".08em" fill="#B3B7C3" transform="rotate(-90,28,${ln.y+ln.h/2})" text-anchor="middle">${ln.label}</text>`;
+  });
+
+  const nodeP={};
+  lanes.forEach(ln=>{
+    const cnt=ln.mods.length,startX=150,sp=Math.min(108,(W-260)/cnt);
+    ln.mods.forEach((mid,i)=>{
+      // For CALCULATION lane (h>100): alternate rows with enough vertical spread
+      nodeP[mid]={x:startX+i*sp, y:ln.y+(ln.h>100?45+(i%2)*70:ln.h/2)};
+    });
+  });
+
+  // Edges — opacity >= 0.35
+  MODS.forEach(mod=>{
+    if(!nodeP[mod.id]) return;
+    mod.deps.forEach(dep=>{
+      if(!nodeP[dep]) return;
+      const f=nodeP[mod.id],t=nodeP[dep],cpx=(f.x+t.x)/2;
+      s+=`<path d="M${f.x} ${f.y} C${cpx} ${f.y} ${cpx} ${t.y} ${t.x} ${t.y}" fill="none" stroke="${C[mod.sev]}" stroke-width="1.5" opacity="0.35" marker-end="url(#arr-sw)" class="a-edge"/>`;
+    });
+  });
+
+  // Nodes — radius capped at 22px, font min 9px
+  Object.entries(nodeP).forEach(([mid,p],i)=>{
+    const mod=m(mid); if(!mod) return;
+    const col=C[mod.sev];
+    const r=Math.max(17,Math.min(22,mod.li/2.5));
+    s+=`<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${col}" stroke="#fff" stroke-width="2.5" class="a-node" style="animation-delay:${i*.03}s;cursor:pointer"`;
+    s+=` onmouseenter="showTip(event,'<strong>${mod.name}</strong>${mod.iss} issues · ${mod.li} LI · Score ${mod.score}<div class=tt-m>${mod.role} · ${mod.sev}</div>')" onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${mod.name}</strong>${mod.iss} issues · ${mod.li} LI · Score ${mod.score}<div class=tt-m>${mod.role} · ${mod.sev}</div>')"/>`;
+    s+=`<text x="${p.x}" y="${p.y+1}" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="600" fill="#fff" pointer-events="none">${mod.id}</text>`;
+  });
+
+  s+=`<text x="660" y="32" text-anchor="middle" font-size="10" fill="#B3B7C3" font-family="Inter,sans-serif" class="a-fade">ARCHITECTURAL LAYERS — data flows downward through calculation to output</text>`;
+  svg.innerHTML=s;
+})();
+
+// BOTTLENECK — SANKEY FLOW
+(function(){
+  const svg=document.getElementById('svg-bn-sank');
+  const W=1300,H=500;
+  let s='';
+
+  const col1=[m('PM01'),m('DEM06'),m('DCW03')];
+  const col2=[m('DEM01'),m('CPM04'),m('DEM07'),m('DEM30'),m('DEM31'),m('SCE13'),m('DCW10'),m('SLP01')];
+  const col3=[m('DEM03'),m('SLP05'),m('CPM08')];
+  const colX=[130,540,950];
+  const colLabels=['Bottleneck Hubs','Primary Dependents','Downstream'];
+
+  colLabels.forEach((l,i)=>{
+    s+=`<text x="${colX[i]+80}" y="38" text-anchor="middle" font-size="10" font-weight="600" letter-spacing=".06em" fill="#B3B7C3" class="a-fade">${l.toUpperCase()}</text>`;
+  });
+
+  const allP={};
+  function drawCol(col,x,sp){
+    const startY=60;
+    col.forEach((mod,i)=>{
+      if(!mod) return;
+      const ny=startY+i*sp;
+      const nH=Math.max(32,Math.min(54,mod.li*0.7));
+      const c=C[mod.sev];
+      allP[mod.id]={x,y:ny,h:nH};
+      s+=`<rect x="${x}" y="${ny}" width="170" height="${nH}" rx="7" fill="${c}" opacity="0.07" stroke="${c}" stroke-width="1" class="a-node" style="animation-delay:${i*.05}s;cursor:pointer"`;
+      s+=` onmouseenter="showTip(event,'<strong>${mod.name}</strong>${mod.iss} issues · ${mod.li} LI · Score ${mod.score}<div class=tt-m>${mod.role} · ${mod.sev}</div>')" onmouseleave="hideTip()" onmousemove="showTip(event,'<strong>${mod.name}</strong>${mod.iss} issues · ${mod.li} LI · Score ${mod.score}<div class=tt-m>${mod.role} · ${mod.sev}</div>')"/>`;
+      s+=`<circle cx="${x+14}" cy="${ny+nH/2}" r="4.5" fill="${c}"/>`;
+      s+=`<text x="${x+24}" y="${ny+nH/2+1}" dominant-baseline="central" font-size="10.5" font-weight="600" fill="#1A1D24" pointer-events="none" font-family="Inter,sans-serif">${mod.id}</text>`;
+      s+=`<text x="${x+158}" y="${ny+nH/2+1}" text-anchor="end" dominant-baseline="central" font-size="9" fill="#8A8F9E" pointer-events="none">${mod.li} LI</text>`;
+    });
+  }
+  drawCol(col1,colX[0],140);
+  drawCol(col2,colX[1],52);
+  drawCol(col3,colX[2],85);
+
+  // Sankey paths — opacity >= 0.35
+  function sank(fid,tid){
+    const f=allP[fid],t=allP[tid]; if(!f||!t) return;
+    const fm=m(fid),tm=m(tid);
+    const th=Math.max(2,Math.min(8,(tm?.li||20)/10));
+    const c=C[fm?.sev||'medium'];
+    const x1=f.x+170,y1=f.y+f.h/2,x2=t.x,y2=t.y+t.h/2,cpx=(x1+x2)/2;
+    s+=`<path d="M${x1} ${y1} C${cpx} ${y1} ${cpx} ${y2} ${x2} ${y2}" fill="none" stroke="${c}" stroke-width="${th}" opacity="0.4" class="a-edge"/>`;
+  }
+  sank('PM01','DEM01');sank('PM01','CPM04');
+  sank('DEM06','DEM07');sank('DEM06','DEM30');sank('DEM06','DEM31');sank('DEM06','SCE13');
+  sank('DCW03','DCW10');sank('DCW03','SLP01');
+  sank('DEM07','DEM03');sank('SLP01','SLP05');sank('CPM04','CPM08');sank('SCE13','DEM30');
+
+  svg.innerHTML=s;
+})();
+</script>
+</body>
+</html>

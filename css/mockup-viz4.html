@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian — Model Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root {
+  --bg: #F6F7F9;
+  --s1: #FFFFFF;
+  --s2: #F0F1F4;
+  --s3: #E5E7EB;
+  --b1: #E2E4EA;
+  --b2: #D1D5DC;
+  --t1: #1A1D23;
+  --t2: #5A6170;
+  --t3: #8C919E;
+  --crit: #DC3545;
+  --high: #E07A00;
+  --med:  #2563EB;
+  --clean:#0F8A4F;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', system-ui, sans-serif;
+  --node-bg: #FFFFFF;
+  --node-stroke-op: 0.6;
+  --edge-op: 0.25;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+}
+html,body { background: var(--bg); color: var(--t1); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+
+/* Subtle dot grid */
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(0,0,0,0.04) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.shell { max-width:1400px; margin:0 auto; padding:32px 32px 80px; position:relative; z-index:1; }
+
+/* ── Header ── */
+.hd { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:28px; }
+.hd-eyebrow { font:600 10px/1 var(--mono); letter-spacing:0.14em; text-transform:uppercase; color:var(--med); margin-bottom:10px; }
+.hd-title { font:800 26px/1.15 var(--sans); letter-spacing:-0.03em; color:var(--t1); margin-bottom:4px; }
+.hd-meta { font:400 12px/1.4 var(--mono); color:var(--t3); }
+.hd-tags { display:flex; gap:6px; margin-top:12px; }
+.hd-tag { font:600 9px/1 var(--mono); letter-spacing:0.06em; text-transform:uppercase; padding:4px 10px; border-radius:4px; background:var(--s1); border:1px solid var(--b1); color:var(--t3); }
+
+/* Score orb */
+.orb { position:relative; width:120px; height:120px; flex-shrink:0; }
+.orb svg { width:100%; height:100%; }
+.orb-v { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.orb-n { font:300 40px/1 var(--sans); letter-spacing:-0.04em; }
+.orb-l { font:600 8px/1 var(--mono); letter-spacing:0.14em; text-transform:uppercase; color:var(--t3); margin-top:4px; }
+
+/* KPI row */
+.kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--b1); border-radius:8px; overflow:hidden; margin-bottom:24px; }
+.kpi { background:var(--s1); padding:16px 20px; text-align:center; }
+.kpi-v { font:700 24px/1 var(--sans); letter-spacing:-0.02em; margin-bottom:4px; }
+.kpi-l { font:600 8px/1 var(--mono); letter-spacing:0.1em; text-transform:uppercase; color:var(--t3); }
+
+/* Card */
+.card { background:var(--s1); border:1px solid var(--b1); border-radius:10px; overflow:hidden; margin-bottom:24px; box-shadow: var(--shadow); }
+.card-hd { padding:14px 20px; border-bottom:1px solid var(--b1); display:flex; align-items:center; justify-content:space-between; }
+.card-t { font:600 13px/1 var(--sans); color:var(--t1); }
+.card-b { font:500 9px/1 var(--mono); letter-spacing:0.06em; text-transform:uppercase; padding:3px 8px; border-radius:4px; background:var(--s2); color:var(--t3); }
+
+/* Grid */
+.g2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+.g2 .card { margin-bottom:0; }
+
+/* SVG common */
+svg text { font-family: var(--mono); }
+svg .node-label { font-family: var(--mono); font-weight: 600; }
+svg .node-sub { font-family: var(--mono); font-weight: 400; }
+
+/* ── Module table ── */
+.mtbl { width:100%; }
+.mrow { display:grid; grid-template-columns:4px 1fr 44px 180px 44px 56px; align-items:center; gap:10px; padding:9px 16px; border-bottom:1px solid var(--b1); transition:background .1s; }
+.mrow:hover { background:var(--s2); }
+.mrow.mhd { background:var(--s2); padding:7px 16px; }
+.mrow.mhd span { font:600 8px/1 var(--mono); letter-spacing:0.08em; text-transform:uppercase; color:var(--t3); }
+.msev { height:24px; border-radius:2px; }
+.mname { font:500 11.5px/1.3 var(--sans); color:var(--t1); }
+.mrole { font:600 8px/1 var(--mono); letter-spacing:0.04em; padding:2px 5px; border-radius:3px; background:var(--s2); color:var(--t3); margin-left:6px; }
+.miss { font:700 11px/1 var(--mono); text-align:center; }
+.mbar { height:5px; background:var(--s2); border-radius:3px; overflow:hidden; }
+.mbar div { height:100%; border-radius:3px; }
+.mscore { font:700 13px/1 var(--mono); text-align:right; }
+.mchip { font:700 7px/1 var(--mono); letter-spacing:0.06em; text-transform:uppercase; padding:3px 6px; border-radius:3px; text-align:center; }
+
+/* ── Evidence ── */
+.evi-g { margin-bottom:14px; }
+.evi-g:last-child { margin-bottom:0; }
+.evi-lbl { font:600 9px/1 var(--mono); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.evi-i { font:400 11px/1.5 var(--sans); color:var(--t2); padding:4px 0; border-bottom:1px solid var(--b1); }
+.evi-dot { width:6px; height:6px; border-radius:50%; }
+
+/* ── Matrix ── */
+.mx { display:grid; grid-template-columns:48px repeat(4,1fr); gap:2px; }
+.mx-c { padding:10px 6px; text-align:center; border-radius:4px; }
+.mx-v { font:700 18px/1 var(--mono); }
+.mx-h { font:600 8px/1 var(--mono); letter-spacing:0.06em; text-transform:uppercase; color:var(--t3); display:flex; align-items:center; justify-content:center; }
+
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.card { animation: fadeIn 0.4s ease both; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- HEADER -->
+<div class="hd">
+  <div>
+    <div class="hd-eyebrow">Model Intelligence</div>
+    <div class="hd-title">COPS Demo — Supply Chain Planning</div>
+    <div class="hd-meta">214 modules · 3,847 line items · Analysed May 16 2026</div>
+    <div class="hd-tags">
+      <span class="hd-tag">Client-prefix naming</span>
+      <span class="hd-tag">Formula risk: high</span>
+      <span class="hd-tag">Evidence: qualified</span>
+    </div>
+  </div>
+  <div class="orb" id="orb"></div>
+</div>
+
+<!-- KPIs -->
+<div class="kpis" id="kpis"></div>
+
+<!-- DEPENDENCY ARCHITECTURE DIAGRAM -->
+<div class="card">
+  <div class="card-hd">
+    <div class="card-t">Dependency Architecture</div>
+    <div class="card-b">module relationships · colored by severity · sized by line items</div>
+  </div>
+  <div id="dep-diagram" style="padding:0"></div>
+</div>
+
+<!-- CLUSTER GROUPS + BOTTLENECK HUBS -->
+<div class="g2" style="margin-bottom:24px">
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-t">Risk Clusters</div>
+      <div class="card-b">3 clusters · grouped by dependency chains</div>
+    </div>
+    <div id="cluster-diagram" style="padding:0"></div>
+  </div>
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-t">Bottleneck Hubs</div>
+      <div class="card-b">hub → downstream fan-out</div>
+    </div>
+    <div id="hub-diagram" style="padding:0"></div>
+  </div>
+</div>
+
+<!-- REMEDIATION FLOW -->
+<div class="card">
+  <div class="card-hd">
+    <div class="card-t">Remediation Flow</div>
+    <div class="card-b">dependency-safe fix ordering · left to right</div>
+  </div>
+  <div id="fix-diagram" style="padding:0"></div>
+</div>
+
+<!-- MODULE TABLE -->
+<div class="card">
+  <div class="card-hd">
+    <div class="card-t">Highest-Risk Modules</div>
+    <div class="card-b">12 of 214</div>
+  </div>
+  <div id="mod-table" style="padding:0"></div>
+</div>
+
+<!-- MATRIX + EVIDENCE -->
+<div class="g2">
+  <div class="card">
+    <div class="card-hd"><div class="card-t">Severity × Layer</div></div>
+    <div style="padding:16px" id="matrix-w"></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><div class="card-t">Evidence Boundaries</div></div>
+    <div style="padding:16px" id="evi-w"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const C={critical:'#DC3545',high:'#E07A00',medium:'#2563EB',clean:'#0F8A4F'};
+const CB={critical:'rgba(220,53,69,0.08)',high:'rgba(224,122,0,0.08)',medium:'rgba(37,99,235,0.06)',clean:'rgba(15,138,79,0.06)'};
+const NODE_BG='#FFFFFF';
+const MODS=[
+  {id:'PM01',name:'PM01 – Project',role:'CAL',sev:'critical',li:48,iss:5,score:18,deps:['DEM01','CPM04']},
+  {id:'DEM06',name:'DEM06 – Opportunity Mgmt',role:'CAL',sev:'critical',li:55,iss:5,score:22,deps:['DEM07','DEM30','DEM31','SCE13']},
+  {id:'DCW03',name:'DCW03 – Stat Calcs',role:'CAL',sev:'critical',li:67,iss:4,score:25,deps:['DCW10','SLP01']},
+  {id:'DEM01',name:'DEM01 – Demand Forecast',role:'CAL',sev:'critical',li:42,iss:4,score:28,deps:['DEM03','DEM07','SLP01']},
+  {id:'CPM04',name:'CPM04 – Milestone Track',role:'CAL',sev:'critical',li:22,iss:3,score:30,deps:['CPM08']},
+  {id:'SCE13',name:'SCE13 – Scenario Specs',role:'SYS',sev:'critical',li:16,iss:3,score:31,deps:['DEM30','DEM31']},
+  {id:'DEM03',name:'DEM03 – Pipeline Analysis',role:'CAL',sev:'critical',li:38,iss:3,score:35,deps:['DEM07','SCE13']},
+  {id:'DCW10',name:'DCW10 – Units by Week',role:'CAL',sev:'high',li:136,iss:3,score:40,deps:['SLP01','SLP05']},
+  {id:'SLP01',name:'SLP01 – Slot Hours',role:'CAL',sev:'high',li:44,iss:2,score:46,deps:['SLP05']},
+  {id:'DEM07',name:'DEM07 – Opp. Specifics',role:'CAL',sev:'high',li:33,iss:2,score:48,deps:['DEM30']},
+  {id:'DEM05',name:'DEM05 – Customer Details',role:'DAT',sev:'high',li:28,iss:2,score:52,deps:['DEM06']},
+  {id:'DEM31',name:'DEM31 – Sales',role:'OUT',sev:'high',li:24,iss:2,score:55,deps:[]},
+  {id:'DEM30',name:'DEM30 – Budget',role:'OUT',sev:'medium',li:18,iss:1,score:68,deps:[]},
+  {id:'SLP05',name:'SLP05 – Slots',role:'INP',sev:'medium',li:12,iss:1,score:72,deps:[]},
+  {id:'CPM08',name:'CPM08 – Milestone Chart',role:'OUT',sev:'medium',li:8,iss:1,score:74,deps:[]},
+];
+function m(id){return MODS.find(x=>x.id===id)}
+
+// ═══════ SCORE ORB ═══════
+(function(){
+  const sc=64,el=document.getElementById('orb'),r=48,cx=60,cy=60,sw=6;
+  const circ=2*Math.PI*r, dash=sc/100*circ;
+  const col=sc>70?'#0F8A4F':sc>45?'#E07A00':'#DC3545';
+  let s=`<svg viewBox="0 0 120 120">`;
+  s+=`<defs><linearGradient id="og" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${col}"/><stop offset="100%" stop-color="${col}" stop-opacity="0.4"/></linearGradient>`;
+  s+=`<filter id="gl"><feGaussianBlur stdDeviation="3"/></filter></defs>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="${sw}"/>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="url(#og)" stroke-width="${sw}" stroke-dasharray="${dash} ${circ}" stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-dasharray="${dash} ${circ}" stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})" filter="url(#gl)" opacity="0.3"/>`;
+  s+=`</svg>`;
+  el.innerHTML=s+`<div class="orb-v"><div class="orb-n">${sc}</div><div class="orb-l">Health</div></div>`;
+})();
+
+// ═══════ KPIs ═══════
+(function(){
+  const d=[{v:214,l:'Modules',c:'var(--t1)'},{v:33,l:'Critical',c:'var(--crit)'},{v:31,l:'High',c:'var(--high)'},{v:92,l:'Medium',c:'var(--med)'},{v:58,l:'Clean',c:'var(--clean)'}];
+
+  document.getElementById('kpis').innerHTML=d.map(k=>`<div class="kpi"><div class="kpi-v" style="color:${k.c}">${k.v}</div><div class="kpi-l">${k.l}</div></div>`).join('');
+})();
+
+// ═══════ DEPENDENCY ARCHITECTURE DIAGRAM ═══════
+// Full graph — nodes positioned by role (layer) on Y, dependency depth on X
+(function(){
+  const W=1336, H=520;
+
+  // Layout: assign X by "depth" (how many deps point to you), Y by cluster
+  // Use a force-directed-like manual placement for clarity
+  const positions = {
+    // Root hubs (left)
+    'PM01':  {x:120, y:80},
+    'DEM06': {x:120, y:220},
+    'DCW03': {x:120, y:380},
+    // Mid hubs
+    'DEM01': {x:340, y:120},
+    'DEM03': {x:340, y:260},
+    'SCE13': {x:340, y:400},
+    'CPM04': {x:340, y:60},
+    'DCW10': {x:340, y:460},
+    // Mid-tier
+    'DEM05': {x:560, y:160},
+    'DEM07': {x:560, y:300},
+    'SLP01': {x:560, y:420},
+    // Leaves (right)
+    'DEM31': {x:780, y:180},
+    'DEM30': {x:780, y:300},
+    'SLP05': {x:780, y:420},
+    'CPM08': {x:780, y:60},
+  };
+
+  // Node dimensions
+  const NW=140, NH=52, NR=8;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;min-height:400px">`;
+  svg += `<defs>`;
+  svg += `<marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 3.5 L0 7 z" fill="rgba(0,0,0,0.2)"/></marker>`;
+  svg += `<filter id="ns"><feDropShadow dx="0" dy="1" stdDeviation="3" flood-color="rgba(0,0,0,0.08)"/></filter>`;
+  // Severity shadows
+  Object.entries(C).forEach(([s,c])=>{
+    svg+=`<filter id="glow-${s}"><feDropShadow dx="0" dy="1" stdDeviation="3" flood-color="${c}" flood-opacity="0.15"/></filter>`;
+  });
+  svg += `</defs>`;
+
+  // Phase labels at top
+  const phases = [{x:120,l:'Root Nodes'},{x:340,l:'Hub Modules'},{x:560,l:'Mid-Tier'},{x:780,l:'Leaf Nodes'}];
+  phases.forEach(p => {
+    svg += `<text x="${p.x+NW/2}" y="20" font-size="9" font-weight="600" fill="#8C919E" text-anchor="middle" letter-spacing="0.08em">${p.l.toUpperCase()}</text>`;
+  });
+
+  // Draw edges first (behind nodes)
+  MODS.forEach(mod => {
+    const from = positions[mod.id];
+    if (!from) return;
+    mod.deps.forEach(depId => {
+      const to = positions[depId];
+      if (!to) return;
+      const col = C[mod.sev];
+      // Bezier from right edge of source to left edge of target
+      const x1 = from.x + NW, y1 = from.y + NH/2;
+      const x2 = to.x, y2 = to.y + NH/2;
+      const cpx = (x1 + x2) / 2;
+      svg += `<path d="M${x1} ${y1} C${cpx} ${y1} ${cpx} ${y2} ${x2} ${y2}" fill="none" stroke="${col}" stroke-opacity="0.2" stroke-width="2" marker-end="url(#arrow)"/>`;
+    });
+  });
+
+  // Draw nodes
+  MODS.forEach(mod => {
+    const p = positions[mod.id];
+    if (!p) return;
+    const col = C[mod.sev];
+    const size = Math.max(14, Math.min(24, mod.li / 6));
+
+    // Node background
+    svg += `<g filter="url(#glow-${mod.sev})">`;
+    svg += `<rect x="${p.x}" y="${p.y}" width="${NW}" height="${NH}" rx="${NR}" fill="${NODE_BG}" stroke="${col}" stroke-width="1.5" stroke-opacity="0.6"/>`;
+    svg += `</g>`;
+
+    // Severity indicator bar on left
+    svg += `<rect x="${p.x}" y="${p.y}" width="4" height="${NH}" rx="2" fill="${col}"/>`;
+
+    // Text
+    svg += `<text x="${p.x+14}" y="${p.y+20}" font-size="11" font-weight="700" fill="${col}" class="node-label">${mod.id}</text>`;
+    svg += `<text x="${p.x+14}" y="${p.y+36}" font-size="9" font-weight="400" fill="#5A6170" class="node-sub">${mod.li} LI · Score ${mod.score}</text>`;
+
+    // Issue count badge (top right)
+    svg += `<circle cx="${p.x+NW-12}" cy="${p.y+12}" r="10" fill="${col}" fill-opacity="0.15"/>`;
+    svg += `<text x="${p.x+NW-12}" y="${p.y+15}" font-size="9" font-weight="700" fill="${col}" text-anchor="middle">${mod.iss}</text>`;
+
+    // Role badge
+    svg += `<rect x="${p.x+NW-40}" y="${p.y+NH-16}" width="28" height="12" rx="3" fill="rgba(0,0,0,0.04)"/>`;
+    svg += `<text x="${p.x+NW-26}" y="${p.y+NH-8}" font-size="7" font-weight="600" fill="#8C919E" text-anchor="middle">${mod.role}</text>`;
+  });
+
+  // Flow direction arrow at bottom
+  svg += `<line x1="100" y1="${H-15}" x2="${W-850}" y2="${H-15}" stroke="#D1D5DC" stroke-width="1.5" marker-end="url(#arrow)"/>`;
+  svg += `<text x="${(W-850)/2+50}" y="${H-5}" font-size="8" font-weight="500" fill="#8C919E" text-anchor="middle" letter-spacing="0.06em">FIX DIRECTION →  LEAVES FIRST, ROOTS LAST</text>`;
+
+  svg += `</svg>`;
+  document.getElementById('dep-diagram').innerHTML = svg;
+})();
+
+// ═══════ RISK CLUSTER DIAGRAM ═══════
+(function(){
+  const W=648, H=400;
+  const clusters = [
+    { label:'Demand Planning', color:'#F25555', mods:['DEM06','DEM01','DEM03','DEM05','DEM07','DEM30','DEM31','SCE13'],
+      positions:{DEM06:{x:40,y:60},DEM01:{x:180,y:40},DEM03:{x:180,y:120},DEM05:{x:320,y:60},DEM07:{x:320,y:140},DEM30:{x:460,y:60},DEM31:{x:460,y:140},SCE13:{x:180,y:200}} },
+    { label:'Capacity & Scheduling', color:'#F0A030', mods:['DCW03','DCW10','SLP01','SLP05'],
+      positions:{DCW03:{x:40,y:280},DCW10:{x:200,y:260},SLP01:{x:200,y:340},SLP05:{x:380,y:300}} },
+    { label:'Project Milestones', color:'#F25555', mods:['PM01','CPM04','CPM08'],
+      positions:{PM01:{x:460,y:260},CPM04:{x:460,y:340},CPM08:{x:580,y:340}} },
+  ];
+
+  const NW=110, NH=40, NR=6;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;min-height:340px">`;
+  svg += `<defs><filter id="cns"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="rgba(0,0,0,0.08)"/></filter></defs>`;
+
+  // Draw cluster group containers
+  clusters.forEach(cl => {
+    const xs = cl.mods.map(id => cl.positions[id]?.x || 0);
+    const ys = cl.mods.map(id => cl.positions[id]?.y || 0);
+    const pad = 20;
+    const gx = Math.min(...xs) - pad, gy = Math.min(...ys) - pad - 16;
+    const gw = Math.max(...xs) - Math.min(...xs) + NW + pad*2;
+    const gh = Math.max(...ys) - Math.min(...ys) + NH + pad*2 + 16;
+    svg += `<rect x="${gx}" y="${gy}" width="${gw}" height="${gh}" rx="10" fill="none" stroke="${cl.color}" stroke-opacity="0.12" stroke-width="1.5" stroke-dasharray="6 4"/>`;
+    svg += `<text x="${gx+8}" y="${gy+12}" font-size="9" font-weight="600" fill="${cl.color}" fill-opacity="0.5" letter-spacing="0.06em">${cl.label.toUpperCase()}</text>`;
+  });
+
+  // Draw edges within clusters
+  clusters.forEach(cl => {
+    cl.mods.forEach(id => {
+      const mod = m(id);
+      if (!mod) return;
+      const from = cl.positions[id];
+      if (!from) return;
+      mod.deps.forEach(depId => {
+        const to = cl.positions[depId];
+        if (!to) return;
+        const x1=from.x+NW, y1=from.y+NH/2, x2=to.x, y2=to.y+NH/2;
+        const cpx=(x1+x2)/2;
+        svg += `<path d="M${x1} ${y1} C${cpx} ${y1} ${cpx} ${y2} ${x2} ${y2}" fill="none" stroke="${C[mod.sev]}" stroke-opacity="0.18" stroke-width="1.5"/>`;
+      });
+    });
+  });
+
+  // Draw nodes
+  clusters.forEach(cl => {
+    cl.mods.forEach(id => {
+      const mod = m(id);
+      if (!mod) return;
+      const p = cl.positions[id];
+      if (!p) return;
+      const col = C[mod.sev];
+      svg += `<g filter="url(#cns)">`;
+      svg += `<rect x="${p.x}" y="${p.y}" width="${NW}" height="${NH}" rx="${NR}" fill="${NODE_BG}" stroke="${col}" stroke-width="1" stroke-opacity="0.5"/>`;
+      svg += `</g>`;
+      svg += `<rect x="${p.x}" y="${p.y}" width="3" height="${NH}" rx="1.5" fill="${col}"/>`;
+      svg += `<text x="${p.x+10}" y="${p.y+16}" font-size="10" font-weight="700" fill="${col}">${id}</text>`;
+      svg += `<text x="${p.x+10}" y="${p.y+30}" font-size="8" fill="#5A6170">${mod.li} LI</text>`;
+      svg += `<text x="${p.x+NW-8}" y="${p.y+16}" font-size="9" font-weight="600" fill="${col}" text-anchor="end">${mod.score}</text>`;
+    });
+  });
+
+  svg += `</svg>`;
+  document.getElementById('cluster-diagram').innerHTML = svg;
+})();
+
+// ═══════ BOTTLENECK HUB DIAGRAM ═══════
+(function(){
+  const W=648, H=400;
+  const hubs = [
+    {id:'DEM06', fan:['DEM07','DEM30','DEM31','SCE13']},
+    {id:'DCW03', fan:['DCW10','SLP01']},
+    {id:'PM01',  fan:['DEM01','CPM04']},
+  ];
+
+  const hubX=100, downX=480;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;min-height:340px">`;
+  svg += `<defs>`;
+  hubs.forEach(h=>{
+    const col=C[m(h.id).sev];
+    svg+=`<linearGradient id="hg-${h.id}" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="${col}" stop-opacity="0.25"/><stop offset="100%" stop-color="${col}" stop-opacity="0.04"/></linearGradient>`;
+    svg+=`<filter id="hgl-${h.id}"><feDropShadow dx="0" dy="1" stdDeviation="4" flood-color="${col}" flood-opacity="0.2"/></filter>`;
+  });
+  svg+=`</defs>`;
+
+  // Column labels
+  svg+=`<text x="${hubX}" y="24" font-size="9" font-weight="600" fill="#8C919E" text-anchor="middle" letter-spacing="0.1em">HUBS</text>`;
+  svg+=`<text x="${downX+40}" y="24" font-size="9" font-weight="600" fill="#8C919E" text-anchor="middle" letter-spacing="0.1em">DOWNSTREAM</text>`;
+
+  const allFan=[...new Set(hubs.flatMap(h=>h.fan))];
+  const hubSpacing=H/(hubs.length+1);
+  const fanSpacing=H/(allFan.length+1);
+
+  // Draw flow paths
+  hubs.forEach((h,hi)=>{
+    const hy=hubSpacing*(hi+1);
+    const col=C[m(h.id).sev];
+    h.fan.forEach(fid=>{
+      const fi=allFan.indexOf(fid);
+      const fy=fanSpacing*(fi+1);
+      const t=Math.max(2,Math.min(6,(m(fid)?.li||20)/25));
+      const cp1=hubX+(downX-hubX)*0.35, cp2=hubX+(downX-hubX)*0.65;
+      svg+=`<path d="M${hubX+32} ${hy} C${cp1} ${hy} ${cp2} ${fy} ${downX-8} ${fy}" fill="none" stroke="url(#hg-${h.id})" stroke-width="${t}" opacity="0.8"/>`;
+    });
+  });
+
+  // Hub nodes — large circles
+  hubs.forEach((h,hi)=>{
+    const hy=hubSpacing*(hi+1);
+    const mod=m(h.id);
+    const col=C[mod.sev];
+    svg+=`<circle cx="${hubX}" cy="${hy}" r="30" fill="${col}" fill-opacity="0.08" stroke="${col}" stroke-width="2" filter="url(#hgl-${h.id})"/>`;
+    svg+=`<circle cx="${hubX}" cy="${hy}" r="22" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="1"/>`;
+    svg+=`<text x="${hubX}" y="${hy-3}" font-size="10" font-weight="700" fill="${col}" text-anchor="middle">${h.id}</text>`;
+    svg+=`<text x="${hubX}" y="${hy+10}" font-size="8" fill="#5A6170" text-anchor="middle">${mod.li} LI</text>`;
+    svg+=`<text x="${hubX}" y="${hy+44}" font-size="8" fill="#8C919E" text-anchor="middle">fan-out ${h.fan.length}</text>`;
+  });
+
+  // Downstream nodes — smaller
+  allFan.forEach((fid,fi)=>{
+    const fy=fanSpacing*(fi+1);
+    const mod=m(fid);
+    if(!mod) return;
+    const col=C[mod.sev];
+    const NW=120, NH=36, NR=6;
+    svg+=`<rect x="${downX-8}" y="${fy-NH/2}" width="${NW}" height="${NH}" rx="${NR}" fill="${NODE_BG}" stroke="${col}" stroke-width="1" stroke-opacity="0.4"/>`;
+    svg+=`<rect x="${downX-8}" y="${fy-NH/2}" width="3" height="${NH}" rx="1.5" fill="${col}"/>`;
+    svg+=`<text x="${downX+4}" y="${fy-2}" font-size="9" font-weight="600" fill="${col}">${fid}</text>`;
+    svg+=`<text x="${downX+4}" y="${fy+10}" font-size="8" fill="#5A6170">${mod.li} LI · ${mod.score}</text>`;
+  });
+
+  svg+=`</svg>`;
+  document.getElementById('hub-diagram').innerHTML=svg;
+})();
+
+// ═══════ REMEDIATION FLOW DIAGRAM ═══════
+(function(){
+  const W=1336, H=260;
+  const phases=[
+    {n:'Phase 1',sub:'Leaf nodes',mods:['SLP05','DEM30','DEM31','CPM08']},
+    {n:'Phase 2',sub:'Mid-tier',mods:['DEM05','DEM07','SLP01','SCE13']},
+    {n:'Phase 3',sub:'Hub modules',mods:['DEM03','DEM06','DCW10','CPM04']},
+    {n:'Phase 4',sub:'Root nodes',mods:['DEM01','DCW03','PM01']},
+  ];
+
+  const NW=120, NH=38, NR=6;
+  const colW=W/4;
+
+  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;min-height:220px">`;
+  svg+=`<defs><marker id="fa" viewBox="0 0 8 6" refX="8" refY="3" markerWidth="6" markerHeight="5" orient="auto"><path d="M0 0 L8 3 L0 6z" fill="#D1D5DC"/></marker></defs>`;
+
+  // Phase backgrounds
+  phases.forEach((ph,i)=>{
+    const x=colW*i;
+    const bgOpacity=0.015+i*0.01;
+    svg+=`<rect x="${x}" y="0" width="${colW}" height="${H}" fill="rgba(37,99,235,${bgOpacity})"/>`;
+    if(i<3) svg+=`<line x1="${x+colW}" y1="0" x2="${x+colW}" y2="${H}" stroke="#E2E4EA" stroke-width="1"/>`;
+    svg+=`<text x="${x+16}" y="24" font-size="10" font-weight="700" fill="#2563EB" letter-spacing="0.06em">${ph.n.toUpperCase()}</text>`;
+    svg+=`<text x="${x+16}" y="38" font-size="9" fill="#8C919E">${ph.sub}</text>`;
+  });
+
+  // Phase connection arrows
+  for(let i=0;i<3;i++){
+    const x=colW*(i+1);
+    svg+=`<line x1="${x-20}" y1="${H/2}" x2="${x+20}" y2="${H/2}" stroke="#D1D5DC" stroke-width="2" marker-end="url(#fa)"/>`;
+  }
+
+  // Module nodes in each phase
+  phases.forEach((ph,pi)=>{
+    const baseX=colW*pi+16;
+    ph.mods.forEach((id,mi)=>{
+      const mod=m(id);
+      if(!mod)return;
+      const col=C[mod.sev];
+      const x=baseX, y=56+mi*(NH+8);
+      svg+=`<rect x="${x}" y="${y}" width="${NW}" height="${NH}" rx="${NR}" fill="${NODE_BG}" stroke="${col}" stroke-width="1" stroke-opacity="0.4"/>`;
+      svg+=`<rect x="${x}" y="${y}" width="3" height="${NH}" rx="1.5" fill="${col}"/>`;
+      svg+=`<text x="${x+12}" y="${y+16}" font-size="10" font-weight="600" fill="${col}">${id}</text>`;
+      svg+=`<text x="${x+12}" y="${y+28}" font-size="8" fill="#5A6170">${mod.li} LI</text>`;
+      svg+=`<text x="${x+NW-8}" y="${y+16}" font-size="10" font-weight="600" fill="${col}" text-anchor="end">${mod.score}</text>`;
+    });
+  });
+
+  svg+=`</svg>`;
+  document.getElementById('fix-diagram').innerHTML=svg;
+})();
+
+// ═══════ MODULE TABLE ═══════
+(function(){
+  let h='<div class="mtbl"><div class="mrow mhd"><span></span><span>Module</span><span style="text-align:center">Issues</span><span>Risk</span><span style="text-align:right">Score</span><span style="text-align:center">Sev</span></div>';
+  MODS.slice(0,12).forEach(mod=>{
+    const col=C[mod.sev];
+    h+=`<div class="mrow"><div class="msev" style="background:${col}"></div><div><span class="mname">${mod.name}</span><span class="mrole">${mod.role}</span></div><div class="miss" style="color:${col}">${mod.iss}</div><div class="mbar"><div style="width:${100-mod.score}%;background:linear-gradient(90deg,${col},${col}66)"></div></div><div class="mscore" style="color:${col}">${mod.score}</div><div class="mchip" style="background:${CB[mod.sev]};color:${col}">${mod.sev}</div></div>`;
+  });
+  h+='</div>';
+  document.getElementById('mod-table').innerHTML=h;
+})();
+
+// ═══════ MATRIX ═══════
+(function(){
+  const layers=['SYS','INP','CAL','DAT','OUT'], sevs=['critical','high','medium','clean'];
+  const data={SYS_critical:3,SYS_high:4,SYS_medium:8,SYS_clean:3,INP_critical:5,INP_high:8,INP_medium:18,INP_clean:11,CAL_critical:18,CAL_high:14,CAL_medium:34,CAL_clean:20,DAT_critical:4,DAT_high:3,DAT_medium:18,DAT_clean:13,OUT_critical:3,OUT_high:2,OUT_medium:14,OUT_clean:11};
+  let h='<div class="mx"><div class="mx-h"></div>';
+  sevs.forEach(s=>h+=`<div class="mx-h" style="color:${C[s]}">${s}</div>`);
+  layers.forEach(l=>{
+    h+=`<div class="mx-h">${l}</div>`;
+    sevs.forEach(s=>{
+      const v=data[l+'_'+s]||0;
+      const col=C[s];
+      const op=Math.min(0.3,v/40);
+      h+=`<div class="mx-c" style="background:${col.replace(')',`,${op})`).replace('#','rgba(').replace(/([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/, (m,r,g,b)=>`${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)}`)}"><div class="mx-v" style="color:${col}">${v}</div></div>`;
+    });
+  });
+  h+='</div>';
+  document.getElementById('matrix-w').innerHTML=h;
+})();
+
+// ═══════ EVIDENCE ═══════
+(function(){
+  const yes=['Formula complexity scoring','Dependency graph analysis','Module classification (DISCO)','Naming convention validation','Cell count estimation','Cross-module reference chains'];
+  const no=['Runtime performance data','User access patterns','Version history diffs','Actual data volumes'];
+  let h='<div class="evi-g"><div class="evi-lbl" style="color:var(--clean)"><span class="evi-dot" style="background:var(--clean)"></span>Supported by evidence</div>';
+  yes.forEach(s=>h+=`<div class="evi-i">${s}</div>`);
+  h+='</div><div class="evi-g"><div class="evi-lbl" style="color:var(--high)"><span class="evi-dot" style="background:var(--high)"></span>Not available from blueprint</div>';
+  no.forEach(s=>h+=`<div class="evi-i" style="color:var(--t3)">${s}</div>`);
+  h+='</div>';
+  document.getElementById('evi-w').innerHTML=h;
+})();
+</script>
+</body>
+</html>

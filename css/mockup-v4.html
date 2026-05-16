@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meridian — Model Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: 'Söhne';
+  src: local('Söhne'), local('Sohne');
+  font-weight: 400;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root {
+  --bg: #0a0c10;
+  --bg2: #0e1117;
+  --bg3: #141920;
+  --surface: #181d27;
+  --surface2: #1e2533;
+  --surface3: #252d3d;
+  --border: rgba(255,255,255,.06);
+  --border2: rgba(255,255,255,.1);
+  --text: #e8edf5;
+  --text2: #a0aec0;
+  --text3: #64748b;
+  --text4: #475569;
+
+  --critical: #ef4444;
+  --critical-glow: rgba(239,68,68,.15);
+  --high: #f59e0b;
+  --high-glow: rgba(245,158,11,.12);
+  --medium: #3b82f6;
+  --medium-glow: rgba(59,130,246,.1);
+  --clean: #10b981;
+  --clean-glow: rgba(16,185,129,.1);
+
+  --accent: #6366f1;
+  --accent-glow: rgba(99,102,241,.15);
+
+  --mono: 'IBM Plex Mono', 'Geist Mono', monospace;
+  --sans: 'Instrument Sans', 'Inter', -apple-system, sans-serif;
+  --display: 'Space Grotesk', sans-serif;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 4px;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ═══════════ NOISE TEXTURE ═══════════ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: .025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════ AMBIENT GRADIENTS ═══════════ */
+.ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.ambient::before {
+  content: '';
+  position: absolute;
+  width: 800px; height: 800px;
+  top: -200px; right: -100px;
+  background: radial-gradient(ellipse at center, rgba(99,102,241,.06) 0%, transparent 70%);
+  animation: drift1 20s ease-in-out infinite;
+}
+.ambient::after {
+  content: '';
+  position: absolute;
+  width: 600px; height: 600px;
+  bottom: 20%; left: -100px;
+  background: radial-gradient(ellipse at center, rgba(239,68,68,.04) 0%, transparent 70%);
+  animation: drift2 25s ease-in-out infinite;
+}
+@keyframes drift1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-40px,30px)} }
+@keyframes drift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-20px)} }
+
+/* ═══════════ LAYOUT ═══════════ */
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px 120px;
+}
+
+/* ═══════════ TOP BAR ═══════════ */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 48px;
+}
+.topbar-brand {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  color: var(--text2);
+}
+.topbar-brand span { color: var(--accent); }
+.topbar-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text4);
+  letter-spacing: .02em;
+}
+
+/* ═══════════ HERO: HEALTH SCORE + SEVERITY ARC ═══════════ */
+.hero {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 48px;
+  align-items: start;
+  margin-bottom: 56px;
+}
+
+.health-gauge {
+  position: relative;
+  width: 340px;
+  height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.health-gauge svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.gauge-bg { fill: none; stroke: var(--surface2); stroke-width: 6; }
+.gauge-arc {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 8px var(--high-glow));
+  transition: stroke-dashoffset 1.5s cubic-bezier(.16,1,.3,1);
+}
+.gauge-severity-critical { stroke: var(--critical); filter: drop-shadow(0 0 6px var(--critical-glow)); }
+.gauge-severity-high { stroke: var(--high); filter: drop-shadow(0 0 6px var(--high-glow)); }
+.gauge-severity-medium { stroke: var(--medium); filter: drop-shadow(0 0 6px var(--medium-glow)); }
+.gauge-severity-clean { stroke: var(--clean); filter: drop-shadow(0 0 6px var(--clean-glow)); }
+
+.gauge-inner-ring { fill: none; stroke: var(--border); stroke-width: 1; }
+.gauge-tick { stroke: var(--text4); stroke-width: 1; }
+.gauge-tick-major { stroke: var(--text3); stroke-width: 1.5; }
+
+.health-center {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+.health-number {
+  font-family: var(--display);
+  font-size: 72px;
+  font-weight: 700;
+  letter-spacing: -.06em;
+  line-height: 1;
+  background: linear-gradient(180deg, #fff 20%, var(--text2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.health-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  color: var(--text3);
+  margin-top: 8px;
+}
+.health-verdict {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  background: var(--high-glow);
+  border: 1px solid rgba(245,158,11,.2);
+}
+.health-verdict-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--high);
+  box-shadow: 0 0 6px var(--high);
+}
+.health-verdict-text {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--high);
+  letter-spacing: .04em;
+}
+
+/* ═══════════ SEVERITY DISTRIBUTION ═══════════ */
+.severity-panel {
+  padding-top: 12px;
+}
+.severity-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: var(--text4);
+  margin-bottom: 24px;
+}
+
+.severity-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.sev-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+}
+.sev-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.sev-label-critical { color: var(--critical); }
+.sev-label-high { color: var(--high); }
+.sev-label-medium { color: var(--medium); }
+.sev-label-clean { color: var(--clean); }
+
+.sev-track {
+  height: 28px;
+  background: var(--surface);
+  border-radius: var(--radius-xs);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.sev-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  border-radius: var(--radius-xs);
+  transition: width 1.2s cubic-bezier(.16,1,.3,1);
+}
+.sev-fill-critical {
+  background: linear-gradient(90deg, var(--critical), #f87171);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 12px var(--critical-glow);
+}
+.sev-fill-high {
+  background: linear-gradient(90deg, var(--high), #fbbf24);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 12px var(--high-glow);
+}
+.sev-fill-medium {
+  background: linear-gradient(90deg, var(--medium), #60a5fa);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 12px var(--medium-glow);
+}
+.sev-fill-clean {
+  background: linear-gradient(90deg, var(--clean), #34d399);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 12px var(--clean-glow);
+}
+.sev-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 3px,
+    rgba(255,255,255,.03) 3px,
+    rgba(255,255,255,.03) 6px
+  );
+}
+.sev-count {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  text-align: right;
+}
+.sev-count-critical { color: var(--critical); }
+.sev-count-high { color: var(--high); }
+.sev-count-medium { color: var(--medium); }
+.sev-count-clean { color: var(--clean); }
+
+/* Stacked total bar below */
+.severity-total {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.total-bar {
+  height: 6px;
+  border-radius: 3px;
+  display: flex;
+  overflow: hidden;
+  background: var(--surface);
+  gap: 2px;
+}
+.total-seg {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1.2s cubic-bezier(.16,1,.3,1);
+}
+.total-seg-critical { background: var(--critical); }
+.total-seg-high { background: var(--high); }
+.total-seg-medium { background: var(--medium); }
+.total-seg-clean { background: var(--clean); }
+
+.total-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+}
+.total-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+}
+.total-legend-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+/* ═══════════ SECTION HEADERS ═══════════ */
+.section {
+  margin-bottom: 48px;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.section-icon svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text3);
+}
+.section-title {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  color: var(--text);
+}
+.section-count {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text4);
+  background: var(--surface);
+  padding: 3px 8px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+}
+
+/* ═══════════ MODULE RISK TABLE ═══════════ */
+.modules-table {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.mod-header {
+  display: grid;
+  grid-template-columns: 2fr 100px 120px 60px 1fr;
+  gap: 1px;
+  padding: 12px 20px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+.mod-header span {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text4);
+}
+.mod-row {
+  display: grid;
+  grid-template-columns: 2fr 100px 120px 60px 1fr;
+  gap: 1px;
+  padding: 14px 20px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  transition: background .15s;
+}
+.mod-row:last-child { border-bottom: none; }
+.mod-row:hover { background: var(--surface2); }
+
+.mod-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -.01em;
+}
+.mod-purpose {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text4);
+  margin-top: 2px;
+}
+
+.mod-severity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mod-sev-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.mod-sev-dot-critical { background: var(--critical); box-shadow: 0 0 6px var(--critical-glow); }
+.mod-sev-dot-high { background: var(--high); box-shadow: 0 0 6px var(--high-glow); }
+.mod-sev-dot-medium { background: var(--medium); box-shadow: 0 0 6px var(--medium-glow); }
+.mod-sev-dot-clean { background: var(--clean); box-shadow: 0 0 6px var(--clean-glow); }
+.mod-sev-text {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.mod-issues {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+.mod-score-val {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+}
+
+/* Inline sparkline bar */
+.mod-spark {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+}
+.mod-spark-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--surface3);
+  transition: height .3s;
+}
+
+/* ═══════════ RISK CLUSTERS — NETWORK GRAPH ═══════════ */
+.clusters-graph {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+  min-height: 280px;
+}
+.clusters-graph::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle 200px at 30% 40%, var(--critical-glow) 0%, transparent 100%),
+    radial-gradient(circle 150px at 70% 60%, var(--medium-glow) 0%, transparent 100%);
+  pointer-events: none;
+}
+.clusters-graph svg {
+  width: 100%;
+  height: 240px;
+  position: relative;
+  z-index: 1;
+}
+.graph-edge { stroke: var(--border2); stroke-width: 1; fill: none; }
+.graph-node { cursor: pointer; transition: transform .2s; }
+.graph-node:hover { transform: scale(1.1); }
+.graph-node-ring { fill: none; stroke-width: 2; }
+.graph-node-core { opacity: .15; }
+.graph-node-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  fill: var(--text3);
+  text-anchor: middle;
+}
+
+/* ═══════════ FIX ORDER TIMELINE ═══════════ */
+.timeline {
+  position: relative;
+  padding-left: 32px;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, var(--critical) 0%, var(--high) 33%, var(--medium) 66%, var(--clean) 100%);
+  opacity: .4;
+}
+.tl-step {
+  position: relative;
+  padding: 16px 0 16px 0;
+}
+.tl-step:last-child { padding-bottom: 0; }
+.tl-node {
+  position: absolute;
+  left: -32px;
+  top: 18px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--border2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tl-node-inner {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.tl-node-critical .tl-node-inner { background: var(--critical); box-shadow: 0 0 8px var(--critical); }
+.tl-node-high .tl-node-inner { background: var(--high); box-shadow: 0 0 8px var(--high); }
+.tl-node-medium .tl-node-inner { background: var(--medium); box-shadow: 0 0 8px var(--medium); }
+
+.tl-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  transition: border-color .2s, background .2s;
+}
+.tl-card:hover {
+  border-color: var(--border2);
+  background: var(--surface2);
+}
+.tl-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.tl-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -.01em;
+}
+.tl-card-badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 100px;
+  letter-spacing: .02em;
+}
+.badge-critical { background: var(--critical-glow); color: var(--critical); border: 1px solid rgba(239,68,68,.2); }
+.badge-high { background: var(--high-glow); color: var(--high); border: 1px solid rgba(245,158,11,.2); }
+.badge-medium { background: var(--medium-glow); color: var(--medium); border: 1px solid rgba(59,130,246,.2); }
+
+.tl-card-desc {
+  font-size: 12px;
+  color: var(--text3);
+  line-height: 1.5;
+}
+.tl-card-meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.tl-card-stat {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text4);
+}
+.tl-card-stat strong {
+  color: var(--text2);
+  font-weight: 600;
+}
+
+/* ═══════════ BOTTLENECKS ═══════════ */
+.bottlenecks {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.bn-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.bn-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--critical), var(--high));
+  opacity: .6;
+}
+.bn-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.bn-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.bn-fanout {
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--critical);
+  letter-spacing: -.03em;
+}
+.bn-fanout-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text4);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+.bn-deps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+}
+.bn-dep {
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 3px 7px;
+  border-radius: var(--radius-xs);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text3);
+}
+
+/* ═══════════ EVIDENCE BOUNDARY ═══════════ */
+.evidence {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+}
+.ev-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.ev-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text3);
+}
+.ev-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.ev-stat {
+  text-align: center;
+  padding: 14px 0;
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.ev-stat-val {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.03em;
+}
+.ev-stat-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text4);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-top: 4px;
+}
+
+/* ═══════════ ANIMATIONS ═══════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero { animation: fadeUp .6s cubic-bezier(.16,1,.3,1) both; }
+.section:nth-child(2) { animation: fadeUp .6s .1s cubic-bezier(.16,1,.3,1) both; }
+.section:nth-child(3) { animation: fadeUp .6s .2s cubic-bezier(.16,1,.3,1) both; }
+.section:nth-child(4) { animation: fadeUp .6s .3s cubic-bezier(.16,1,.3,1) both; }
+.section:nth-child(5) { animation: fadeUp .6s .4s cubic-bezier(.16,1,.3,1) both; }
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; }
+  .health-gauge { width: 260px; height: 260px; margin: 0 auto; }
+  .bottlenecks { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="ambient"></div>
+<div class="page">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-brand"><span>meridian</span> / intelligence</div>
+  <div class="topbar-meta">Revenue Planning FY25 · Scanned 2 min ago</div>
+</div>
+
+<!-- ═══════════ HERO ═══════════ -->
+<div class="hero">
+  <!-- Health Gauge -->
+  <div class="health-gauge">
+    <svg viewBox="0 0 340 340">
+      <!-- Outer tick marks -->
+      <g id="ticks"></g>
+      <!-- Background arc -->
+      <circle cx="170" cy="170" r="145" class="gauge-bg" />
+      <!-- Inner decorative ring -->
+      <circle cx="170" cy="145" r="120" class="gauge-inner-ring" />
+      <!-- Severity segments on the outer ring -->
+      <!-- Critical: 0-15% -->
+      <circle cx="170" cy="170" r="155" class="gauge-arc gauge-severity-critical"
+        stroke-dasharray="24 973" stroke-dashoffset="0"
+        transform="rotate(-90 170 170)" />
+      <!-- High: 15-40% -->
+      <circle cx="170" cy="170" r="155" class="gauge-arc gauge-severity-high"
+        stroke-dasharray="50 973" stroke-dashoffset="-26"
+        transform="rotate(-90 170 170)" />
+      <!-- Medium: 40-70% -->
+      <circle cx="170" cy="170" r="155" class="gauge-arc gauge-severity-medium"
+        stroke-dasharray="65 973" stroke-dashoffset="-78"
+        transform="rotate(-90 170 170)" />
+      <!-- Clean: 70-100% -->
+      <circle cx="170" cy="170" r="155" class="gauge-arc gauge-severity-clean"
+        stroke-dasharray="100 973" stroke-dashoffset="-145"
+        transform="rotate(-90 170 170)" />
+      <!-- Score arc (inner) -->
+      <circle cx="170" cy="170" r="135" class="gauge-bg" stroke-width="10" />
+      <circle cx="170" cy="170" r="135"
+        style="fill:none;stroke:url(#scoreGradient);stroke-width:10;stroke-linecap:round;stroke-dasharray:551;stroke-dashoffset:198"
+        transform="rotate(-90 170 170)" />
+      <defs>
+        <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#f59e0b"/>
+          <stop offset="60%" stop-color="#fbbf24"/>
+          <stop offset="100%" stop-color="#10b981"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="health-center">
+      <div class="health-number">64</div>
+      <div class="health-label">Model Health</div>
+      <div class="health-verdict">
+        <div class="health-verdict-dot"></div>
+        <div class="health-verdict-text">Needs Attention</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Severity Distribution -->
+  <div class="severity-panel">
+    <div class="severity-title">Severity Distribution</div>
+    <div class="severity-bars">
+      <div class="sev-row">
+        <span class="sev-label sev-label-critical">Critical</span>
+        <div class="sev-track"><div class="sev-fill sev-fill-critical" style="width:18%"></div></div>
+        <span class="sev-count sev-count-critical">3</span>
+      </div>
+      <div class="sev-row">
+        <span class="sev-label sev-label-high">High</span>
+        <div class="sev-track"><div class="sev-fill sev-fill-high" style="width:35%"></div></div>
+        <span class="sev-count sev-count-high">6</span>
+      </div>
+      <div class="sev-row">
+        <span class="sev-label sev-label-medium">Medium</span>
+        <div class="sev-track"><div class="sev-fill sev-fill-medium" style="width:53%"></div></div>
+        <span class="sev-count sev-count-medium">9</span>
+      </div>
+      <div class="sev-row">
+        <span class="sev-label sev-label-clean">Clean</span>
+        <div class="sev-track"><div class="sev-fill sev-fill-clean" style="width:76%"></div></div>
+        <span class="sev-count sev-count-clean">13</span>
+      </div>
+    </div>
+    <div class="severity-total">
+      <div class="total-bar">
+        <div class="total-seg total-seg-critical" style="width:10%"></div>
+        <div class="total-seg total-seg-high" style="width:19%"></div>
+        <div class="total-seg total-seg-medium" style="width:29%"></div>
+        <div class="total-seg total-seg-clean" style="width:42%"></div>
+      </div>
+      <div class="total-legend">
+        <div class="total-legend-item"><div class="total-legend-dot" style="background:var(--critical)"></div>Critical</div>
+        <div class="total-legend-item"><div class="total-legend-dot" style="background:var(--high)"></div>High</div>
+        <div class="total-legend-item"><div class="total-legend-dot" style="background:var(--medium)"></div>Medium</div>
+        <div class="total-legend-item"><div class="total-legend-dot" style="background:var(--clean)"></div>Clean</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODULE RISK TABLE ═══════════ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25a2.25 2.25 0 01-2.25-2.25v-2.25z" /></svg>
+    </div>
+    <span class="section-title">Module Risk Assessment</span>
+    <span class="section-count">31 modules</span>
+  </div>
+  <div class="modules-table">
+    <div class="mod-header">
+      <span>Module</span>
+      <span>Severity</span>
+      <span>Issues</span>
+      <span>Score</span>
+      <span>Risk Profile</span>
+    </div>
+    <div class="mod-row">
+      <div>
+        <div class="mod-name">REV01 Revenue Calc</div>
+        <div class="mod-purpose">Revenue calculation engine</div>
+      </div>
+      <div class="mod-severity">
+        <div class="mod-sev-dot mod-sev-dot-critical"></div>
+        <span class="mod-sev-text" style="color:var(--critical)">Critical</span>
+      </div>
+      <div class="mod-issues" style="color:var(--critical)">7</div>
+      <div class="mod-score-val">23</div>
+      <div class="mod-spark">
+        <div class="mod-spark-bar" style="height:18px;background:var(--critical)"></div>
+        <div class="mod-spark-bar" style="height:14px;background:var(--critical)"></div>
+        <div class="mod-spark-bar" style="height:20px;background:var(--critical)"></div>
+        <div class="mod-spark-bar" style="height:10px;background:var(--high)"></div>
+        <div class="mod-spark-bar" style="height:6px;background:var(--medium)"></div>
+        <div class="mod-spark-bar" style="height:4px;background:var(--medium)"></div>
+        <div class="mod-spark-bar" style="height:2px;background:var(--clean)"></div>
+      </div>
+    </div>
+    <div class="mod-row">
+      <div>
+        <div class="mod-name">EMP03 Headcount Plan</div>
+        <div class="mod-purpose">Workforce planning</div>
+      </div>
+      <div class="mod-severity">
+        <div class="mod-sev-dot mod-sev-dot-critical"></div>
+        <span class="mod-sev-text" style="color:var(--critical)">Critical</span>
+      </div>
+      <div class="mod-issues" style="color:var(--critical)">5</div>
+      <div class="mod-score-val">31</div>
+      <div class="mod-spark">
+        <div class="mod-spark-bar" style="height:16px;background:var(--critical)"></div>
+        <div class="mod-spark-bar" style="height:12px;background:var(--high)"></div>
+        <div class="mod-spark-bar" style="height:14px;background:var(--high)"></div>
+        <div class="mod-spark-bar" style="height:8px;background:var(--medium)"></div>
+        <div class="mod-spark-bar" style="height:5px;background:var(--medium)"></div>
+        <div class="mod-spark-bar" style="height:3px;background:var(--clean)"></div>
+        <div class="mod-spark-bar" style="height:2px;background:var(--clean)"></div>
+      </div>
+    </div>
+    <div class="mod-row">
+      <div>
+        <div class="mod-name">FIN02 COGS Model</div>
+        <div class="mod-purpose">Cost of goods calculation</div>
+      </div>
+      <div class="mod-severity">
+        <div class="mod-sev-dot mod-sev-dot-critical"></div>
+        <span class="mod-sev-text" style="color:var(--critical)">Critical</span>
+      </div>
+      <div class="mod-issues" style="color:var(--critical)">4</div>
+      <div class="mod-score-val">38</div>
+      <div class="mod-spark">
+        <div class="mod-spark-bar" style="height:14px;background:var(--critical)"></div>
+        <div class="mod-spark-bar" style="height:10px;background:var(--high)"></div>
+        <div class="mod-spark-bar" style="height:8px;background:var(--high)"></div>
+        <div class="mod-spark-bar" style="height:12px;background:var(--medium)"></div>
+        <div class="mod-spark-bar" style="height:6px;background:var(--medium)"></div>
+        <div class="mod-spark-bar" style="height:4px;background:var(--clean)"></div>
+        <div class="mod-spark-bar" style="height:3px;background:var(--clean)"></div>
+      </div>
+    </div>
+    <div class="mod-row">
+      <div>
+        <div class="mod-name">OPS07 Supply Chain</div>
+        <div class="mod-purpose">Supply chain optimization</div>
+      </div>
+      <div class="mod-severity">
+        <div class="mod-sev-dot mod-sev-dot-high"></div>
+        <span class="mod-sev-text" style="color:var(--high)">High</span>
+      </div>
+      <div class="mod-issues" style="color:var(--high)">4</div>
+      <div class="mod-score-val">52</div>
+      <div class="mod-spark">
+        <div class="mod-spark-bar" style="height:10px;background:var(--high)"></div>
+        <div class="mod-spark-bar" style="height:14px;background:var(--high)"></div>
+        <div class="mod-spark-bar" style="height:8px;background:var(--medium)"></div>
+        <div class="mod-spark-bar" style="height:6px;background:var(--medium)"></div>
+        <div class="mod-spark-bar" style="height:4px;background:var(--clean)"></div>
+        <div class="mod-spark-bar" style="height:3px;background:var(--clean)"></div>
+        <div class="mod-spark-bar" style="height:2px;background:var(--clean)"></div>
+      </div>
+    </div>
+    <div class="mod-row">
+      <div>
+        <div class="mod-name">FIN05 P&L Roll-up</div>
+        <div class="mod-purpose">Consolidation module</div>
+      </div>
+      <div class="mod-severity">
+        <div class="mod-sev-dot mod-sev-dot-high"></div>
+        <span class="mod-sev-text" style="color:var(--high)">High</span>
+      </div>
+      <div class="mod-issues" style="color:var(--high)">3</div>
+      <div class="mod-score-val">58</div>
+      <div class="mod-spark">
+        <div class="mod-spark-bar" style="height:8px;background:var(--high)"></div>
+        <div class="mod-spark-bar" style="height:10px;background:var(--high)"></div>
+        <div class="mod-spark-bar" style="height:6px;background:var(--medium)"></div>
+        <div class="mod-spark-bar" style="height:8px;background:var(--medium)"></div>
+        <div class="mod-spark-bar" style="height:4px;background:var(--clean)"></div>
+        <div class="mod-spark-bar" style="height:3px;background:var(--clean)"></div>
+        <div class="mod-spark-bar" style="height:2px;background:var(--clean)"></div>
+      </div>
+    </div>
+    <div class="mod-row">
+      <div>
+        <div class="mod-name">MKT01 Pipeline Forecast</div>
+        <div class="mod-purpose">Marketing pipeline model</div>
+      </div>
+      <div class="mod-severity">
+        <div class="mod-sev-dot mod-sev-dot-medium"></div>
+        <span class="mod-sev-text" style="color:var(--medium)">Medium</span>
+      </div>
+      <div class="mod-issues" style="color:var(--medium)">2</div>
+      <div class="mod-score-val">71</div>
+      <div class="mod-spark">
+        <div class="mod-spark-bar" style="height:6px;background:var(--medium)"></div>
+        <div class="mod-spark-bar" style="height:8px;background:var(--medium)"></div>
+        <div class="mod-spark-bar" style="height:4px;background:var(--clean)"></div>
+        <div class="mod-spark-bar" style="height:5px;background:var(--clean)"></div>
+        <div class="mod-spark-bar" style="height:3px;background:var(--clean)"></div>
+        <div class="mod-spark-bar" style="height:2px;background:var(--clean)"></div>
+        <div class="mod-spark-bar" style="height:2px;background:var(--clean)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ RISK CLUSTERS (NETWORK GRAPH) ═══════════ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
+    </div>
+    <span class="section-title">Risk Clusters</span>
+    <span class="section-count">3 clusters</span>
+  </div>
+  <div class="clusters-graph">
+    <svg viewBox="0 0 800 240">
+      <!-- Edges -->
+      <path d="M130,120 C200,120 200,60 270,60" class="graph-edge"/>
+      <path d="M130,120 C200,120 200,120 270,120" class="graph-edge"/>
+      <path d="M130,120 C200,120 200,180 270,180" class="graph-edge"/>
+      <path d="M270,60 C340,60 340,90 400,90" class="graph-edge"/>
+      <path d="M270,120 C340,120 340,90 400,90" class="graph-edge"/>
+      <path d="M400,90 C470,90 470,70 540,70" class="graph-edge"/>
+      <path d="M400,90 C470,90 470,120 540,120" class="graph-edge"/>
+
+      <path d="M540,170 C600,170 600,150 660,150" class="graph-edge"/>
+      <path d="M540,170 C600,170 600,200 660,200" class="graph-edge"/>
+
+      <!-- Cluster 1: Revenue chain -->
+      <g class="graph-node" transform="translate(130,120)">
+        <circle r="20" class="graph-node-core" fill="var(--critical)"/>
+        <circle r="16" class="graph-node-ring" stroke="var(--critical)"/>
+        <circle r="5" fill="var(--critical)"/>
+        <text y="32" class="graph-node-label">REV01</text>
+      </g>
+      <g class="graph-node" transform="translate(270,60)">
+        <circle r="14" class="graph-node-core" fill="var(--high)"/>
+        <circle r="11" class="graph-node-ring" stroke="var(--high)"/>
+        <circle r="4" fill="var(--high)"/>
+        <text y="26" class="graph-node-label">FIN02</text>
+      </g>
+      <g class="graph-node" transform="translate(270,120)">
+        <circle r="14" class="graph-node-core" fill="var(--critical)"/>
+        <circle r="11" class="graph-node-ring" stroke="var(--critical)"/>
+        <circle r="4" fill="var(--critical)"/>
+        <text y="26" class="graph-node-label">EMP03</text>
+      </g>
+      <g class="graph-node" transform="translate(270,180)">
+        <circle r="12" class="graph-node-core" fill="var(--high)"/>
+        <circle r="9" class="graph-node-ring" stroke="var(--high)"/>
+        <circle r="3.5" fill="var(--high)"/>
+        <text y="24" class="graph-node-label">OPS07</text>
+      </g>
+      <g class="graph-node" transform="translate(400,90)">
+        <circle r="16" class="graph-node-core" fill="var(--high)"/>
+        <circle r="12" class="graph-node-ring" stroke="var(--high)"/>
+        <circle r="4.5" fill="var(--high)"/>
+        <text y="28" class="graph-node-label">FIN05</text>
+      </g>
+      <g class="graph-node" transform="translate(540,70)">
+        <circle r="10" class="graph-node-core" fill="var(--medium)"/>
+        <circle r="8" class="graph-node-ring" stroke="var(--medium)"/>
+        <circle r="3" fill="var(--medium)"/>
+        <text y="22" class="graph-node-label">MKT01</text>
+      </g>
+      <g class="graph-node" transform="translate(540,120)">
+        <circle r="10" class="graph-node-core" fill="var(--clean)"/>
+        <circle r="8" class="graph-node-ring" stroke="var(--clean)"/>
+        <circle r="3" fill="var(--clean)"/>
+        <text y="22" class="graph-node-label">DRV02</text>
+      </g>
+
+      <!-- Cluster 2: isolated -->
+      <g class="graph-node" transform="translate(540,170)">
+        <circle r="14" class="graph-node-core" fill="var(--high)"/>
+        <circle r="11" class="graph-node-ring" stroke="var(--high)"/>
+        <circle r="4" fill="var(--high)"/>
+        <text y="26" class="graph-node-label">CAP01</text>
+      </g>
+      <g class="graph-node" transform="translate(660,150)">
+        <circle r="10" class="graph-node-core" fill="var(--medium)"/>
+        <circle r="8" class="graph-node-ring" stroke="var(--medium)"/>
+        <circle r="3" fill="var(--medium)"/>
+        <text y="22" class="graph-node-label">CAP02</text>
+      </g>
+      <g class="graph-node" transform="translate(660,200)">
+        <circle r="10" class="graph-node-core" fill="var(--medium)"/>
+        <circle r="8" class="graph-node-ring" stroke="var(--medium)"/>
+        <circle r="3" fill="var(--medium)"/>
+        <text y="22" class="graph-node-label">CAP03</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══════════ FIX ORDER TIMELINE ═══════════ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" /></svg>
+    </div>
+    <span class="section-title">Remediation Order</span>
+    <span class="section-count">6 steps</span>
+  </div>
+  <div class="timeline">
+    <div class="tl-step">
+      <div class="tl-node tl-node-critical"><div class="tl-node-inner"></div></div>
+      <div class="tl-card">
+        <div class="tl-card-head">
+          <span class="tl-card-title">REV01 Revenue Calc</span>
+          <span class="tl-card-badge badge-critical">Critical · 7 issues</span>
+        </div>
+        <div class="tl-card-desc">Circular references in forecast lines. Missing PREVIOUS/NEXT guards cause infinite recalculation loops.</div>
+        <div class="tl-card-meta">
+          <span class="tl-card-stat">Fan-out: <strong>12</strong></span>
+          <span class="tl-card-stat">Blocked by: <strong>none</strong></span>
+          <span class="tl-card-stat">Est. impact: <strong>+18 pts</strong></span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-step">
+      <div class="tl-node tl-node-critical"><div class="tl-node-inner"></div></div>
+      <div class="tl-card">
+        <div class="tl-card-head">
+          <span class="tl-card-title">EMP03 Headcount Plan</span>
+          <span class="tl-card-badge badge-critical">Critical · 5 issues</span>
+        </div>
+        <div class="tl-card-desc">Oversized time dimension applies full calendar to all line items. SUM aggregation on rate fields produces incorrect totals.</div>
+        <div class="tl-card-meta">
+          <span class="tl-card-stat">Fan-out: <strong>8</strong></span>
+          <span class="tl-card-stat">Blocked by: <strong>REV01</strong></span>
+          <span class="tl-card-stat">Est. impact: <strong>+12 pts</strong></span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-step">
+      <div class="tl-node tl-node-critical"><div class="tl-node-inner"></div></div>
+      <div class="tl-card">
+        <div class="tl-card-head">
+          <span class="tl-card-title">FIN02 COGS Model</span>
+          <span class="tl-card-badge badge-critical">Critical · 4 issues</span>
+        </div>
+        <div class="tl-card-desc">Hardcoded allocation percentages bypass driver-based inputs. No version separation between actuals and forecast.</div>
+        <div class="tl-card-meta">
+          <span class="tl-card-stat">Fan-out: <strong>6</strong></span>
+          <span class="tl-card-stat">Blocked by: <strong>REV01</strong></span>
+          <span class="tl-card-stat">Est. impact: <strong>+9 pts</strong></span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-step">
+      <div class="tl-node tl-node-high"><div class="tl-node-inner"></div></div>
+      <div class="tl-card">
+        <div class="tl-card-head">
+          <span class="tl-card-title">OPS07 Supply Chain</span>
+          <span class="tl-card-badge badge-high">High · 4 issues</span>
+        </div>
+        <div class="tl-card-desc">Unfiltered list with 2,400 items applied to 3 line items. Missing subsidiary dimension creates orphaned data.</div>
+        <div class="tl-card-meta">
+          <span class="tl-card-stat">Fan-out: <strong>4</strong></span>
+          <span class="tl-card-stat">Blocked by: <strong>EMP03</strong></span>
+          <span class="tl-card-stat">Est. impact: <strong>+7 pts</strong></span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-step">
+      <div class="tl-node tl-node-high"><div class="tl-node-inner"></div></div>
+      <div class="tl-card">
+        <div class="tl-card-head">
+          <span class="tl-card-title">FIN05 P&L Roll-up</span>
+          <span class="tl-card-badge badge-high">High · 3 issues</span>
+        </div>
+        <div class="tl-card-desc">Consolidation pulls from stale snapshot modules instead of live calculation chains.</div>
+        <div class="tl-card-meta">
+          <span class="tl-card-stat">Fan-out: <strong>3</strong></span>
+          <span class="tl-card-stat">Blocked by: <strong>FIN02, EMP03</strong></span>
+          <span class="tl-card-stat">Est. impact: <strong>+5 pts</strong></span>
+        </div>
+      </div>
+    </div>
+    <div class="tl-step">
+      <div class="tl-node tl-node-medium"><div class="tl-node-inner"></div></div>
+      <div class="tl-card">
+        <div class="tl-card-head">
+          <span class="tl-card-title">MKT01 Pipeline Forecast</span>
+          <span class="tl-card-badge badge-medium">Medium · 2 issues</span>
+        </div>
+        <div class="tl-card-desc">Conversion rates stored as text-formatted numbers. Minor list hierarchy gap in region dimension.</div>
+        <div class="tl-card-meta">
+          <span class="tl-card-stat">Fan-out: <strong>1</strong></span>
+          <span class="tl-card-stat">Blocked by: <strong>FIN05</strong></span>
+          <span class="tl-card-stat">Est. impact: <strong>+3 pts</strong></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ BOTTLENECKS ═══════════ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+    </div>
+    <span class="section-title">Bottleneck Analysis</span>
+    <span class="section-count">3 identified</span>
+  </div>
+  <div class="bottlenecks">
+    <div class="bn-card">
+      <div class="bn-header">
+        <div class="bn-name">REV01 Revenue Calc</div>
+        <div style="text-align:right">
+          <div class="bn-fanout">12</div>
+          <div class="bn-fanout-label">Fan-out</div>
+        </div>
+      </div>
+      <div class="bn-deps">
+        <span class="bn-dep">EMP03</span>
+        <span class="bn-dep">FIN02</span>
+        <span class="bn-dep">FIN05</span>
+        <span class="bn-dep">OPS07</span>
+        <span class="bn-dep">MKT01</span>
+        <span class="bn-dep">DRV02</span>
+        <span class="bn-dep">+6 more</span>
+      </div>
+    </div>
+    <div class="bn-card">
+      <div class="bn-header">
+        <div class="bn-name">EMP03 Headcount Plan</div>
+        <div style="text-align:right">
+          <div class="bn-fanout">8</div>
+          <div class="bn-fanout-label">Fan-out</div>
+        </div>
+      </div>
+      <div class="bn-deps">
+        <span class="bn-dep">FIN05</span>
+        <span class="bn-dep">OPS07</span>
+        <span class="bn-dep">CAP01</span>
+        <span class="bn-dep">BUD02</span>
+        <span class="bn-dep">+4 more</span>
+      </div>
+    </div>
+    <div class="bn-card">
+      <div class="bn-header">
+        <div class="bn-name">FIN02 COGS Model</div>
+        <div style="text-align:right">
+          <div class="bn-fanout">6</div>
+          <div class="bn-fanout-label">Fan-out</div>
+        </div>
+      </div>
+      <div class="bn-deps">
+        <span class="bn-dep">FIN05</span>
+        <span class="bn-dep">REP01</span>
+        <span class="bn-dep">BUD01</span>
+        <span class="bn-dep">+3 more</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ EVIDENCE BOUNDARIES ═══════════ -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" /></svg>
+    </div>
+    <span class="section-title">Evidence Boundaries</span>
+  </div>
+  <div class="evidence">
+    <div class="ev-header">
+      <span class="ev-title">Analysis Scope</span>
+    </div>
+    <div class="ev-grid">
+      <div class="ev-stat">
+        <div class="ev-stat-val">31</div>
+        <div class="ev-stat-label">Modules Analyzed</div>
+      </div>
+      <div class="ev-stat">
+        <div class="ev-stat-val">847</div>
+        <div class="ev-stat-label">Line Items Parsed</div>
+      </div>
+      <div class="ev-stat">
+        <div class="ev-stat-val">12</div>
+        <div class="ev-stat-label">Lists Evaluated</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- .page -->
+
+<script>
+// Generate tick marks on the health gauge
+(function() {
+  const ticks = document.getElementById('ticks');
+  const cx = 170, cy = 170, r = 165;
+  for (let i = 0; i < 60; i++) {
+    const angle = (i / 60) * 360 - 90;
+    const rad = angle * Math.PI / 180;
+    const len = i % 5 === 0 ? 8 : 4;
+    const x1 = cx + (r - len) * Math.cos(rad);
+    const y1 = cy + (r - len) * Math.sin(rad);
+    const x2 = cx + r * Math.cos(rad);
+    const y2 = cy + r * Math.sin(rad);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1);
+    line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2);
+    line.setAttribute('y2', y2);
+    line.setAttribute('class', i % 5 === 0 ? 'gauge-tick-major' : 'gauge-tick');
+    ticks.appendChild(line);
+  }
+})();
+</script>
+</body>
+</html>

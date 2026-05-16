@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian — Model Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════════
+   MERIDIAN INTELLIGENCE — PREMIUM DARK DASHBOARD
+   Design: clinical precision meets data-dense observatory
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root {
+  /* Depth layers — darkest to lightest */
+  --void:    #06080C;
+  --base:    #0B0F15;
+  --surface: #11161E;
+  --raised:  #171D28;
+  --border:  #1E2737;
+  --border2: #283347;
+
+  /* Text hierarchy */
+  --t1: #E8ECF2;
+  --t2: #9BA4B5;
+  --t3: #5C6678;
+  --t4: #3A4456;
+
+  /* Severity — luminous against dark */
+  --crit:     #FF4D4D;
+  --crit-dim: rgba(255,77,77,0.12);
+  --crit-glow:rgba(255,77,77,0.25);
+  --high:     #FF9F43;
+  --high-dim: rgba(255,159,67,0.12);
+  --high-glow:rgba(255,159,67,0.25);
+  --med:      #4C9AFF;
+  --med-dim:  rgba(76,154,255,0.10);
+  --med-glow: rgba(76,154,255,0.20);
+  --clean:    #36D399;
+  --clean-dim:rgba(54,211,153,0.10);
+
+  /* Accent */
+  --accent: #4C9AFF;
+
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', system-ui, sans-serif;
+}
+
+html { background: var(--void); color: var(--t1); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+body { min-height: 100vh; background: var(--base); }
+
+/* ─── SUBTLE GRID TEXTURE ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(76,154,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(76,154,255,0.015) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── LAYOUT ─── */
+.shell { max-width: 1400px; margin: 0 auto; padding: 0 32px 80px; position: relative; z-index: 1; }
+
+/* ═══════ MASTHEAD ═══════ */
+.mast {
+  padding: 40px 0 0;
+  margin-bottom: 32px;
+}
+.mast-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; }
+.mast-eyebrow {
+  font: 600 10px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.mast-model { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; color: var(--t1); margin-bottom: 6px; }
+.mast-meta { font: 400 12px/1.5 var(--mono); color: var(--t3); }
+.mast-tags { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
+.mast-tag {
+  font: 600 9px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--t3);
+}
+
+/* ═══════ SCORE ORB ═══════ */
+.orb-wrap { position: relative; width: 160px; height: 160px; flex-shrink: 0; }
+.orb-glow {
+  position: absolute; inset: -20px;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.35;
+}
+.orb-svg { width: 100%; height: 100%; }
+.orb-val {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.orb-num { font: 300 52px/1 var(--sans); letter-spacing: -0.04em; color: var(--t1); }
+.orb-sub { font: 600 8px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--t3); margin-top: 6px; }
+.orb-score-label {
+  font: 500 11px/1 var(--mono);
+  color: var(--t2);
+  margin-top: 2px;
+}
+
+/* ═══════ KPI STRIP ═══════ */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.kpi {
+  background: var(--surface);
+  padding: 20px 24px;
+  text-align: center;
+  position: relative;
+}
+.kpi::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 20%; right: 20%;
+  height: 2px;
+  border-radius: 1px;
+}
+.kpi-val { font: 700 28px/1 var(--sans); letter-spacing: -0.02em; margin-bottom: 6px; }
+.kpi-lbl { font: 600 9px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--t3); }
+
+/* ═══════ SEVERITY DISTRIBUTION BAR ═══════ */
+.sev-bar-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+.sev-bar-label { font: 600 9px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--t3); margin-bottom: 12px; }
+.sev-bar {
+  display: flex;
+  height: 32px;
+  border-radius: 6px;
+  overflow: hidden;
+  gap: 2px;
+}
+.sev-seg {
+  display: flex; align-items: center; justify-content: center;
+  font: 700 11px/1 var(--mono); color: rgba(0,0,0,0.7);
+  position: relative;
+  transition: flex 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sev-seg:hover { flex-grow: 1.5 !important; }
+.sev-bar-legend {
+  display: flex; gap: 20px; margin-top: 10px;
+}
+.sev-bar-legend span {
+  font: 500 10px/1 var(--mono); color: var(--t3);
+  display: flex; align-items: center; gap: 6px;
+}
+.sev-bar-legend span::before {
+  content: ''; width: 8px; height: 8px; border-radius: 2px;
+}
+
+/* ═══════ TWO-COL GRID ═══════ */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+.grid-2.wide-left { grid-template-columns: 1.3fr 0.7fr; }
+.grid-2.wide-right { grid-template-columns: 0.7fr 1.3fr; }
+.full-width { margin-bottom: 24px; }
+
+/* ═══════ CARD ═══════ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.card-hd {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title { font: 600 13px/1 var(--sans); color: var(--t1); }
+.card-badge {
+  font: 600 9px/1 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--raised);
+  color: var(--t3);
+}
+.card-body { padding: 20px; }
+.card-body.flush { padding: 0; }
+
+/* ═══════ TREEMAP ═══════ */
+.treemap-svg { width: 100%; display: block; }
+.treemap-svg rect { rx: 4; transition: opacity 0.2s; cursor: default; }
+.treemap-svg rect:hover { opacity: 0.85; }
+.treemap-svg text { font-family: var(--mono); pointer-events: none; }
+
+/* ═══════ BOTTLENECK FLOW ═══════ */
+.flow-svg { width: 100%; display: block; }
+.flow-svg .flow-node { cursor: default; }
+.flow-svg .flow-link { fill: none; opacity: 0.3; transition: opacity 0.2s; }
+.flow-svg .flow-link:hover { opacity: 0.6; }
+.flow-svg text { font-family: var(--mono); fill: var(--t2); }
+
+/* ═══════ FIX TIMELINE ═══════ */
+.timeline { display: flex; gap: 0; }
+.phase {
+  flex: 1;
+  padding: 16px 16px 20px;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+.phase:last-child { border-right: none; }
+.phase-num {
+  font: 700 9px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.phase-sub { font: 400 10px/1.4 var(--sans); color: var(--t3); margin-bottom: 14px; }
+.phase-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  margin-bottom: 3px;
+  transition: background 0.15s;
+}
+.phase-item:hover { background: var(--raised); }
+.phase-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.phase-id { font: 600 11px/1 var(--mono); color: var(--t2); flex: 1; }
+.phase-score { font: 500 10px/1 var(--mono); }
+
+/* Phase connector arrows */
+.phase::after {
+  content: '→';
+  position: absolute;
+  right: -7px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--t4);
+  z-index: 2;
+}
+.phase:last-child::after { display: none; }
+
+/* ═══════ MODULE TABLE ═══════ */
+.mod-table { width: 100%; }
+.mod-row {
+  display: grid;
+  grid-template-columns: 4px 1fr 48px 200px 48px 64px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.mod-row:hover { background: var(--raised); }
+.mod-row.head {
+  background: var(--raised);
+  border-bottom: 1px solid var(--border2);
+  padding: 8px 16px;
+}
+.mod-row.head span {
+  font: 600 9px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+.mod-sev { height: 28px; border-radius: 2px; }
+.mod-name { font: 500 12px/1.3 var(--sans); color: var(--t1); }
+.mod-role {
+  font: 600 9px/1 var(--mono);
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--raised);
+  color: var(--t3);
+  display: inline;
+}
+.mod-issues { font: 700 12px/1 var(--mono); text-align: center; }
+.mod-bar-wrap {
+  height: 6px;
+  background: var(--raised);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.mod-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.mod-score { font: 700 14px/1 var(--mono); text-align: right; }
+.mod-chip {
+  font: 700 8px/1 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  text-align: center;
+}
+
+/* ═══════ RADIAL CHART ═══════ */
+.radial-svg { width: 100%; display: block; }
+
+/* ═══════ MATRIX ═══════ */
+.matrix {
+  display: grid;
+  grid-template-columns: 56px repeat(4, 1fr);
+  gap: 2px;
+}
+.matrix-cell {
+  padding: 12px 8px;
+  text-align: center;
+  border-radius: 4px;
+  transition: transform 0.15s;
+}
+.matrix-cell:hover { transform: scale(1.04); }
+.matrix-cell-val { font: 700 20px/1 var(--mono); }
+.matrix-hd {
+  font: 600 9px/1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t3);
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ═══════ EVIDENCE ═══════ */
+.evi-group { margin-bottom: 16px; }
+.evi-group:last-child { margin-bottom: 0; }
+.evi-label {
+  font: 600 9px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.evi-item {
+  font: 400 11px/1.5 var(--sans);
+  color: var(--t2);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.evi-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+
+/* ═══════ ANIMATIONS ═══════ */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.card { animation: fadeUp 0.5s ease both; }
+.grid-2 .card:nth-child(2) { animation-delay: 0.08s; }
+
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ═══════════════════ MASTHEAD ═══════════════════ -->
+<div class="mast">
+  <div class="mast-row">
+    <div>
+      <div class="mast-eyebrow">Model Intelligence</div>
+      <div class="mast-model">COPS Demo — Supply Chain Planning</div>
+      <div class="mast-meta">214 modules · 3,847 line items · Analysed May 16 2026</div>
+      <div class="mast-tags">
+        <span class="mast-tag">Client-prefix naming</span>
+        <span class="mast-tag">Formula risk: high</span>
+        <span class="mast-tag">Evidence: qualified</span>
+      </div>
+    </div>
+    <div class="orb-wrap" id="orb"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ KPI STRIP ═══════════════════ -->
+<div class="kpi-strip" id="kpi-strip"></div>
+
+<!-- ═══════════════════ SEVERITY DISTRIBUTION ═══════════════════ -->
+<div class="sev-bar-wrap">
+  <div class="sev-bar-label">Severity Distribution</div>
+  <div class="sev-bar" id="sev-bar"></div>
+  <div class="sev-bar-legend" id="sev-legend"></div>
+</div>
+
+<!-- ═══════════════════ RISK CLUSTERS + BOTTLENECK FLOW ═══════════════════ -->
+<div class="grid-2">
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-title">Risk Clusters</div>
+      <div class="card-badge">Treemap — sized by line items</div>
+    </div>
+    <div class="card-body flush" id="treemap-wrap"></div>
+  </div>
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-title">Bottleneck Flow</div>
+      <div class="card-badge">3 hubs → 9 downstream</div>
+    </div>
+    <div class="card-body flush" id="flow-wrap"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ FIX ORDER TIMELINE ═══════════════════ -->
+<div class="full-width">
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-title">Remediation Sequence</div>
+      <div class="card-badge">dependency-safe ordering</div>
+    </div>
+    <div class="card-body flush" id="timeline-wrap"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MODULE RISK TABLE ═══════════════════ -->
+<div class="full-width">
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-title">Highest-Risk Modules</div>
+      <div class="card-badge">12 of 214</div>
+    </div>
+    <div class="card-body flush" id="mod-table-wrap"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MATRIX + EVIDENCE ═══════════════════ -->
+<div class="grid-2">
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-title">Severity × Layer</div>
+    </div>
+    <div class="card-body" id="matrix-wrap"></div>
+  </div>
+  <div class="card">
+    <div class="card-hd">
+      <div class="card-title">Evidence Boundaries</div>
+    </div>
+    <div class="card-body" id="evidence-wrap"></div>
+  </div>
+</div>
+
+</div><!-- /.shell -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════════════════════════
+const C = { critical:'#FF4D4D', high:'#FF9F43', medium:'#4C9AFF', clean:'#36D399' };
+const CD = { critical:'rgba(255,77,77,0.15)', high:'rgba(255,159,67,0.15)', medium:'rgba(76,154,255,0.12)', clean:'rgba(54,211,153,0.10)' };
+
+const MODS = [
+  { id:'PM01',  name:'PM01 – Project',          role:'CAL', sev:'critical', li:48,  iss:5, score:18, deps:['DEM01','CPM04'] },
+  { id:'DEM06', name:'DEM06 – Opportunity Mgmt', role:'CAL', sev:'critical', li:55,  iss:5, score:22, deps:['DEM07','DEM30','DEM31','SCE13'] },
+  { id:'DCW03', name:'DCW03 – Stat Calcs',       role:'CAL', sev:'critical', li:67,  iss:4, score:25, deps:['DCW10','SLP01'] },
+  { id:'DEM01', name:'DEM01 – Demand Forecast',   role:'CAL', sev:'critical', li:42,  iss:4, score:28, deps:['DEM03','DEM07','SLP01'] },
+  { id:'CPM04', name:'CPM04 – Milestone Track',   role:'CAL', sev:'critical', li:22,  iss:3, score:30, deps:['CPM08'] },
+  { id:'SCE13', name:'SCE13 – Scenario Specs',    role:'SYS', sev:'critical', li:16,  iss:3, score:31, deps:['DEM30','DEM31'] },
+  { id:'DEM03', name:'DEM03 – Pipeline Analysis', role:'CAL', sev:'critical', li:38,  iss:3, score:35, deps:['DEM07','SCE13'] },
+  { id:'DCW10', name:'DCW10 – Units by Week',     role:'CAL', sev:'high',     li:136, iss:3, score:40, deps:['SLP01','SLP05'] },
+  { id:'SLP01', name:'SLP01 – Slot Hours',        role:'CAL', sev:'high',     li:44,  iss:2, score:46, deps:['SLP05'] },
+  { id:'DEM07', name:'DEM07 – Opp. Specifics',    role:'CAL', sev:'high',     li:33,  iss:2, score:48, deps:['DEM30'] },
+  { id:'DEM05', name:'DEM05 – Customer Details',  role:'DAT', sev:'high',     li:28,  iss:2, score:52, deps:['DEM06'] },
+  { id:'DEM31', name:'DEM31 – Sales',             role:'OUT', sev:'high',     li:24,  iss:2, score:55, deps:[] },
+  { id:'DEM30', name:'DEM30 – Budget',            role:'OUT', sev:'medium',   li:18,  iss:1, score:68, deps:[] },
+  { id:'SLP05', name:'SLP05 – Slots',             role:'INP', sev:'medium',   li:12,  iss:1, score:72, deps:[] },
+  { id:'CPM08', name:'CPM08 – Milestone Chart',   role:'OUT', sev:'medium',   li:8,   iss:1, score:74, deps:[] },
+];
+
+const CLUSTERS = [
+  { label:'Demand Planning',   mods:['DEM06','DEM01','DEM03','DEM05','DEM07','DEM30','DEM31','SCE13'] },
+  { label:'Capacity & Sched.', mods:['DCW03','DCW10','SLP01','SLP05'] },
+  { label:'Project Milestones', mods:['PM01','CPM04','CPM08'] },
+];
+
+function m(id) { return MODS.find(x => x.id === id); }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SCORE ORB — multi-ring with glow
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  const score = 64;
+  const el = document.getElementById('orb');
+  const gradColor = score > 70 ? '#36D399' : score > 45 ? '#FF9F43' : '#FF4D4D';
+  const gradEnd = score > 70 ? '#36D399' : score > 45 ? '#FFCC00' : '#FF9F43';
+
+  // Glow
+  const glow = document.createElement('div');
+  glow.className = 'orb-glow';
+  glow.style.background = `radial-gradient(circle, ${gradColor} 0%, transparent 70%)`;
+  el.appendChild(glow);
+
+  const r = 62, cx = 80, cy = 80, sw = 7;
+  const circ = 2 * Math.PI * r;
+  const dashPct = score / 100;
+
+  let svg = `<svg class="orb-svg" viewBox="0 0 160 160">`;
+  svg += `<defs>`;
+  svg += `<linearGradient id="og" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${gradColor}"/><stop offset="100%" stop-color="${gradEnd}"/></linearGradient>`;
+  svg += `<filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  svg += `</defs>`;
+  // Background ring
+  svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="${sw}"/>`;
+  // Track ticks
+  for (let i = 0; i < 60; i++) {
+    const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
+    const x1 = cx + (r - 4) * Math.cos(a), y1 = cy + (r - 4) * Math.sin(a);
+    const x2 = cx + (r + 4) * Math.cos(a), y2 = cy + (r + 4) * Math.sin(a);
+    svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>`;
+  }
+  // Score arc
+  svg += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="url(#og)" stroke-width="${sw}" stroke-dasharray="${circ * dashPct} ${circ}" stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})" filter="url(#glow)"/>`;
+  // End dot
+  const endAngle = dashPct * Math.PI * 2 - Math.PI / 2;
+  const ex = cx + r * Math.cos(endAngle), ey = cy + r * Math.sin(endAngle);
+  svg += `<circle cx="${ex}" cy="${ey}" r="4" fill="${gradColor}" filter="url(#glow)"/>`;
+  svg += `</svg>`;
+
+  el.innerHTML += svg;
+  el.innerHTML += `<div class="orb-val"><div class="orb-num">${score}</div><div class="orb-sub">/100</div><div class="orb-score-label">Health Score</div></div>`;
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// KPI STRIP
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  const kpis = [
+    { val: 214, lbl: 'Modules', color: 'var(--t1)', bar: 'var(--accent)' },
+    { val: 33, lbl: 'Critical', color: 'var(--crit)', bar: 'var(--crit)' },
+    { val: 31, lbl: 'High', color: 'var(--high)', bar: 'var(--high)' },
+    { val: 92, lbl: 'Medium', color: 'var(--med)', bar: 'var(--med)' },
+    { val: 58, lbl: 'Clean', color: 'var(--clean)', bar: 'var(--clean)' },
+  ];
+  const el = document.getElementById('kpi-strip');
+  el.innerHTML = kpis.map(k =>
+    `<div class="kpi"><div class="kpi-val" style="color:${k.color}">${k.val}</div><div class="kpi-lbl">${k.lbl}</div><style>.kpi:nth-child(${kpis.indexOf(k)+1})::after{background:${k.bar};opacity:0.4}</style></div>`
+  ).join('');
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEVERITY BAR
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  const data = [{n:'Critical',v:33,c:'var(--crit)'},{n:'High',v:31,c:'var(--high)'},{n:'Medium',v:92,c:'var(--med)'},{n:'Clean',v:58,c:'var(--clean)'}];
+  const total = data.reduce((a,d)=>a+d.v,0);
+  document.getElementById('sev-bar').innerHTML = data.map(d =>
+    `<div class="sev-seg" style="flex:${d.v};background:${d.c}">${d.v}</div>`
+  ).join('');
+  document.getElementById('sev-legend').innerHTML = data.map(d =>
+    `<span><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${d.c}"></i>${d.n} ${d.v} (${Math.round(d.v/total*100)}%)</span>`
+  ).join('');
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TREEMAP — risk clusters sized by line items
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  const W = 660, H = 380, PAD = 4;
+  const items = [];
+  CLUSTERS.forEach(cl => {
+    cl.mods.forEach(id => {
+      const mod = m(id);
+      if (mod) items.push({ ...mod, cluster: cl.label });
+    });
+  });
+  items.sort((a, b) => b.li - a.li);
+  const totalLI = items.reduce((s, x) => s + x.li, 0);
+
+  // Simple squarified treemap layout
+  function treemap(items, x, y, w, h) {
+    if (items.length === 0) return [];
+    if (items.length === 1) return [{ ...items[0], x, y, w, h }];
+
+    const total = items.reduce((s, d) => s + d.li, 0);
+    const isHoriz = w >= h;
+    let sum = 0, splitIdx = 0;
+
+    for (let i = 0; i < items.length; i++) {
+      sum += items[i].li;
+      if (sum / total >= 0.5) { splitIdx = i + 1; break; }
+    }
+    if (splitIdx === 0) splitIdx = 1;
+
+    const left = items.slice(0, splitIdx);
+    const right = items.slice(splitIdx);
+    const leftRatio = left.reduce((s, d) => s + d.li, 0) / total;
+
+    if (isHoriz) {
+      const splitX = x + w * leftRatio;
+      return [
+        ...treemap(left, x, y, w * leftRatio, h),
+        ...treemap(right, splitX, y, w * (1 - leftRatio), h),
+      ];
+    } else {
+      const splitY = y + h * leftRatio;
+      return [
+        ...treemap(left, x, y, w, h * leftRatio),
+        ...treemap(right, x, splitY, w, h * (1 - leftRatio)),
+      ];
+    }
+  }
+
+  const rects = treemap(items, PAD, PAD, W - PAD * 2, H - PAD * 2);
+
+  let svg = `<svg class="treemap-svg" viewBox="0 0 ${W} ${H}">`;
+  svg += `<defs>`;
+  Object.entries(C).forEach(([sev, col]) => {
+    svg += `<linearGradient id="tg-${sev}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${col}" stop-opacity="0.85"/><stop offset="100%" stop-color="${col}" stop-opacity="0.55"/></linearGradient>`;
+  });
+  svg += `</defs>`;
+
+  rects.forEach(r => {
+    const rx = r.x + 1.5, ry = r.y + 1.5, rw = r.w - 3, rh = r.h - 3;
+    if (rw < 3 || rh < 3) return;
+    svg += `<rect x="${rx}" y="${ry}" width="${rw}" height="${rh}" fill="url(#tg-${r.sev})" stroke="rgba(0,0,0,0.3)" stroke-width="1"/>`;
+    if (rw > 36 && rh > 20) {
+      svg += `<text x="${rx + 6}" y="${ry + 14}" font-size="10" font-weight="700" fill="rgba(0,0,0,0.7)">${r.id}</text>`;
+    }
+    if (rw > 50 && rh > 34) {
+      svg += `<text x="${rx + 6}" y="${ry + 26}" font-size="9" font-weight="500" fill="rgba(0,0,0,0.45)">${r.li} LI · ${r.score}</text>`;
+    }
+    if (rw > 70 && rh > 48) {
+      svg += `<text x="${rx + 6}" y="${ry + rh - 6}" font-size="8" font-weight="400" fill="rgba(0,0,0,0.3)">${r.cluster}</text>`;
+    }
+  });
+  svg += `</svg>`;
+  document.getElementById('treemap-wrap').innerHTML = svg;
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BOTTLENECK FLOW — sankey-style hub → downstream
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  const W = 660, H = 380;
+  const hubs = [
+    { id:'DEM06', fan:['DEM07','DEM30','DEM31','SCE13'] },
+    { id:'DCW03', fan:['DCW10','SLP01'] },
+    { id:'PM01',  fan:['DEM01','CPM04'] },
+  ];
+
+  // Layout: hubs on left, downstream on right
+  const hubX = 80, downX = W - 120;
+  const hubSpacing = H / (hubs.length + 1);
+  const allDown = [...new Set(hubs.flatMap(h => h.fan))];
+  const downSpacing = H / (allDown.length + 1);
+
+  let svg = `<svg class="flow-svg" viewBox="0 0 ${W} ${H}">`;
+  svg += `<defs>`;
+  svg += `<filter id="fg"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  hubs.forEach(h => {
+    const mod = m(h.id);
+    const col = C[mod.sev];
+    svg += `<linearGradient id="fl-${h.id}" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="${col}" stop-opacity="0.5"/><stop offset="100%" stop-color="${col}" stop-opacity="0.1"/></linearGradient>`;
+  });
+  svg += `</defs>`;
+
+  // Labels
+  svg += `<text x="${hubX}" y="20" font-size="9" font-weight="600" fill="#5C6678" text-anchor="middle" letter-spacing="0.1em">HUBS</text>`;
+  svg += `<text x="${downX}" y="20" font-size="9" font-weight="600" fill="#5C6678" text-anchor="middle" letter-spacing="0.1em">DOWNSTREAM</text>`;
+
+  // Draw links first (behind nodes)
+  hubs.forEach((h, hi) => {
+    const hy = hubSpacing * (hi + 1);
+    const mod = m(h.id);
+    const col = C[mod.sev];
+    h.fan.forEach(did => {
+      const di = allDown.indexOf(did);
+      const dy = downSpacing * (di + 1);
+      const cp1x = hubX + (downX - hubX) * 0.4;
+      const cp2x = hubX + (downX - hubX) * 0.6;
+      const thickness = Math.max(2, Math.min(8, (m(did)?.li || 20) / 20));
+      svg += `<path class="flow-link" d="M${hubX + 24} ${hy} C${cp1x} ${hy} ${cp2x} ${dy} ${downX - 24} ${dy}" stroke="url(#fl-${h.id})" stroke-width="${thickness}"/>`;
+    });
+  });
+
+  // Hub nodes
+  hubs.forEach((h, hi) => {
+    const hy = hubSpacing * (hi + 1);
+    const mod = m(h.id);
+    const col = C[mod.sev];
+    svg += `<circle cx="${hubX}" cy="${hy}" r="22" fill="${col}" fill-opacity="0.15" stroke="${col}" stroke-width="2" filter="url(#fg)"/>`;
+    svg += `<circle cx="${hubX}" cy="${hy}" r="16" fill="${col}" fill-opacity="0.9"/>`;
+    svg += `<text x="${hubX}" y="${hy + 1}" font-size="8" font-weight="700" fill="rgba(0,0,0,0.7)" text-anchor="middle" dominant-baseline="middle">${h.id.slice(0,4)}</text>`;
+    svg += `<text x="${hubX}" y="${hy + 35}" font-size="9" font-weight="500" fill="#9BA4B5" text-anchor="middle">${mod.li} LI</text>`;
+    svg += `<text x="${hubX}" y="${hy + 46}" font-size="8" font-weight="400" fill="#5C6678" text-anchor="middle">fan ${h.fan.length}</text>`;
+  });
+
+  // Downstream nodes
+  allDown.forEach((did, di) => {
+    const dy = downSpacing * (di + 1);
+    const mod = m(did);
+    if (!mod) return;
+    const col = C[mod.sev];
+    svg += `<circle cx="${downX}" cy="${dy}" r="16" fill="${col}" fill-opacity="0.12" stroke="${col}" stroke-width="1.5"/>`;
+    svg += `<circle cx="${downX}" cy="${dy}" r="10" fill="${col}" fill-opacity="0.7"/>`;
+    svg += `<text x="${downX + 24}" y="${dy - 4}" font-size="9" font-weight="600" fill="#E8ECF2">${did}</text>`;
+    svg += `<text x="${downX + 24}" y="${dy + 8}" font-size="8" font-weight="400" fill="#5C6678">${mod.li} LI · Score ${mod.score}</text>`;
+  });
+
+  svg += `</svg>`;
+  document.getElementById('flow-wrap').innerHTML = svg;
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FIX TIMELINE
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  const phases = [
+    { n:'Phase 1', sub:'Leaf nodes — no downstream', mods:['SLP05','DEM30','DEM31','CPM08'] },
+    { n:'Phase 2', sub:'Mid-tier — moderate blast radius', mods:['DEM05','DEM07','SLP01','SCE13'] },
+    { n:'Phase 3', sub:'Hub modules — high fan-out', mods:['DEM03','DEM06','DCW10','CPM04'] },
+    { n:'Phase 4', sub:'Root nodes — fix last', mods:['DEM01','DCW03','PM01'] },
+  ];
+  const el = document.getElementById('timeline-wrap');
+  let html = '<div class="timeline">';
+  phases.forEach((ph, i) => {
+    const bg = `rgba(76,154,255,${0.02 + i * 0.02})`;
+    html += `<div class="phase" style="background:${bg}">`;
+    html += `<div class="phase-num" style="color:var(--accent)">${ph.n}</div>`;
+    html += `<div class="phase-sub">${ph.sub}</div>`;
+    ph.mods.forEach(id => {
+      const mod = m(id);
+      if (!mod) return;
+      const col = C[mod.sev];
+      html += `<div class="phase-item"><div class="phase-dot" style="background:${col};box-shadow:0 0 6px ${col}"></div><div class="phase-id">${mod.id}</div><div class="phase-score" style="color:${col}">${mod.score}</div></div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULE TABLE
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  const el = document.getElementById('mod-table-wrap');
+  let html = '<div class="mod-table">';
+  html += '<div class="mod-row head"><span></span><span>Module</span><span style="text-align:center">Issues</span><span>Risk</span><span style="text-align:right">Score</span><span style="text-align:center">Severity</span></div>';
+  MODS.slice(0, 12).forEach(mod => {
+    const col = C[mod.sev];
+    const riskW = 100 - mod.score;
+    html += `<div class="mod-row">`;
+    html += `<div class="mod-sev" style="background:${col}"></div>`;
+    html += `<div><span class="mod-name">${mod.name}</span> <span class="mod-role">${mod.role}</span></div>`;
+    html += `<div class="mod-issues" style="color:${col}">${mod.iss}</div>`;
+    html += `<div class="mod-bar-wrap"><div class="mod-bar-fill" style="width:${riskW}%;background:linear-gradient(90deg,${col} 0%,${col}88 100%)"></div></div>`;
+    html += `<div class="mod-score" style="color:${col}">${mod.score}</div>`;
+    html += `<div class="mod-chip" style="background:${CD[mod.sev]};color:${col}">${mod.sev}</div>`;
+    html += `</div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEVERITY × LAYER MATRIX
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  const layers = ['SYS','INP','CAL','DAT','OUT'];
+  const sevs = ['critical','high','medium','clean'];
+  const data = {SYS_critical:3,SYS_high:4,SYS_medium:8,SYS_clean:3,INP_critical:5,INP_high:8,INP_medium:18,INP_clean:11,CAL_critical:18,CAL_high:14,CAL_medium:34,CAL_clean:20,DAT_critical:4,DAT_high:3,DAT_medium:18,DAT_clean:13,OUT_critical:3,OUT_high:2,OUT_medium:14,OUT_clean:11};
+
+  let html = '<div class="matrix">';
+  html += '<div class="matrix-hd"></div>';
+  sevs.forEach(s => html += `<div class="matrix-hd" style="color:${C[s]}">${s}</div>`);
+  layers.forEach(l => {
+    html += `<div class="matrix-hd">${l}</div>`;
+    sevs.forEach(s => {
+      const v = data[l+'_'+s] || 0;
+      const col = C[s];
+      const opacity = Math.min(0.35, v / 35);
+      html += `<div class="matrix-cell" style="background:${col.replace(')',`,${opacity})`).replace('rgb','rgba')}"><div class="matrix-cell-val" style="color:${col}">${v}</div></div>`;
+    });
+  });
+  html += '</div>';
+  document.getElementById('matrix-wrap').innerHTML = html;
+})();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EVIDENCE BOUNDARIES
+// ═══════════════════════════════════════════════════════════════════════════════
+(function() {
+  const yes = ['Formula complexity scoring','Dependency graph analysis','Module classification (DISCO)','Naming convention validation','Cell count estimation','Cross-module reference chains'];
+  const no = ['Runtime performance data','User access patterns','Version history diffs','Actual data volumes'];
+  let html = '<div class="evi-group"><div class="evi-label" style="color:var(--clean)"><span class="evi-dot" style="background:var(--clean)"></span>Supported by evidence</div>';
+  yes.forEach(s => html += `<div class="evi-item">${s}</div>`);
+  html += '</div><div class="evi-group"><div class="evi-label" style="color:var(--high)"><span class="evi-dot" style="background:var(--high)"></span>Not available from blueprint</div>';
+  no.forEach(s => html += `<div class="evi-item" style="color:var(--t3)">${s}</div>`);
+  html += '</div>';
+  document.getElementById('evidence-wrap').innerHTML = html;
+})();
+</script>
+</body>
+</html>
