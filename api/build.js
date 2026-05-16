@@ -185,19 +185,68 @@ Respond with ONLY a valid JSON object (no markdown, no backticks, no explanation
 
 1. Use DISCO naming: SYS (system), DAT (data/import), INP (user input), CAL (calculation), REP (reporting)
 2. Number modules continuing from what exists. Next available numbers: DAT=${nextNums.DAT + 1}, INP=${nextNums.INP + 1}, CAL=${nextNums.CAL + 1}, REP=${nextNums.REP + 1}, SYS=${nextNums.SYS + 1}
-3. Every formula must use Anaplan syntax: IF/THEN/ELSE, LOOKUP, SUM, OFFSET, PREVIOUS, etc.
-4. Guard all divisions: IF denominator <> 0 THEN x / denominator ELSE 0
-5. Use appropriate summary methods: NONE for rates/%, SUM for additive values, NONE for calculated items
-6. INPUT type = user-entered (no formula). CALC type = formula-driven. ITEM type = list-formatted or date.
-7. Specify appliesTo dimensions for every module
-8. Consider connections to existing modules — how does new work integrate?
-9. Build sequence must respect dependencies: Lists → DAT → INP → CAL → REP
-10. Be thorough: include ALL line items needed, not just examples. This is an implementation spec.
-11. Reuse existing lists where possible. Only create new lists if the dimension doesn't exist.`,
+3. INPUT type = user-entered (no formula). CALC type = formula-driven. ITEM type = list-formatted or date.
+4. Specify appliesTo dimensions for every module
+5. Consider connections to existing modules — how does new work integrate?
+6. Build sequence must respect dependencies: Lists → DAT → INP → CAL → REP
+7. Be thorough: include ALL line items needed, not just examples. This is an implementation spec.
+8. Reuse existing lists where possible. Only create new lists if the dimension doesn't exist.
+
+═══ ANAPLAN FORMULA RULES (CRITICAL) ═══
+
+You MUST only use REAL Anaplan functions. Anaplan is NOT Excel. Many common functions DO NOT EXIST in Anaplan.
+
+VALID Anaplan functions and syntax:
+- Arithmetic: +, -, *, /
+- Comparison: =, <>, <, >, <=, >=
+- Logic: IF condition THEN value ELSE value, AND, OR, NOT
+- Text: LEFT, RIGHT, MID, LEN, TRIM, UPPER, LOWER, FIND, SUBSTITUTE, TEXT (converts number to text), CODE, CHAR, VALUE
+- Aggregation: SUM (within a module across dimensions), COLLECT
+- Time: OFFSET(line_item, periods, 0), PREVIOUS(line_item), CUMULATE(line_item), YEARVALUE, MONTHVALUE, CURRENTPERIODSTART, CURRENTPERIODEND, INPERIOD
+- Lookup: line_item[LOOKUP: mapping_line_item], line_item[SELECT: condition]
+- List: ITEM(list), FINDITEM(list, text), PARENT(list), NAME(list_item), ISBLANK()
+- Math: MAX, MIN, ABS, ROUND, POWER, MOD, LOG, EXP, SQRT
+- Guarded division: IF denominator <> 0 THEN x / denominator ELSE 0 (ALWAYS use this pattern)
+- Summary methods: SUM, NONE, ANY, ALL, MIN, MAX, AVERAGE, OPENING PERIOD, CLOSING PERIOD, FORMULA
+
+INVALID — these DO NOT EXIST in Anaplan (never use them):
+- FORMAT() — does not exist. Use TEXT() for number-to-text conversion
+- CONCATENATE() — does not exist. Use & for text joining
+- SUMIF/SUMIFS/COUNTIF — do not exist. Use SUM with SELECT: SUM(value[SELECT: condition])
+- VLOOKUP/HLOOKUP/INDEX/MATCH — do not exist. Use LOOKUP syntax: source[LOOKUP: mapping]
+- IFERROR — does not exist. Guard inputs manually
+- SWITCH/CHOOSE — do not exist. Use nested IF or lookup tables
+- RANK — does not exist
+- String concatenation with numbers: must convert number to TEXT() first, then use &
+- SUM(IF ...) as array formula — does not exist. Use line_item[SELECT: condition] pattern
+
+FORMULA STYLE:
+- Cross-module references: 'Module Name'.Line Item Name (single quotes around module name, period separator)
+- SELECT syntax: Source.'Line Item'[SELECT: List.Boolean Flag = TRUE]
+- LOOKUP syntax: Source.'Line Item'[LOOKUP: Mapping Line Item]
+- Avoid nested IF deeper than 3 levels — use a lookup table instead
+- Max 2 LOOKUPs per formula — create intermediate line items for more`,
     ];
 
     if (modelContext) {
       systemParts.push('', '═══ EXISTING MODEL ═══', modelContext);
+    }
+
+    // Extract real formula examples from existing model for pattern-matching
+    if (existingModules.length) {
+      const formulaExamples = [];
+      for (const m of existingModules) {
+        for (const li of (m.lineItems || [])) {
+          if (li.formula && li.formula.length > 10 && li.formula.length < 200) {
+            formulaExamples.push(`${m.name}.${li.name} = ${li.formula}`);
+            if (formulaExamples.length >= 20) break;
+          }
+        }
+        if (formulaExamples.length >= 20) break;
+      }
+      if (formulaExamples.length) {
+        systemParts.push('', '═══ REAL FORMULA EXAMPLES FROM THIS MODEL (copy this syntax style) ═══', formulaExamples.join('\n'));
+      }
     }
 
     if (FRAMEWORK_KNOWLEDGE) {
