@@ -71,8 +71,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sh)}
 
 /* Progress bars */
-.prog{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden}
+.prog{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;position:relative}
 .prog-f{height:100%;border-radius:2px;transition:width .8s ease}
+.prog.indeterminate .prog-f{width:0!important}
+.prog.indeterminate::after{content:'';position:absolute;top:0;left:0;height:100%;width:30%;background:var(--accent);border-radius:2px;animation:indeterminate-slide 1.4s ease-in-out infinite}
 
 /* Section label (Nova style) */
 .sec-label{font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:14px;padding-bottom:9px;border-bottom:1px solid rgba(28,33,41,.07);margin-top:32px}
@@ -557,8 +559,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 #s-fetch { padding: 32px; max-width: 720px; margin: 0 auto; }
 .fetch-header h1 { margin: 0 0 4px; }
 .fetch-model-name { color: var(--text2, #666); margin: 0 0 24px; }
-.fetch-progress-bar { width: 100%; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+.fetch-progress-bar { width: 100%; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; position:relative; }
 .fetch-progress-fill { height: 100%; background: var(--accent, #175AA6); transition: width 200ms ease; }
+.fetch-progress-bar.indeterminate::after{content:'';position:absolute;top:0;left:0;height:100%;width:30%;background:var(--accent,#175AA6);border-radius:4px;animation:indeterminate-slide 1.4s ease-in-out infinite}
+@keyframes indeterminate-slide{0%{left:-30%;width:30%}50%{left:40%;width:40%}100%{left:100%;width:30%}}
 .fetch-counters { display: flex; justify-content: space-between; margin: 12px 0 4px; font-size: 14px; }
 .fetch-current { color: var(--text2, #666); font-size: 13px; min-height: 1.2em; }
 .fetch-warning { margin-top: 24px; padding: 12px 16px; background: #fff7ed; border-left: 3px solid #f59e0b; border-radius: 4px; }
@@ -859,18 +863,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 
 /* ── Module table: collapsed/expandable ── */
 .mi-mod-table{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-.mi-mod-thead{display:grid;grid-template-columns:28px 1fr 90px 60px 1fr;padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--border);gap:12px}
+.mi-mod-thead{display:grid;grid-template-columns:28px 2fr 90px 50px 3fr;padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--border);gap:12px}
 .mi-mod-thead span{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--text4)}
 .mi-mod-row{border-bottom:1px solid var(--border)}
 .mi-mod-row:last-child{border-bottom:none}
-.mi-mod-summary{display:grid;grid-template-columns:28px 1fr 90px 60px 1fr;padding:12px 20px;align-items:center;gap:12px;cursor:pointer;transition:background .12s;user-select:none}
+.mi-mod-summary{display:grid;grid-template-columns:28px 2fr 90px 50px 3fr;padding:12px 20px;align-items:center;gap:12px;cursor:pointer;transition:background .12s;user-select:none}
 .mi-mod-summary:hover{background:var(--bg2)}
 .mi-mod-row.open .mi-mod-summary{background:var(--bg2)}
 .mi-mod-chevron{width:20px;height:20px;display:flex;align-items:center;justify-content:center;transition:transform .2s}
 .mi-mod-chevron svg{width:14px;height:14px;color:var(--text4)}
 .mi-mod-row.open .mi-mod-chevron{transform:rotate(90deg)}
 .mi-mod-name{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.01em}
-.mi-mod-purpose{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);margin-top:1px}
+.mi-mod-purpose{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px}
 .mi-mod-sev{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:4px;width:fit-content}
 .mi-mod-sev-crit{background:var(--neg-pale);border:1px solid var(--neg-bd)}
 .mi-mod-sev-high{background:var(--gold-pale);border:1px solid var(--gold-bd)}
@@ -903,23 +907,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .mi-cluster-mods{display:flex;flex-wrap:wrap;gap:4px;padding:4px 18px 14px}
 .mi-cluster-mod{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;padding:3px 7px;border-radius:4px;background:var(--bg2);border:1px solid var(--border);color:var(--text2)}
 
-/* ── Remediation table ── */
+/* ── Remediation (collapsible step groups) ── */
 .mi-rem{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-.mi-rem-thead{display:grid;grid-template-columns:28px 200px 60px 1fr 80px;padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--border);gap:12px}
-.mi-rem-thead span{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--text4)}
-.mi-rem-row{display:grid;grid-template-columns:28px 200px 60px 1fr 80px;padding:12px 20px;align-items:center;gap:12px;border-bottom:1px solid var(--border);transition:background .12s}
-.mi-rem-row:last-child{border-bottom:none}
-.mi-rem-row:hover{background:var(--bg2)}
-.mi-rem-step{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:#fff}
+.mi-rem-group{border-bottom:1px solid var(--border)}
+.mi-rem-group:last-child{border-bottom:none}
+.mi-rem-group-head{display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;transition:background .12s;user-select:none}
+.mi-rem-group-head:hover{background:var(--bg2)}
+.mi-rem-group.open .mi-rem-group-head{background:var(--bg2)}
+.mi-rem-step{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
 .mi-rem-step-crit{background:var(--neg)}
 .mi-rem-step-high{background:var(--gold)}
 .mi-rem-step-med{background:var(--accent)}
-.mi-rem-mod-name{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.01em}
-.mi-rem-mod-why{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4}
-.mi-rem-impact{font-size:15px;font-weight:700;letter-spacing:-.02em}
-.mi-rem-action{font-size:12px;color:var(--text2);line-height:1.4}
-.mi-rem-blocked{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4)}
-.mi-rem-blocked strong{color:var(--text2);font-weight:600}
+.mi-rem-group-info{flex:1;min-width:0}
+.mi-rem-group-title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.mi-rem-group-meta{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);margin-top:2px}
+.mi-rem-group-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;padding:3px 8px;border-radius:4px;white-space:nowrap}
+.mi-rem-chevron{width:20px;height:20px;display:flex;align-items:center;justify-content:center;transition:transform .2s;flex-shrink:0}
+.mi-rem-chevron svg{width:14px;height:14px;color:var(--text4)}
+.mi-rem-group.open .mi-rem-chevron{transform:rotate(90deg)}
+.mi-rem-group-body{display:none;padding:0 20px 14px 60px;border-top:1px solid var(--border);background:var(--bg2)}
+.mi-rem-group.open .mi-rem-group-body{display:block}
+.mi-rem-mod-list{display:flex;flex-wrap:wrap;gap:6px;padding-top:12px}
+.mi-rem-mod-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;padding:4px 10px;border-radius:5px;background:var(--surface);border:1px solid var(--border);color:var(--text2)}
 
 /* ── Bottlenecks ── */
 .mi-bottlenecks{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -931,9 +940,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .mi-bn-name{font-size:13px;font-weight:600;color:var(--text)}
 .mi-bn-fanout{font-size:28px;font-weight:700;line-height:1;letter-spacing:-.04em}
 .mi-bn-fanout-label{font-family:'IBM Plex Mono',monospace;font-size:7px;text-transform:uppercase;letter-spacing:.1em;color:var(--text4)}
-.mi-bn-why{font-size:11px;color:var(--text3);line-height:1.45;margin-bottom:8px}
-.mi-bn-deps{display:flex;flex-wrap:wrap;gap:3px}
-.mi-bn-dep{font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:500;padding:2px 6px;border-radius:3px;background:var(--bg2);border:1px solid var(--border);color:var(--text3)}
+.mi-bn-item{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text3);margin-bottom:6px}
+.mi-bn-why{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px}
+.mi-bn-stats{display:flex;gap:12px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text4)}
+.mi-bn-stat-val{font-weight:600;color:var(--text2)}
 
 /* ── Evidence boundaries ── */
 .mi-evidence{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 22px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
@@ -1279,7 +1289,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
           </div>
           <div class="anl-score-right">
             <div class="anl-score-lbl">Health Score</div>
-            <div id="health-score-num">--<span class="anl-score-denom">/100</span></div>
+            <div id="health-score-num">--</div>
           </div>
         </div>
         <div class="anl-chips-row" id="anl-chips-row"></div>
@@ -4401,6 +4411,7 @@ function confirmModelSelection() {
       fetchWarn.style.display = 'none'; fetchWarnList.innerHTML = '';
       schemaPanel.style.display = 'none'; schemaDl.innerHTML = '';
       fillEl.style.width = '0%';
+      fillEl.parentElement.classList.add('indeterminate');
       doneEl.textContent = '0'; totalEl.textContent = '0'; liEl.textContent = '0';
       currentEl.textContent = 'Connecting…';
 
@@ -4464,7 +4475,7 @@ function confirmModelSelection() {
             if (labelEl) labelEl.textContent = evt.label || '';
             const fillEl2 = document.getElementById('fetch-progress-fill') || document.querySelector('#s-fetch .progress-fill');
             const stageMap = { auth: 15, loading: 40, serializing: 75, writing: 90 };
-            if (fillEl2) fillEl2.style.width = (stageMap[evt.stage] || 10) + '%';
+            if (fillEl2) { fillEl2.parentElement.classList.remove('indeterminate'); fillEl2.style.width = (stageMap[evt.stage] || 10) + '%'; }
           } else if (evt.type === 'complete') {
             const fillEl2 = document.getElementById('fetch-progress-fill') || document.querySelector('#s-fetch .progress-fill');
             if (fillEl2) fillEl2.style.width = '100%';
@@ -4563,7 +4574,8 @@ function confirmModelSelection() {
       _anl$('anl-sub').textContent = 'Analysing your model…';
       _anl$('anl-progress-wrap').style.display = '';
       _anl$('anl-progress-bar').style.width = '0%';
-      _anl$('anl-progress-pct').textContent = '0%';
+      _anl$('anl-progress-bar').parentElement.classList.add('indeterminate');
+      _anl$('anl-progress-pct').textContent = '';
       _anl$('anl-stage-label').textContent = 'Starting…';
       _anl$('anl-progress-detail').textContent = ' ';
       // Phase 5: reset new state on each analysis run
@@ -4625,6 +4637,7 @@ function confirmModelSelection() {
         narrative: 'Generating model overview',
       };
       _anl$('anl-stage-label').textContent = labels[stage] || stage;
+      _anl$('anl-progress-bar').parentElement.classList.remove('indeterminate');
       _anl$('anl-progress-bar').style.width = pct + '%';
       _anl$('anl-progress-pct').textContent = pct + '%';
     }
@@ -5303,7 +5316,7 @@ function confirmModelSelection() {
       const hasNumericScore = typeof s.healthScore === 'number';
       const scoreNumEl = _anl$('anl-score-num');
       if (scoreNumEl) scoreNumEl.innerHTML = hasNumericScore
-        ? s.healthScore + '<span>/100</span>'
+        ? s.healthScore + ''
         : _anlEsc(s.posture || s.verdict || 'Review');
       const chip = _anl$('anl-verdict-chip');
       _anl$('anl-verdict-text').textContent = s.verdict;
@@ -5665,30 +5678,38 @@ function confirmModelSelection() {
         html += '</div></div>';
       }
 
-      // ── REMEDIATION ORDER ──
+      // ── REMEDIATION ORDER (collapsible step groups) ──
       if (order.length) {
         html += '<div class="mi-section"><div class="mi-section-head">';
         html += '<span class="mi-section-title">Remediation Order</span>';
         html += '<span class="mi-section-count">' + order.length + ' steps</span>';
         html += '</div>';
-        html += '<div class="mi-rem"><div class="mi-rem-thead"><span>#</span><span>Module</span><span>Impact</span><span>Key Action</span><span>Blocked By</span></div>';
-        let stepNum = 0;
-        for (const step of order.slice(0, 8)) {
+        html += '<div class="mi-rem">';
+        const remChevron = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>';
+        for (let si = 0; si < order.length; si++) {
+          const step = order[si];
           const mods = step.modules || [];
+          const mc = step.criticality || (mods[0] && mods[0].criticality) || 'Medium';
+          const msc = sevClass[mc] || 'med';
+          const isFirst = si === 0;
+          const modCount = mods.length;
+          const parallelTxt = step.parallel ? 'Parallel' : 'Sequential';
+          const blockedTxt = step.step > 1 ? 'After step ' + (step.step - 1) : 'No blockers';
+          html += '<div class="mi-rem-group' + (isFirst ? ' open' : '') + '">';
+          html += '<div class="mi-rem-group-head" onclick="this.parentElement.classList.toggle(\'open\')">';
+          html += '<div class="mi-rem-step mi-rem-step-' + msc + '">' + step.step + '</div>';
+          html += '<div class="mi-rem-group-info">';
+          html += '<div class="mi-rem-group-title">' + modCount + ' module' + (modCount !== 1 ? 's' : '') + '</div>';
+          html += '<div class="mi-rem-group-meta">' + parallelTxt + ' · ' + blockedTxt + '</div>';
+          html += '</div>';
+          html += '<span class="mi-rem-group-badge" style="background:' + (sevColor[mc] || 'var(--text3)') + '22;color:' + (sevColor[mc] || 'var(--text3)') + '">' + e(mc) + '</span>';
+          html += '<div class="mi-rem-chevron">' + remChevron + '</div>';
+          html += '</div>';
+          html += '<div class="mi-rem-group-body"><div class="mi-rem-mod-list">';
           for (const m of mods) {
-            stepNum++;
-            const mc = m.criticality || step.criticality || 'Medium';
-            const msc = sevClass[mc] || 'med';
-            const deps = mods.length;
-            html += '<div class="mi-rem-row">';
-            html += '<div class="mi-rem-step mi-rem-step-' + msc + '">' + stepNum + '</div>';
-            html += '<div><div class="mi-rem-mod-name">' + e(m.moduleName || '') + '</div>';
-            html += '<div class="mi-rem-mod-why">' + deps + ' module' + (deps !== 1 ? 's' : '') + ' in this step</div></div>';
-            html += '<div class="mi-rem-impact" style="color:' + (sevColor[mc] || 'var(--text3)') + '">Step ' + step.step + '</div>';
-            html += '<div class="mi-rem-action">' + (step.parallel ? 'Can fix in parallel' : 'Sequential fix') + '</div>';
-            html += '<div class="mi-rem-blocked">' + (step.step > 1 ? 'Step ' + (step.step - 1) : '—') + '</div>';
-            html += '</div>';
+            html += '<span class="mi-rem-mod-chip">' + e(m.moduleName || '') + '</span>';
           }
+          html += '</div></div></div>';
         }
         html += '</div></div>';
       }
@@ -5700,17 +5721,27 @@ function confirmModelSelection() {
         html += '<span class="mi-section-count">' + bottlenecks.length + ' identified</span>';
         html += '</div><div class="mi-bottlenecks">';
         for (const b of bottlenecks.slice(0, 3)) {
-          const bc = b.fanOut >= 8 ? 'crit' : 'high';
+          const bc = b.fanOut >= 20 ? 'crit' : b.fanOut >= 8 ? 'crit' : 'high';
+          const pctModel = total > 0 ? Math.round(b.fanOut / total * 100) : 0;
+          // Generate contextual explanation
+          let explain = '';
+          if (b.fanOut >= 20) {
+            explain = 'Critical single point of failure. Changes here cascade to ' + b.fanOut + ' downstream modules (' + pctModel + '% of this model). Any error propagates widely before detection.';
+          } else if (b.fanOut >= 8) {
+            explain = 'High-impact hub — ' + b.fanOut + ' modules depend on calculations from this module. Errors here affect ' + pctModel + '% of model outputs.';
+          } else {
+            explain = 'Moderate bottleneck with ' + b.fanOut + ' downstream dependencies. Review for correctness before refactoring dependent modules.';
+          }
           html += '<div class="mi-bn-card mi-bn-card-' + bc + '">';
           html += '<div class="mi-bn-top"><div class="mi-bn-name">' + e(b.moduleName || '') + '</div>';
           html += '<div style="text-align:right"><div class="mi-bn-fanout" style="color:' + (bc === 'crit' ? 'var(--neg)' : 'var(--gold)') + '">' + b.fanOut + '</div>';
           html += '<div class="mi-bn-fanout-label">Fan-out</div></div></div>';
-          html += '<div class="mi-bn-why">' + e(b.itemName || '') + ' &middot; ' + b.fanIn + ' inputs, ' + b.fanOut + ' dependents</div>';
-          html += '<div class="mi-bn-deps">';
-          // We don't have downstream module names from bottleneck data, show what we have
-          html += '<span class="mi-bn-dep">' + b.fanOut + ' downstream</span>';
-          html += '<span class="mi-bn-dep">' + b.fanIn + ' upstream</span>';
-          html += '</div></div>';
+          if (b.itemName) html += '<div class="mi-bn-item">' + e(b.itemName) + '</div>';
+          html += '<div class="mi-bn-why">' + explain + '</div>';
+          html += '<div class="mi-bn-stats"><span><span class="mi-bn-stat-val">' + b.fanOut + '</span> downstream</span>';
+          html += '<span><span class="mi-bn-stat-val">' + b.fanIn + '</span> upstream</span>';
+          html += '<span><span class="mi-bn-stat-val">' + pctModel + '%</span> of model</span></div>';
+          html += '</div>';
         }
         html += '</div></div>';
       }
@@ -5753,7 +5784,7 @@ function confirmModelSelection() {
           const sub = evt.architectureVerdict.replace(/^[^,]+\s*\([^)]+\),?\s*/, '');
           detailEl.textContent = (evt.moduleCount ? evt.moduleCount + ' modules · ' : '') + sub;
         }
-        if (scoreNum && Number.isFinite(evt.healthScore)) scoreNum.innerHTML = String(evt.healthScore) + '<span class="anl-score-denom">/100</span>';
+        if (scoreNum && Number.isFinite(evt.healthScore)) scoreNum.textContent = String(evt.healthScore);
         const confEl = _anl$('health-verdict-confidence');
         if (confEl && evt.assessment) {
           const parts = [];
@@ -6261,7 +6292,7 @@ function confirmModelSelection() {
       if (p.score) {
         const card = document.getElementById('shr-score-card');
         card.hidden = false;
-        document.getElementById('shr-score-num').innerHTML = p.score.healthScore != null ? p.score.healthScore + '<span>/100</span>' : _anlEsc(p.score.posture || p.score.verdict || 'Review');
+        document.getElementById('shr-score-num').innerHTML = p.score.healthScore != null ? String(p.score.healthScore) : _anlEsc(p.score.posture || p.score.verdict || 'Review');
         const shrVerdict = p.score.verdict || '';
         document.getElementById('shr-verdict-text').textContent = shrVerdict || '—';
         document.getElementById('shr-summary').textContent = p.score.summary || '';
