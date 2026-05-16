@@ -343,6 +343,14 @@ export default async function handler(req, res) {
       domain,
     });
 
+    // Emit real-time counters so the fetch screen shows actual numbers
+    sendEvent({
+      type: 'fetch-progress',
+      modulesDone: modules.length,
+      modulesTotal: modules.length,
+      lineItems: allLineItems.length,
+    });
+
     // Group line items by module — try name first, fall back to moduleId
     // Anaplan returns moduleName on the model-level lineItems endpoint; moduleId is the safe fallback
     const lisByModuleName = new Map();

@@ -4465,6 +4465,10 @@ function confirmModelSelection() {
             const fillEl2 = document.getElementById('fetch-progress-fill') || document.querySelector('#s-fetch .progress-fill');
             const stageMap = { auth: 15, loading: 40, serializing: 75, writing: 90 };
             if (fillEl2) { fillEl2.parentElement.classList.remove('indeterminate'); fillEl2.style.width = (stageMap[evt.stage] || 10) + '%'; }
+          } else if (evt.type === 'fetch-progress') {
+            if (doneEl) doneEl.textContent = evt.modulesDone || 0;
+            if (totalEl) totalEl.textContent = evt.modulesTotal || 0;
+            if (liEl) liEl.textContent = evt.lineItems || 0;
           } else if (evt.type === 'complete') {
             const fillEl2 = document.getElementById('fetch-progress-fill') || document.querySelector('#s-fetch .progress-fill');
             if (fillEl2) fillEl2.style.width = '100%';
