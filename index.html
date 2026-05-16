@@ -4617,6 +4617,23 @@ function confirmModelSelection() {
       _anl$('anl-hdr-status').innerHTML = isInfo ? 'Ready' : 'Analysis failed';
     }
 
+    const _stageProgress = {
+      'parsing': 5, 'classifying': 12, 'graph': 22, 'dead-logic': 32,
+      'parsing-formulas': 42, 'building-graph': 52, 'health': 62,
+      'narrating': 75, 'ai-intelligence': 82,
+    };
+    function _anlOnStage(evt) {
+      const stageEl = _anl$('anl-stage-label');
+      if (stageEl) stageEl.textContent = evt.label || '';
+      const pct = _stageProgress[evt.stage];
+      if (pct != null) {
+        const bar = _anl$('anl-progress-bar');
+        bar.parentElement.classList.remove('indeterminate');
+        bar.style.width = pct + '%';
+        _anl$('anl-progress-pct').textContent = pct + '%';
+      }
+    }
+
     function _anlOnProgress(stage, pct) {
       const labels = {
         fetching: 'Fetching blueprint',
@@ -5505,9 +5522,15 @@ function confirmModelSelection() {
       }
       aiHtml += '</div>';
       detail.insertAdjacentHTML('beforeend', aiHtml);
-      // Update stage label with progress
+      // Update progress bar as AI insights stream in
       const stageEl = _anl$('anl-stage-label');
-      if (stageEl && evt.total) stageEl.textContent = 'AI insight ' + (evt.index + 1) + '/' + evt.total + ': ' + (evt.moduleName || '');
+      if (stageEl && evt.total) {
+        stageEl.textContent = 'AI insight ' + (evt.index + 1) + '/' + evt.total + ': ' + (evt.moduleName || '');
+        const aiPct = 82 + Math.round((evt.index + 1) / evt.total * 15); // 82% → 97%
+        const bar = _anl$('anl-progress-bar');
+        if (bar) bar.style.width = aiPct + '%';
+        _anl$('anl-progress-pct').textContent = aiPct + '%';
+      }
     }
 
     function _anlOnModelIntelligence(evt) {
@@ -6171,7 +6194,7 @@ function confirmModelSelection() {
             try { evt = JSON.parse(payload); } catch { continue; }
             try {
               switch (evt.type) {
-                case 'stage': { const stageEl = _anl$('anl-stage-label'); if (stageEl) stageEl.textContent = evt.label || ''; break; }
+                case 'stage': _anlOnStage(evt); break;
                 case 'model-comprehension': _anlOnModelComprehension(evt); break;
                 case 'model-comprehension-enriched': _anlOnModelComprehensionEnriched(evt); break;
                 case 'health-workstreams': _anlOnHealthWorkstreams(evt); break;
@@ -6400,14 +6423,8 @@ function confirmModelSelection() {
           return;
         }
       } catch (e) {}
-      // v3.0 returning-user path: if model state is loaded, go straight to analysis
-      if (!new URLSearchParams(location.search).has('id') && localStorage.getItem('meridian.stateUrl')) {
-        go('s-analysis');
-        // Defer slightly so DOM is fully ready before SSE streaming starts
-        setTimeout(runAnalysis, 0);
-      } else {
-        go('s-intro');
-      }
+      // Always start at intro/connect screen on refresh — user must reconnect
+      go('s-intro');
     })();
 
     // (s-shared go() override is now merged into _installGoOverrides above)
