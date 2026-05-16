@@ -935,13 +935,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 @keyframes miFadeIn{from{opacity:0}to{opacity:1}}
 
 /* ── AI Insight blocks (injected per-module after SSE) ── */
-.mi-ai-insight{margin-top:10px;padding:10px 12px;border-left:2px solid var(--accent);background:rgba(99,102,241,0.04);border-radius:0 6px 6px 0;animation:miFadeIn .3s ease}
-.mi-ai-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);display:flex;align-items:center;gap:5px;margin-bottom:6px}
-.mi-ai-badge svg{opacity:.7}
-.mi-ai-text{font-size:13px;color:var(--text);line-height:1.55;margin-bottom:6px}
-.mi-ai-rec{font-size:12px;color:var(--text2);line-height:1.5}
-.mi-ai-rec-label{font-weight:600;color:var(--text)}
-.mi-ai-risk{font-size:11px;color:var(--text3);line-height:1.5;margin-top:4px;font-style:italic}
+.mi-ai-insight{margin-top:14px;padding:16px 20px 18px;border-left:3px solid var(--accent);background:linear-gradient(135deg,rgba(23,90,166,0.03) 0%,rgba(23,90,166,0.008) 100%);border-radius:0 8px 8px 0;animation:miFadeIn .3s ease}
+.mi-ai-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);display:flex;align-items:center;gap:6px;margin-bottom:10px;opacity:.8}
+.mi-ai-badge svg{opacity:.55;width:11px;height:11px}
+.mi-ai-text{font-size:13px;color:var(--text);line-height:1.65;margin-bottom:10px;font-weight:400}
+.mi-ai-rec{font-size:12.5px;color:var(--text2);line-height:1.6;padding:10px 14px;background:rgba(23,90,166,0.04);border-radius:6px;margin-bottom:8px}
+.mi-ai-rec-label{font-weight:700;color:var(--text);margin-right:2px}
+.mi-ai-risk{font-size:11.5px;color:var(--text3);line-height:1.6;margin-top:2px;font-style:italic;padding-left:1px}
 
 .anl-seam-label{font-weight:600;color:var(--text);margin-right:4px}
 
@@ -6024,7 +6024,12 @@ function confirmModelSelection() {
 
     function _anlOnComplete(c) {
       _anl$('anl-error').hidden = true; // clear any stale error banner
-      _anl$('anl-progress-wrap').style.display = 'none';
+      // Snap bar to 100% briefly before hiding
+      const _bar = _anl$('anl-progress-bar');
+      if (_bar) _bar.style.width = '100%';
+      _anl$('anl-progress-pct').textContent = '100%';
+      _anl$('anl-stage-label').textContent = 'Complete';
+      setTimeout(function() { _anl$('anl-progress-wrap').style.display = 'none'; }, 600);
       _anl$('anl-hdr-status').innerHTML = 'Analysis complete';
       // Subtitle: prefer module intelligence count, fall back to suggestionCount
       const mi = _anlState.modelIntelligence;
