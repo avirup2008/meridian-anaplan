@@ -1013,36 +1013,39 @@ Rules:
         prefixGroups.get(prefix).push(mod);
       }
 
-      // Build compact representation per group
+      // Build compact representation per group (cap sample size for large groups)
       const groupDescriptions = [];
       for (const [prefix, mods] of prefixGroups) {
-        const modSummaries = mods.slice(0, 10).map(m => {
-          const calcItems = m.lineItems.filter(li => li.hasFormula).slice(0, 5);
-          const inputItems = m.lineItems.filter(li => li.isInput).slice(0, 3);
+        const sampleSize = prefix === 'OTHER' ? 5 : 8;
+        const modSummaries = mods.slice(0, sampleSize).map(m => {
+          const calcItems = m.lineItems.filter(li => li.hasFormula).slice(0, 3);
+          const inputItems = m.lineItems.filter(li => li.isInput).slice(0, 2);
           let desc = `  ${m.name} (${m.lineItemCount} items)`;
           if (inputItems.length) desc += `\n    Inputs: ${inputItems.map(li => li.name).join(', ')}`;
-          if (calcItems.length) desc += `\n    Key calcs: ${calcItems.map(li => `${li.name} = ${li.formula.slice(0, 80)}`).join('\n    ')}`;
+          if (calcItems.length) desc += `\n    Key calcs: ${calcItems.map(li => `${li.name} = ${li.formula.slice(0, 60)}`).join('\n    ')}`;
           return desc;
         }).join('\n');
-        groupDescriptions.push(`[${prefix}] ${mods.length} modules:\n${modSummaries}`);
+        const extra = mods.length > sampleSize ? ` (showing ${sampleSize} of ${mods.length})` : '';
+        groupDescriptions.push(`[${prefix}] ${mods.length} modules${extra}:\n${modSummaries}`);
       }
 
-      // Dependencies between groups
-      const groupDeps = [];
+      // Dependencies between groups (O(n) lookup via Map)
+      const nameToPrefix = new Map(normalized.modules.map(m => [m.name, m.prefix || 'OTHER']));
+      const groupDepSet = new Set();
       for (const mod of normalized.modules) {
+        const srcPrefix = mod.prefix || 'OTHER';
         for (const li of mod.lineItems) {
           if (!li.formula) continue;
           const refs = li.formula.match(/'[^']+'/g) || [];
           for (const ref of refs) {
-            const refName = ref.slice(1, -1);
-            const target = normalized.modules.find(m => m.name === refName);
-            if (target && target.prefix !== mod.prefix) {
-              groupDeps.push(`${mod.prefix} → ${target.prefix} (via ${mod.name}.${li.name})`);
+            const tgtPrefix = nameToPrefix.get(ref.slice(1, -1));
+            if (tgtPrefix && tgtPrefix !== srcPrefix) {
+              groupDepSet.add(`${srcPrefix} → ${tgtPrefix}`);
             }
           }
         }
       }
-      const uniqueDeps = [...new Set(groupDeps)].slice(0, 20);
+      const uniqueDeps = [...groupDepSet].slice(0, 20);
 
       const knowledgePrompt = `You are an Anaplan solution architect documenting a ${domain} model with ${normalized.modules.length} modules.
 
