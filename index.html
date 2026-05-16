@@ -980,8 +980,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 @keyframes chatBounce{from{opacity:.3;transform:translateY(0)}to{opacity:1;transform:translateY(-3px)}}
 
 /* ─── BUILD TAB ──────────────────────────────────────────────── */
+#s-analysis .anl-shell.shell-full{max-width:100%;padding-left:32px;padding-right:32px}
 #dash-panel-build{padding:0!important}
-#dash-panel-build .build-container{max-width:none;margin:0 -32px;width:calc(100% + 64px)}
+#dash-panel-build .build-container{max-width:none;width:100%}
 .build-container{display:grid;grid-template-columns:1fr 1.4fr;height:calc(100vh - 160px);min-height:500px;background:var(--surface)}
 .build-left{display:flex;flex-direction:column;border-right:1px solid var(--rule);overflow:hidden}
 .build-left-header{padding:20px 22px 14px}
@@ -4902,6 +4903,9 @@ function confirmModelSelection() {
       if (tabBtn) tabBtn.classList.add('on');
       activeTab = name;
       if (incoming && noteScrollPos[name]) incoming.scrollTop = noteScrollPos[name];
+      /* Build tab needs full viewport width — toggle shell constraint */
+      const shell = document.querySelector('#s-analysis .anl-shell');
+      if (shell) shell.classList.toggle('shell-full', name === 'build');
     }
 
     // Alias used by the fetch complete handler (D-09) so the SSE handler can
