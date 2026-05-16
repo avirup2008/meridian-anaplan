@@ -103,6 +103,73 @@ function getNextNumbers(modules) {
   return maxNums;
 }
 
+// ─── Hard constraint: validate formulas against real Anaplan function whitelist ───
+const VALID_FUNCTIONS = new Set([
+  // Logic
+  'IF', 'THEN', 'ELSE', 'AND', 'OR', 'NOT',
+  // Aggregation
+  'SUM', 'COLLECT', 'ALL', 'ANY',
+  // Math
+  'ABS', 'MAX', 'MIN', 'ROUND', 'POWER', 'MOD', 'LOG', 'EXP', 'SQRT', 'CEILING', 'INT',
+  // Text
+  'LEFT', 'RIGHT', 'MID', 'LEN', 'TRIM', 'UPPER', 'LOWER', 'FIND', 'SUBSTITUTE', 'TEXT', 'CODE', 'CHAR', 'VALUE',
+  // Time
+  'OFFSET', 'PREVIOUS', 'CUMULATE', 'YEARVALUE', 'MONTHVALUE', 'DAYVALUE',
+  'CURRENTPERIODSTART', 'CURRENTPERIODEND', 'CURRENTPERIODLENGTH',
+  'INPERIOD', 'HALFYEARVALUE', 'QUARTERVALUE', 'WEEKVALUE',
+  'FIRSTNONBLANK', 'LASTNONBLANK', 'TEXTTODATE',
+  // Lookup / list
+  'LOOKUP', 'SELECT', 'ITEM', 'FINDITEM', 'PARENT', 'NAME', 'ISBLANK', 'ISNOTBLANK',
+  // Boolean
+  'TRUE', 'FALSE',
+  // Anaplan specific
+  'RANK', 'PROFILE', 'MAKELINK', 'ISFIRSTOCCURRENCE', 'ISANCESTOR',
+  'POST', 'MOVINGSUM', 'MOVINGAVERAGE',
+]);
+
+// Known invalid functions that LLMs hallucinate
+const INVALID_FUNCTIONS = new Set([
+  'FORMAT', 'CONCATENATE', 'CONCAT', 'SUMIF', 'SUMIFS', 'COUNTIF', 'COUNTIFS',
+  'AVERAGEIF', 'AVERAGEIFS', 'VLOOKUP', 'HLOOKUP', 'INDEX', 'MATCH',
+  'IFERROR', 'IFNA', 'SWITCH', 'CHOOSE', 'INDIRECT', 'ADDRESS',
+  'COUNTA', 'COUNTBLANK', 'LARGE', 'SMALL', 'PERCENTILE',
+  'SUMPRODUCT', 'DATEDIF', 'EOMONTH', 'NETWORKDAYS', 'DATEVALUE',
+  'NUMBERVALUE', 'PROPER', 'REPT', 'EXACT', 'SEARCH', 'REPLACE',
+  'CLEAN', 'UNICHAR', 'UNICODE', 'DOLLAR', 'FIXED',
+  'CEILING.MATH', 'FLOOR', 'FLOOR.MATH', 'TRUNC',
+  'ARRAYFORMULA', 'FILTER', 'SORT', 'UNIQUE', 'TRANSPOSE',
+  'LAMBDA', 'MAP', 'REDUCE', 'BYROW', 'BYCOL', 'LET',
+]);
+
+function validateFormulas(spec) {
+  const warnings = [];
+  if (!spec.modules) return { spec, warnings };
+
+  for (const mod of spec.modules) {
+    for (const li of (mod.lineItems || [])) {
+      if (!li.formula || li.type !== 'CALC') continue;
+
+      // Extract function-like tokens: WORD(
+      const funcCalls = li.formula.match(/\b([A-Z_][A-Z_0-9]*)\s*\(/gi) || [];
+      for (const call of funcCalls) {
+        const funcName = call.replace(/\s*\($/, '').toUpperCase();
+        if (INVALID_FUNCTIONS.has(funcName)) {
+          warnings.push({
+            module: mod.name,
+            lineItem: li.name,
+            issue: `Invalid function: ${funcName}() does not exist in Anaplan`,
+            formula: li.formula,
+          });
+          // Mark the formula as needing review
+          li.formula = `⚠ REVIEW: ${li.formula} [${funcName} is not a valid Anaplan function]`;
+        }
+      }
+    }
+  }
+
+  return { spec, warnings };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -282,17 +349,23 @@ FORMULA STYLE:
       }
     }
 
-    // Parse the final JSON and send structured result
+    // Parse the final JSON, validate formulas, send structured result
     try {
-      // Strip any markdown backticks if model included them
       let jsonText = fullText.trim();
       if (jsonText.startsWith('```')) {
         jsonText = jsonText.replace(/^```\w*\n?/, '').replace(/\n?```$/, '');
       }
-      const spec = JSON.parse(jsonText);
+      const rawSpec = JSON.parse(jsonText);
+
+      // Hard constraint: validate all formulas against Anaplan function whitelist
+      const { spec, warnings } = validateFormulas(rawSpec);
+
+      if (warnings.length) {
+        send({ type: 'formula-warnings', warnings });
+      }
+
       send({ type: 'spec', data: spec });
     } catch (e) {
-      // If JSON parse fails, send raw text as fallback
       send({ type: 'spec-raw', text: fullText });
     }
 

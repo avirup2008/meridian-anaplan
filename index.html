@@ -5246,6 +5246,9 @@ function confirmModelSelection() {
                 output.innerHTML = '<div class="build-streaming"><div class="build-streaming-dot"></div><span>' + escapeHtml(evt.text) + '</span></div>';
               } else if (evt.type === 'delta') {
                 fullText += evt.text;
+              } else if (evt.type === 'formula-warnings') {
+                const wc = (evt.warnings || []).length;
+                appendBuildMsg('ai', wc + ' formula warning' + (wc === 1 ? '' : 's') + ' — some formulas use invalid Anaplan functions and are marked for review.');
               } else if (evt.type === 'spec') {
                 renderBuildSpec(evt.data);
                 appendBuildMsg('ai', 'Build specification generated — ' + (evt.data.modules || []).length + ' modules, ' + (evt.data.modules || []).reduce((s, m) => s + (m.lineItems || []).length, 0) + ' line items.');
