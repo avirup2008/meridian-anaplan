@@ -1316,7 +1316,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 /* Hide old header when inside app-shell */
 
 /* Override anl-shell width for sidebar layout */
-#s-analysis .anl-shell { max-width: 860px; padding: 28px 32px 80px; }
+#s-analysis .anl-shell { max-width: 1120px; margin: 0 auto; padding: 28px 40px 80px; }
 
 /* ─── RESPONSIVE ─────────────────────────────────────── */
 @media (max-width: 900px) {
