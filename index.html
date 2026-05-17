@@ -199,18 +199,6 @@
 <!-- ════════ S4: ANALYSIS ════════ -->
 <!-- SECTION: ANALYSIS -->
 <div id="s-analysis" class="screen">
-  <!-- Old header kept hidden for JS compatibility -->
-  <div class="hdr" style="display:none"><div class="hdr-inner" style="position:relative">
-    <div class="hdr-logo" onclick="startOver()"><div class="hdr-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 3 L12 14" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.8" fill="#BF801E"/></svg></div>Meridian<em>.</em></div>
-    <div class="anl-hdr-center">
-      <div class="anl-hdr-model" id="anl-hdr-model-legacy">Analysing model…</div>
-      <div class="anl-hdr-meta" id="anl-hdr-meta-legacy"></div>
-    </div>
-    <div class="hdr-sp"></div>
-    <div class="hdr-status" id="anl-hdr-status" style="display:none"><span class="spinner"></span>Preparing analysis…</div>
-    <button class="btn btn-ghost btn-sm" onclick="startOver()">← New model</button>
-  </div></div>
-
   <div class="app-shell">
     <!-- Sidebar rail -->
     <div class="app-sidebar">
@@ -243,6 +231,7 @@
         </div>
         <div class="app-spacer"></div>
         <span class="app-meta" id="anl-hdr-meta"></span>
+        <div class="hdr-status" id="anl-hdr-status" style="display:none"><span class="spinner"></span>Preparing analysis…</div>
       </div>
 
       <!-- Content (existing shell) -->
@@ -361,6 +350,9 @@
 
       <!-- Module Intelligence Cards: populated by _anlOnModelIntelligence -->
       <div id="intelligence-slot" hidden></div>
+
+      <!-- Suggestions / Workstream list: populated by renderSuggestionsList -->
+      <div id="dash-suggestions-list"></div>
 
       <!-- Visualization Diagrams — added to assessment panel -->
       <div id="viz-diagrams-section" hidden>
@@ -504,170 +496,7 @@
   </div><!-- /app-shell -->
 </div><!-- /s-analysis -->
 
-<!-- ════════ S5: GENERATING ════════ -->
-<div id="s-generating" class="screen">
-  <div class="hdr"><div class="hdr-inner">
-    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 3 L12 14" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.8" fill="#BF801E"/></svg></div>Meridian<em>.</em></div>
-    <div class="hdr-sp"></div>
-    <div class="hdr-status" id="gen-hdr-status"><span class="spinner"></span>Claude generating narratives...</div>
-  </div></div>
-  <div class="gen-layout">
-    <div class="gen-sb">
-      <div class="gen-sb-head">
-        <h3>Documentation progress</h3>
-        <div class="prog" style="height:4px;margin-bottom:5px;"><div class="prog-f" id="gen-prog-bar" style="width:0%;"></div></div>
-        <div style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text3);" id="gen-prog-label">0 of 0 modules</div>
-      </div>
-      <div class="gen-mod-list" id="gen-mod-list"></div>
-      <div class="gen-sb-foot">
-        <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Intelligence report is ready. Documentation narratives are streaming module by module.</div>
-        <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;" onclick="go('s-hub')">View reports now →</button>
-      </div>
-    </div>
-    <div class="gen-main" id="gen-main"></div>
-  </div>
-</div>
-
-<!-- ════════ S6: REPORT HUB ════════ -->
-<div id="s-hub" class="screen">
-  <div class="hdr"><div class="hdr-inner">
-    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 3 L12 14" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.8" fill="#BF801E"/></svg></div>Meridian<em>.</em></div>
-    <div class="hdr-sp"></div>
-    <button class="btn btn-ghost btn-sm" onclick="go('s-upload')">← New analysis</button>
-  </div></div>
-  <div class="hub-shell">
-    <div class="step-label">Analysis complete</div>
-    <h1 class="hub-h1">Choose your report</h1>
-    <p class="hub-sub">Three reports are ready. The review workbench surfaces evidence-backed workstreams. Model Documentation covers module structure and data flows. User Guide explains the planning process for business users.</p>
-    <div class="hub-kpis" id="hub-kpis">
-      <div class="hub-kpi"><div class="hub-kpi-val" id="hk-mii" style="color:var(--neg);">Review</div><div class="hub-kpi-lbl">Posture</div><div class="hub-kpi-sub" id="hk-band">Evidence-backed</div></div>
-      <div class="hub-kpi"><div class="hub-kpi-val" id="hk-mods">5</div><div class="hub-kpi-lbl">Modules</div><div class="hub-kpi-sub" id="hk-li">102 line items</div></div>
-      <div class="hub-kpi"><div class="hub-kpi-val" id="hk-crit" style="color:var(--neg);">4</div><div class="hub-kpi-lbl">Workstreams</div><div class="hub-kpi-sub" id="hk-warn">Evidence groups</div></div>
-      <div class="hub-kpi"><div class="hub-kpi-val" id="hk-effort" style="color:var(--pos);">✓</div><div class="hub-kpi-lbl">Review agenda</div><div class="hub-kpi-sub">Owner validated</div></div>
-    </div>
-    <div class="hub-cards">
-      <div class="hub-card intel" onclick="go('s-intel')">
-        <div class="hub-card-icon">⚡</div>
-        <div class="hub-card-title">Review Workbench</div>
-        <div class="hub-card-desc">Evidence-backed workstreams with module and line-item anchors, formula context, and regression checks.</div>
-        <div class="hub-card-features">
-          <div class="hub-card-feat">No synthetic 0-100 score</div>
-          <div class="hub-card-feat" id="hc-crit-feat">Focused review workstreams</div>
-          <div class="hub-card-feat">Formula complexity &amp; IF depth analysis</div>
-          <div class="hub-card-feat">Module architecture map with inferred DISCO types</div>
-          <div class="hub-card-feat">4-phase prioritised refactoring roadmap</div>
-        </div>
-        <div class="hub-card-cta">Open Intelligence Report →</div>
-      </div>
-      <div class="hub-card docs" onclick="go('s-docs')">
-        <div class="hub-card-icon">📖</div>
-        <div class="hub-card-title">Model Documentation</div>
-        <div class="hub-card-desc">A complete model user guide — module narratives, line item registers, and visual diagrams of data flow, module dependencies, and planning workflow.</div>
-        <div class="hub-card-features">
-          <div class="hub-card-feat">AI-generated module narratives</div>
-          <div class="hub-card-feat">Data flow diagram (hub and spoke)</div>
-          <div class="hub-card-feat">Planning workflow end-to-end</div>
-          <div class="hub-card-feat">Module dependency map</div>
-          <div class="hub-card-feat">Full line item catalogue per module</div>
-        </div>
-        <div class="hub-card-cta">Open Model Documentation →</div>
-      </div>
-    </div>
-    <div class="hub-cards-row2">
-      <div class="hub-card guide" onclick="openUserGuide()" style="display:flex;align-items:flex-start;gap:20px;padding:22px 26px;">
-        <div class="hub-card-icon" style="width:46px;height:46px;min-width:46px;">📘</div>
-        <div style="flex:1">
-          <div class="hub-card-title">User Guide</div>
-          <div class="hub-card-desc" style="margin-bottom:12px;">AI-generated operational reference explaining what this model does, who does what, and how the planning cycle works — written for business users, not builders.</div>
-          <div class="hub-card-features" id="hub-guide-features">
-            <div class="hub-card-feat">S&amp;OP workflow stages inferred from model structure</div>
-            <div class="hub-card-feat">User roles and responsibilities</div>
-            <div class="hub-card-feat">Data integration overview</div>
-          </div>
-          <div class="hub-card-cta" id="hub-guide-cta" style="margin-top:14px;">Generate User Guide →</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ════════ S7: INTELLIGENCE REPORT ════════ -->
-<div id="s-intel" class="screen">
-  <div class="rpt-nav">
-    <div class="rpt-nav-inner">
-      <button class="rnt" onclick="go('s-hub')">&#8592; Hub</button>
-      <div class="rnt-d"></div>
-      <button class="rnt on" onclick="go('s-intel')">Intelligence Report</button>
-      <button class="rnt" onclick="go('s-guide')">User Guide</button>
-      <div style="flex:1"></div>
-      <button class="rnt-ghost" onclick="openDl()">&#8595; Download</button>
-    </div>
-  </div>
-  <div class="report-mast intel">
-    <div class="report-mast-inner">
-      <div>
-        <div class="report-eyeon">Meridian · Intelligence Report</div>
-        <div class="report-title" id="rpt-title">Model Analysis<br><span style="font-weight:300;font-size:20px;">Anaplan Way Compliance &amp; Violation Analysis</span></div>
-        <div class="report-meta" id="rpt-meta">Generated by Meridian · Rule engine v2.0 · 17 rules</div>
-      </div>
-      <div class="rpt-ring">
-        <svg width="106" height="106" viewBox="0 0 106 106"><circle cx="53" cy="53" r="42" stroke="rgba(255,255,255,0.14)" stroke-width="6"/><circle id="rpt-arc" cx="53" cy="53" r="42" stroke="#B82E2E" stroke-width="6" stroke-linecap="round" stroke-dasharray="100 264" transform="rotate(-90 53 53)"/></svg>
-        <div class="rpt-ring-ctr"><div class="rpt-ring-num" id="rpt-ring-num">38</div><div class="rpt-ring-den">/100</div></div>
-      </div>
-    </div>
-  </div>
-  <div class="report-body" id="intel-body">
-    <!-- Populated by JS -->
-  </div>
-  <div class="act-bar"><div class="act-bar-inner">
-    <button class="btn-act btn-act-ghost" onclick="go('s-hub')">&#8592; Hub</button>
-    <button class="btn-act btn-act-ghost" onclick="exportNotesCsv()">&#128221; Notes CSV</button>
-    <button class="btn-act btn-act-ghost" onclick="exportPDF()">&#128196; Export PDF</button>
-    <button class="btn-act btn-act-pri" onclick="openDl()">&#8595; Download all</button>
-  </div></div>
-</div>
-
-<!-- ════════ S8: DOCUMENTATION ════════ -->
-<div id="s-docs" class="screen">
-  <div class="report-mast docs">
-    <div class="report-mast-inner">
-      <div>
-        <div class="report-eyeon">Meridian · Model Documentation</div>
-        <div class="report-title" id="docs-title">Model Documentation<br><span style="font-weight:300;font-size:20px;">Complete User Guide &amp; Technical Reference</span></div>
-        <div class="report-meta" id="docs-meta">Generated by Meridian · Claude Haiku</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;">
-        <div style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px;">Modules documented</div>
-        <div style="font-size:44px;font-weight:700;color:#fff;font-family:'IBM Plex Mono',monospace;letter-spacing:-.04em;line-height:1;" id="docs-mod-count">5</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.38);font-family:'IBM Plex Mono',monospace;margin-top:3px;" id="docs-meta-sub">102 line items · 97 formulas</div>
-      </div>
-    </div>
-  </div>
-  <div class="report-body" id="docs-body">
-    <!-- Populated by JS -->
-  </div>
-  <div class="act-bar"><div class="act-bar-inner">
-    <button class="btn-act btn-act-ghost" onclick="go('s-hub')">← Report hub</button>
-    <button class="btn-act btn-act-ghost" onclick="exportPDF()">📄 Export PDF</button>
-    <button class="btn-act btn-act-pri" onclick="exportWord()">📝 Export Word</button>
-  </div></div>
-</div>
-
-
-<!-- ════════ S10: USER GUIDE ════════ -->
-<div id="s-guide" class="screen">
-  <div class="rpt-nav">
-    <div class="rpt-nav-inner">
-      <button class="rnt" onclick="go('s-hub')">&#8592; Hub</button>
-      <div class="rnt-d"></div>
-      <button class="rnt" onclick="go('s-intel')">Intelligence Report</button>
-      <button class="rnt on" onclick="go('s-guide')">User Guide</button>
-      <div style="flex:1"></div>
-      <button class="rnt-ghost" onclick="exportGuidePDF()">&#8595; Export PDF</button>
-    </div>
-  </div>
-  <div id="guide-content"><!-- populated by buildUserGuide() --></div>
-</div>
+<!-- Dead screens s-generating, s-hub, s-intel, s-docs, s-guide removed — unreachable after V3 redesign -->
 
 <!-- ════════ S9: SETTINGS ════════ -->
 <div id="s-settings" class="screen">
@@ -956,7 +785,7 @@
 // ═══════════════════════════════════════════════════════════════
 // SIDEBAR + MODEL DROPDOWN (v3 shell)
 // ═══════════════════════════════════════════════════════════════
-document.querySelectorAll('.sb-item').forEach(function(item) {
+document.querySelectorAll('.sb-item[onclick]').forEach(function(item) {
   item.addEventListener('click', function() {
     document.querySelectorAll('.sb-item').forEach(function(i) { i.classList.remove('active'); });
     item.classList.add('active');
@@ -964,7 +793,7 @@ document.querySelectorAll('.sb-item').forEach(function(item) {
 });
 (function() {
   var dd = document.getElementById('model-dropdown');
-  if (dd) dd.addEventListener('click', function() { dd.classList.toggle('open'); });
+  if (dd) dd.addEventListener('click', function() { go('s-picker'); });
 })();
 
 // ═══════════════════════════════════════════════════════════════
@@ -3745,6 +3574,7 @@ function confirmModelSelection() {
       _anl$('anl-warning').hidden = true;
       _anl$('anl-score-card').hidden = true;
       _anl$('anl-hdr-status').innerHTML = '<span class="spinner"></span>Preparing analysis…';
+      _anl$('anl-hdr-status').style.display = '';
       _anl$('anl-sub').textContent = 'Analysing your model…';
       _anl$('anl-progress-wrap').style.display = '';
       _anl$('anl-progress-bar').style.width = '0%';
@@ -4741,7 +4571,7 @@ function confirmModelSelection() {
         + '<div class="intel-kpi"><div class="intel-kpi-val">' + (Array.isArray(intel.regressionChecklist) ? intel.regressionChecklist.length : 0) + '</div><div class="intel-kpi-lbl">Regression checks</div></div>'
         + '</div>'
         + (workstreams.length ? '<ul class="intel-list"><li><strong>' + _anlEsc(workstreams[0].title || '') + '</strong><span class="intel-meta">' + _anlEsc((workstreams[0].priority || '') + ' priority · ' + (workstreams[0].evidenceCount || 0) + ' evidence items') + '</span></li></ul>' : '')
-        + '<button class="btn btn-ghost btn-sm" type="button" onclick="switchTab(&quot;intelligence&quot;)">Open evidence view</button>';
+        + '<button class="btn btn-ghost btn-sm" type="button" onclick="switchTab(&quot;assessment&quot;)">Open evidence view</button>';
     }
 
     // ════ Phase 4b: Visualization Diagrams (SVG) ════
