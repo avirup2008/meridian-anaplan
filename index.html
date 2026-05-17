@@ -16,87 +16,118 @@
 
 <!-- ════════ DEV MOCK NAV STRIP ════════ -->
 <!-- ════════ S1: INTRO ════════ -->
-<div id="s-intro" class="screen active">
-  <nav class="intro-nav">
-    <div class="intro-nav-brand">
-      <div class="intro-nav-icon">
-        <svg viewBox="0 0 20 20" fill="none">
-          <circle cx="10" cy="10" r="7.5" stroke="#FAF8F0" stroke-width="1.1"/>
-          <line x1="10" y1="2.5" x2="10" y2="17.5" stroke="#7EC8FA" stroke-width="1.4" stroke-linecap="round"/>
-          <line x1="2.5" y1="10" x2="17.5" y2="10" stroke="#FAF8F0" stroke-width=".8" stroke-linecap="round" opacity=".35"/>
-          <circle cx="10" cy="10" r="1.5" fill="#7EC8FA"/>
-          <circle cx="10" cy="4.5" r=".85" fill="#FAF8F0" opacity=".65"/>
-          <circle cx="10" cy="15.5" r=".85" fill="#FAF8F0" opacity=".65"/>
-        </svg>
-      </div>
-      <div>
-        <div class="intro-nav-name">Meridian<em>.</em></div>
-        <div class="intro-nav-by">EyeOn · Planning Intelligence</div>
-      </div>
+<div id="s-intro" class="screen active" style="min-height:100vh;display:flex;flex-direction:column;background:var(--bg);">
+  <!-- Nav -->
+  <div class="intro-nav-v3">
+    <div class="logo-mark logo-mark-lg">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#175AA6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M12 3 L12 14" stroke="#175AA6" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="12" cy="17" r="1.8" fill="#BF801E"/>
+      </svg>
     </div>
-  </nav>
+    <div class="intro-brand">
+      <div class="intro-brand-name">Meridian<span class="accent">.</span></div>
+      <div class="intro-brand-by">by Avirup Sen</div>
+    </div>
+  </div>
 
-  <div class="intro-split">
-    <!-- Hero preview -->
-    <div class="intro-hero">
-      <div class="hero-stack">
-        <div class="hero-score-card">
-          <div class="hero-score-lbl" id="hero-mii-lbl">Evidence Review</div>
-          <div class="hero-gauge">
-            <svg width="118" height="118" viewBox="0 0 118 118" fill="none" id="hero-svg">
-              <circle cx="59" cy="59" r="46" stroke="#EBE8E0" stroke-width="7"/>
-              <circle id="hero-arc" cx="59" cy="59" r="46" stroke="#B82E2E" stroke-width="7"
-                stroke-linecap="round" stroke-dasharray="110 289" transform="rotate(-90 59 59)"/>
-              <text id="hero-score-txt" x="59" y="54" text-anchor="middle" font-size="18" font-weight="700" fill="#1C2129" font-family="IBM Plex Mono,monospace">REVIEW</text>
-              <text x="59" y="72" text-anchor="middle" font-size="9" fill="#9EA1AB" font-family="IBM Plex Mono,monospace">evidence-backed</text>
+  <!-- Centered hero -->
+  <div class="intro-center">
+    <h1 class="intro-h1-v3">Your Anaplan model,<br><em>fully understood.</em></h1>
+    <p class="intro-sub-v3">Meridian connects to your Anaplan workspace, diagnoses every formula and dependency, and gives you AI-powered chat and build tools to understand and extend your model.</p>
+    <div class="intro-cta-v3" onclick="go('s-connect')">Connect to Anaplan <span class="arr">→</span></div>
+
+    <!-- Product preview -->
+    <div class="intro-preview">
+      <div class="intro-preview-shell">
+        <!-- Mini sidebar -->
+        <div class="intro-preview-sb">
+          <div class="intro-preview-sb-icon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <path d="M12 3 L12 14" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round"/>
+              <circle cx="12" cy="17" r="1.8" fill="#BF801E"/>
             </svg>
           </div>
-          <div class="hero-chip"><span><div class="hero-chip-dot"></div>Focused review · 4 workstreams</span></div>
-          <div class="hero-bars" id="hero-bars">
-            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#B82E2E"></div><div class="hero-bar-lbl">Architecture flow</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:86%;background:#B82E2E"></div></div><div class="hero-bar-num">High</div></div>
-            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#C8733A"></div><div class="hero-bar-lbl">Formula review</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:68%;background:#C8733A"></div></div><div class="hero-bar-num">Med</div></div>
-            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#175AA6"></div><div class="hero-bar-lbl">Aggregation checks</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:54%;background:#175AA6"></div></div><div class="hero-bar-num">Med</div></div>
-            <div class="hero-bar-row"><div class="hero-bar-dot" style="background:#7047A3"></div><div class="hero-bar-lbl">Governance cleanup</div><div class="hero-bar-track"><div class="hero-bar-fill" style="width:32%;background:#7047A3"></div></div><div class="hero-bar-num">Watch</div></div>
-          </div>
-          <div class="hero-rule"></div>
+          <div class="intro-preview-sb-item">◈</div>
+          <div class="intro-preview-sb-item on">◉</div>
+          <div class="intro-preview-sb-item">◎</div>
+          <div class="intro-preview-sb-item">⚙</div>
         </div>
-        <div class="hero-verdict">
-          <div class="hero-verdict-icon">⚠</div>
-          <div>
-            <div class="hero-verdict-title">One report generated</div>
-            <div class="hero-verdict-sub">Assessment · workstreams · evidence</div>
+        <!-- Mini main content -->
+        <div class="intro-preview-main">
+          <div class="intro-preview-hdr">
+            <span style="font-weight:700;color:var(--text);font-size:12px;">Meridian<span style="color:var(--accent)">.</span></span>
+            <span style="color:var(--rule)">|</span>
+            <span style="font-weight:600;color:var(--text);font-size:11px;">Supply Chain Planning</span>
+            <span style="flex:1"></span>
+            <span style="font-size:9px;font-family:'IBM Plex Mono',monospace;color:var(--text4);">Last scan 2h ago</span>
+          </div>
+          <div class="intro-preview-tabs">
+            <div class="intro-preview-tab on">Diagnose</div>
+            <div class="intro-preview-tab">Chat</div>
+            <div class="intro-preview-tab">Build</div>
+            <div class="intro-preview-tab">Export</div>
+          </div>
+          <div class="intro-preview-content">
+            <!-- Verdict -->
+            <div class="intro-pv-verdict">
+              <div>
+                <div class="intro-pv-verdict-title">Needs Attention</div>
+                <div class="intro-pv-verdict-meta">15 modules · 214 findings</div>
+              </div>
+              <div class="intro-pv-score">68<span class="intro-pv-score-den">/100</span></div>
+            </div>
+            <!-- Severity bar -->
+            <div class="intro-pv-sev">
+              <div class="intro-pv-sev-seg" style="width:15%;background:#B82E2E"></div>
+              <div class="intro-pv-sev-seg" style="width:14%;background:#BF801E"></div>
+              <div class="intro-pv-sev-seg" style="width:43%;background:#175AA6"></div>
+              <div class="intro-pv-sev-seg" style="flex:1;background:#217348"></div>
+            </div>
+            <!-- Findings -->
+            <div class="intro-pv-finding" style="border-left:3px solid #B82E2E;margin-bottom:5px;">
+              <span class="intro-pv-finding-badge" style="background:#B82E2E0D;color:#B82E2E;">CRITICAL</span>
+              <span class="intro-pv-finding-title" style="margin-left:6px;">Rename 'Actual' in Versions dimension</span>
+            </div>
+            <div class="intro-pv-finding" style="border-left:3px solid #B82E2E;margin-bottom:5px;">
+              <span class="intro-pv-finding-badge" style="background:#B82E2E0D;color:#B82E2E;">CRITICAL</span>
+              <span class="intro-pv-finding-title" style="margin-left:6px;">DEM06 circular aggregation</span>
+            </div>
+            <div class="intro-pv-finding" style="border-left:3px solid #BF801E;margin-bottom:5px;">
+              <span class="intro-pv-finding-badge" style="background:#BF801E0D;color:#BF801E;">HIGH</span>
+              <span class="intro-pv-finding-title" style="margin-left:6px;">SLP05 hardcoded period references</span>
+            </div>
+            <!-- AI block -->
+            <div class="intro-pv-ai">
+              <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
+                <div style="width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:.5"></div>
+                <span class="intro-pv-ai-badge">AI ANALYSIS</span>
+              </div>
+              <div class="intro-pv-ai-text">This circular pattern typically emerges when a weighting factor was added after the original aggregation. Break the cycle with a snapshot intermediate...</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Content -->
-    <div class="intro-content">
-      <div class="intro-inner">
-        <h1 class="intro-h1">Your Anaplan model,<br><em>fully understood.</em></h1>
-        <p class="intro-sub">Upload Anaplan blueprint CSVs. Get an evidence-backed review workbench: focused workstreams, cited module and line-item evidence, dependency context when formulas support it, and regression checks for model-builder review.</p>
-        <div class="intro-stats">
-          <div class="intro-stat"><div class="intro-stat-val">47</div><div class="intro-stat-lbl">Planual rules checked</div></div>
-          <div class="intro-stat"><div class="intro-stat-val">≤6</div><div class="intro-stat-lbl">Review workstreams</div></div>
-          <div class="intro-stat"><div class="intro-stat-val">✓</div><div class="intro-stat-lbl">Evidence anchored</div></div>
-        </div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:22px;line-height:1.6;padding:10px 14px;background:var(--surface);border-radius:var(--r);border:1px solid var(--border);display:flex;align-items:flex-start;gap:8px;">
-          <span style="color:var(--accent);font-weight:700;flex-shrink:0;font-family:'IBM Plex Mono',monospace;">MIR</span>
-          <span>The <strong style="color:var(--text2);">Model Intelligence Review</strong> does not assign fake precision scores. It groups concrete blueprint evidence into senior review workstreams that a CoE lead can validate.</span>
-        </div>
-        <div class="intro-paths">
-          <div class="intro-path pri" onclick="go('s-connect')">
-            <div class="intro-path-icon" style="background:#175AA6;font-size:14px;">🔗</div>
-            <div><div class="intro-path-lbl">Connect to Anaplan</div><div class="intro-path-desc">Live model intelligence — sign in with your credentials</div></div>
-            <div class="intro-path-arr">→</div>
-          </div>
-          <div class="intro-path" onclick="go('s-upload')">
-            <div class="intro-path-icon">📂</div>
-            <div><div class="intro-path-lbl">Upload blueprint CSV</div><div class="intro-path-desc">Analyse a model from exported blueprint files</div></div>
-            <div class="intro-path-arr">→</div>
-          </div>
-        </div>
-        <p class="intro-foot">The Anaplan Way · Planual v2 · Anapedia · BARC Planning Survey 2025</p>
+    <!-- Feature strip -->
+    <div class="intro-features">
+      <div class="intro-feat">
+        <div class="intro-feat-bar"></div>
+        <div class="intro-feat-title">Diagnose</div>
+        <div class="intro-feat-desc">Rule engine + AI finds formula issues, naming violations, and architectural risks</div>
+      </div>
+      <div class="intro-feat">
+        <div class="intro-feat-bar"></div>
+        <div class="intro-feat-title">Chat</div>
+        <div class="intro-feat-desc">Ask questions about your model — formulas, dependencies, business logic</div>
+      </div>
+      <div class="intro-feat">
+        <div class="intro-feat-bar"></div>
+        <div class="intro-feat-title">Build</div>
+        <div class="intro-feat-desc">Describe what you need, get a complete spec with modules, lists, and formulas</div>
       </div>
     </div>
   </div>
@@ -106,9 +137,9 @@
 <div id="s-upload" class="screen">
   <div class="hdr"><div class="hdr-inner">
     <div class="hdr-logo" onclick="go('s-intro')">
-      <div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>
+      <div class="hdr-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 3 L12 14" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.8" fill="#BF801E"/></svg></div>
       Meridian<em>.</em>
-      <div style="margin-left:2px;"><div class="hdr-by">EyeOn</div></div>
+      <div style="margin-left:2px;"><div class="hdr-by">Avirup Sen</div></div>
     </div>
     <div class="hdr-sp"></div>
     <button class="btn btn-ghost btn-sm" onclick="go('s-settings')">Settings</button>
@@ -142,7 +173,7 @@
 <!-- ════════ S3: PROCESSING ════════ -->
 <div id="s-processing" class="screen">
   <div class="hdr"><div class="hdr-inner">
-    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 3 L12 14" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.8" fill="#BF801E"/></svg></div>Meridian<em>.</em></div>
     <div class="hdr-sp"></div>
     <div class="hdr-status"><span class="spinner"></span><span id="proc-status-txt">Parsing files...</span></div>
   </div></div>
@@ -168,17 +199,54 @@
 <!-- ════════ S4: ANALYSIS ════════ -->
 <!-- SECTION: ANALYSIS -->
 <div id="s-analysis" class="screen">
-  <div class="hdr"><div class="hdr-inner" style="position:relative">
-    <div class="hdr-logo" onclick="startOver()"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+  <!-- Old header kept hidden for JS compatibility -->
+  <div class="hdr" style="display:none"><div class="hdr-inner" style="position:relative">
+    <div class="hdr-logo" onclick="startOver()"><div class="hdr-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 3 L12 14" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.8" fill="#BF801E"/></svg></div>Meridian<em>.</em></div>
     <div class="anl-hdr-center">
-      <div class="anl-hdr-model" id="anl-hdr-model">Analysing model…</div>
-      <div class="anl-hdr-meta" id="anl-hdr-meta"></div>
+      <div class="anl-hdr-model" id="anl-hdr-model-legacy">Analysing model…</div>
+      <div class="anl-hdr-meta" id="anl-hdr-meta-legacy"></div>
     </div>
     <div class="hdr-sp"></div>
     <div class="hdr-status" id="anl-hdr-status" style="display:none"><span class="spinner"></span>Preparing analysis…</div>
     <button class="btn btn-ghost btn-sm" onclick="startOver()">← New model</button>
   </div></div>
 
+  <div class="app-shell">
+    <!-- Sidebar rail -->
+    <div class="app-sidebar">
+      <div class="logo-mark-dark">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M12 3 L12 14" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="12" cy="17" r="1.8" fill="#BF801E"/>
+        </svg>
+      </div>
+      <div class="sb-item active" title="Home" onclick="startOver()">◈<span>Home</span></div>
+      <div class="sb-item" title="Models">◉<span>Models</span></div>
+      <div class="sb-item" title="Reports">◎<span>Reports</span></div>
+      <div class="sb-item" title="Settings" onclick="go('s-settings')">⚙<span>Settings</span></div>
+      <div class="sb-spacer"></div>
+      <div class="sb-avatar">AS</div>
+    </div>
+
+    <!-- Main content area -->
+    <div class="app-main">
+      <!-- New header -->
+      <div class="app-header">
+        <span class="app-brand">Meridian<span class="accent">.</span></span>
+        <span class="app-brand-by">by Avirup Sen</span>
+        <div class="app-divider"></div>
+        <div class="model-dropdown" id="model-dropdown">
+          <div class="model-dot" id="model-dot"></div>
+          <span class="model-name" id="anl-hdr-model">Analysing model…</span>
+          <span class="model-chevron">▾</span>
+        </div>
+        <div class="app-spacer"></div>
+        <span class="app-meta" id="anl-hdr-meta"></span>
+      </div>
+
+      <!-- Content (existing shell) -->
+      <div class="app-content">
   <div class="anl-shell">
     <div class="step-label">Step 3 of 3 — Evidence Review</div>
     <h2 class="anl-title">Model Review Workbench</h2>
@@ -204,7 +272,7 @@
       <button class="dash-tab on" data-tab="assessment" onclick="switchTab('assessment')">Diagnose</button>
       <button class="dash-tab" data-tab="chat" onclick="switchTab('chat')">Chat</button>
       <button class="dash-tab" data-tab="build" onclick="switchTab('build')">Build</button>
-      <button class="dash-tab" data-tab="export" onclick="switchTab('export')" style="display:none">Export</button>
+      <button class="dash-tab" data-tab="export" onclick="switchTab('export')">Export</button>
     </div>
 
     <div class="dash-panel" id="dash-panel-model" data-alias="tab-panel-model">
@@ -430,13 +498,16 @@
         </div>
       </div>
     </div>
-  </div>
-</div>
+  </div><!-- /anl-shell -->
+      </div><!-- /app-content -->
+    </div><!-- /app-main -->
+  </div><!-- /app-shell -->
+</div><!-- /s-analysis -->
 
 <!-- ════════ S5: GENERATING ════════ -->
 <div id="s-generating" class="screen">
   <div class="hdr"><div class="hdr-inner">
-    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 3 L12 14" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.8" fill="#BF801E"/></svg></div>Meridian<em>.</em></div>
     <div class="hdr-sp"></div>
     <div class="hdr-status" id="gen-hdr-status"><span class="spinner"></span>Claude generating narratives...</div>
   </div></div>
@@ -460,7 +531,7 @@
 <!-- ════════ S6: REPORT HUB ════════ -->
 <div id="s-hub" class="screen">
   <div class="hdr"><div class="hdr-inner">
-    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 3 L12 14" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.8" fill="#BF801E"/></svg></div>Meridian<em>.</em></div>
     <div class="hdr-sp"></div>
     <button class="btn btn-ghost btn-sm" onclick="go('s-upload')">← New analysis</button>
   </div></div>
@@ -601,7 +672,7 @@
 <!-- ════════ S9: SETTINGS ════════ -->
 <div id="s-settings" class="screen">
   <div class="hdr"><div class="hdr-inner">
-    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-logo" onclick="go('s-intro')"><div class="hdr-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 3 L12 14" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.8" fill="#BF801E"/></svg></div>Meridian<em>.</em></div>
     <div class="hdr-sp"></div>
     <button class="btn btn-ghost btn-sm" onclick="go('s-intro')">← Home</button>
   </div></div>
@@ -628,7 +699,7 @@
     <div class="st-group">
       <div class="st-group-lbl">Export</div>
       <div class="st-card">
-        <div class="st-row"><div class="st-lbl"><strong>Organisation header</strong></div><input class="st-input" value="EyeOn" style="width:160px;"></div>
+        <div class="st-row"><div class="st-lbl"><strong>Organisation header</strong></div><input class="st-input" value="Avirup Sen" style="width:160px;"></div>
         <div class="st-row"><div class="st-lbl"><strong>Include full line item catalogue</strong><span>Adds complete LI tables to Word export</span></div><div class="toggle on"></div></div>
         <div class="st-row"><div class="st-lbl"><strong>Include workflow diagrams</strong></div><div class="toggle on"></div></div>
       </div>
@@ -839,7 +910,7 @@
 <!-- ════════ S10: SHARED REPORT ════════ -->
 <div id="s-shared" class="screen">
   <div class="hdr"><div class="hdr-inner">
-    <div class="hdr-logo"><div class="hdr-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="6.5" stroke="#FAF8F0" stroke-width="1"/><line x1="10" y1="3.5" x2="10" y2="16.5" stroke="#7EC8FA" stroke-width="1.3" stroke-linecap="round"/><circle cx="10" cy="10" r="1.2" fill="#7EC8FA"/></svg></div>Meridian<em>.</em></div>
+    <div class="hdr-logo"><div class="hdr-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19 L4 8 L12 3 L20 8 L20 19" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M12 3 L12 14" stroke="#7EC8FA" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.8" fill="#BF801E"/></svg></div>Meridian<em>.</em></div>
     <div class="hdr-sp"></div>
     <div class="hdr-status" id="shr-hdr-status"><span class="spinner"></span>Loading report…</div>
   </div></div>
@@ -882,6 +953,20 @@
 </div>
 
 <script>
+// ═══════════════════════════════════════════════════════════════
+// SIDEBAR + MODEL DROPDOWN (v3 shell)
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll('.sb-item').forEach(function(item) {
+  item.addEventListener('click', function() {
+    document.querySelectorAll('.sb-item').forEach(function(i) { i.classList.remove('active'); });
+    item.classList.add('active');
+  });
+});
+(function() {
+  var dd = document.getElementById('model-dropdown');
+  if (dd) dd.addEventListener('click', function() { dd.classList.toggle('open'); });
+})();
+
 // ═══════════════════════════════════════════════════════════════
 // NAVIGATION
 // ═══════════════════════════════════════════════════════════════
@@ -2513,7 +2598,7 @@ function exportWord(){
   const clean=body.innerHTML
     .replace(/<svg[\s\S]*?<\/svg>/g,'<p style="color:#9EA1AB;font-size:10pt;font-style:italic;">[Diagram — view in Meridian web application]</p>')
     .replace(/<canvas[\s\S]*?<\/canvas>/g,'');
-  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="UTF-8"><style>body{font-family:Calibri,sans-serif;font-size:11pt;color:#1C2129;margin:2cm}h1{font-size:20pt;color:#175AA6}h2{font-size:13pt;border-bottom:1px solid #DED9CF;padding-bottom:4pt;margin-top:18pt}p{line-height:1.65;margin-bottom:8pt}table{width:100%;border-collapse:collapse;margin-bottom:12pt}th{background:#F2EFE8;font-size:9pt;font-weight:600;text-transform:uppercase;padding:6pt;border:1pt solid #DED9CF}td{padding:8pt;border:1pt solid #EBE8E0;font-size:10pt}</style></head><body><h1>${title}</h1><p style="color:#9EA1AB;font-size:10pt;">Generated by Meridian · EyeOn Planning Intelligence · ${date}</p><hr><div>${clean}</div></body></html>`;
+  const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="UTF-8"><style>body{font-family:Calibri,sans-serif;font-size:11pt;color:#1C2129;margin:2cm}h1{font-size:20pt;color:#175AA6}h2{font-size:13pt;border-bottom:1px solid #DED9CF;padding-bottom:4pt;margin-top:18pt}p{line-height:1.65;margin-bottom:8pt}table{width:100%;border-collapse:collapse;margin-bottom:12pt}th{background:#F2EFE8;font-size:9pt;font-weight:600;text-transform:uppercase;padding:6pt;border:1pt solid #DED9CF}td{padding:8pt;border:1pt solid #EBE8E0;font-size:10pt}</style></head><body><h1>${title}</h1><p style="color:#9EA1AB;font-size:10pt;">Generated by Meridian · by Avirup Sen · ${date}</p><hr><div>${clean}</div></body></html>`;
   const blob=new Blob([html],{type:'application/msword'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -3029,7 +3114,7 @@ function exportGuidePDF() {
   doc.setFontSize(12);doc.setFont('helvetica','normal');doc.setTextColor(180,210,255);
   doc.text('Operational Reference & Planning Guide',M,62);
   doc.setFontSize(8);doc.setTextColor(150,180,220);
-  doc.text('Generated by Meridian · Claude Haiku · EyeOn Anaplan Accelerator Pack',M,280);
+  doc.text('Generated by Meridian · Claude Haiku · Avirup Sen · Anaplan Accelerator',M,280);
   doc.text('Dashboard names and button labels require confirmation against the live model.',M,285);
 
   // Content sections

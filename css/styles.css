@@ -1111,3 +1111,308 @@ html,body{height:100%;background:var(--bg);color:var(--text);-webkit-font-smooth
 .viz-a-node { animation:vizFadeIn .4s ease-out both; }
 .viz-a-edge { stroke-dasharray:1000; animation:vizEdgeDraw 1s ease-out both; }
 
+/* ═══════════════════════════════════════════════════════════
+   MERIDIAN v3 — NEW UX STYLES
+   Append to existing css/styles.css. Do NOT delete existing classes.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── LAYOUT TOKENS ──────────────────────────────────── */
+:root {
+  --sidebar-w: 52px;
+  --header-h: 48px;
+  --tab-h: 44px;
+}
+
+/* ─── LOGO MARK ──────────────────────────────────────── */
+.logo-mark {
+  width: 36px; height: 36px; background: #F2EFE8;
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(28,33,41,.06); flex-shrink: 0;
+}
+.logo-mark svg { width: 21px; height: 21px; }
+.logo-mark-dark {
+  width: 30px; height: 30px; background: rgba(255,255,255,.06);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(255,255,255,.08); flex-shrink: 0; margin-bottom: 18px;
+}
+.logo-mark-dark svg { width: 14px; height: 14px; }
+.logo-mark-lg { width: 42px; height: 42px; border-radius: 9px; }
+.logo-mark-lg svg { width: 24px; height: 24px; }
+
+/* ─── APP SHELL (sidebar + main) ─────────────────────── */
+.app-shell {
+  display: flex; width: 100%; min-height: 100vh; overflow: hidden;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  background: var(--bg);
+}
+
+/* ─── SIDEBAR RAIL ───────────────────────────────────── */
+.app-sidebar {
+  width: var(--sidebar-w); background: #1C2129; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center;
+  padding-top: 14px; gap: 2px;
+  border-right: 1px solid rgba(255,255,255,.06);
+}
+.sb-item {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: rgba(255,255,255,.35); cursor: pointer; gap: 1px;
+  transition: all .15s; font-size: 15px; background: transparent;
+  border: none; font-family: inherit;
+}
+.sb-item span {
+  font-size: 7px; font-weight: 600; letter-spacing: .03em;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.sb-item:hover { color: rgba(255,255,255,.6); background: rgba(255,255,255,.04); }
+.sb-item.active { background: rgba(255,255,255,.1); color: #fff; }
+.sb-spacer { flex: 1; }
+.sb-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(23,90,166,.35); display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff; margin-bottom: 14px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ─── APP HEADER ─────────────────────────────────────── */
+.app-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 28px; height: var(--header-h);
+  background: rgba(250,248,240,.97); border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px); position: relative; z-index: 50;
+}
+.app-brand {
+  font-size: 14px; font-weight: 700; color: var(--text);
+  letter-spacing: -.01em;
+}
+.app-brand .accent { color: var(--accent); }
+.app-brand-by {
+  font-size: 8px; font-family: 'IBM Plex Mono', monospace;
+  color: var(--text4); letter-spacing: 1.2px; text-transform: uppercase; margin-top: 1px;
+}
+.app-divider { width: 1px; height: 20px; background: var(--rule); margin: 0 4px; }
+.app-spacer { flex: 1; }
+.app-meta {
+  font-size: 10px; color: var(--text4);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.app-main {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* ─── MODEL DROPDOWN ─────────────────────────────────── */
+.model-dropdown {
+  display: flex; align-items: center; gap: 8px; padding: 6px 14px;
+  background: var(--bg2); border-radius: 8px; border: 1px solid var(--border);
+  cursor: pointer; transition: all .15s; position: relative;
+}
+.model-dropdown:hover { border-color: var(--border2); }
+.model-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.model-name { font-size: 12px; font-weight: 600; color: var(--text); }
+.model-chevron { font-size: 9px; color: var(--text4); }
+
+/* ─── APP TABS ───────────────────────────────────────── */
+.app-tabs {
+  display: flex; gap: 0; padding: 0 28px;
+  border-bottom: 1.5px solid var(--rule); background: var(--bg);
+  height: var(--tab-h);
+}
+.app-tab {
+  padding: 11px 20px; font-size: 12.5px; font-weight: 500;
+  color: var(--text3); border-bottom: 2px solid transparent;
+  margin-bottom: -1.5px; cursor: pointer; transition: color .12s;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  white-space: nowrap; background: none; border-top: none;
+  border-left: none; border-right: none;
+}
+.app-tab:hover { color: var(--text2); }
+.app-tab.on {
+  color: var(--accent); border-bottom-color: var(--accent); font-weight: 600;
+}
+.app-content {
+  flex: 1; overflow: hidden;
+}
+
+/* ─── INTRO v3 ───────────────────────────────────────── */
+.intro-nav-v3 {
+  display: flex; align-items: center; gap: 14px;
+  padding: 28px 56px; position: relative; z-index: 2;
+}
+.intro-brand-name {
+  font-size: 24px; font-weight: 700; color: var(--text);
+  letter-spacing: -.035em; line-height: 1;
+}
+.intro-brand-name .accent { color: var(--accent); }
+.intro-brand-by {
+  font-size: 9.5px; font-family: 'IBM Plex Mono', monospace;
+  color: var(--text4); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 3px;
+}
+.intro-center {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center;
+  max-width: 1200px; width: 100%; margin: 0 auto;
+  padding: 0 56px 40px; position: relative; z-index: 2;
+}
+.intro-h1-v3 {
+  font-size: clamp(3.4rem, 6vw, 5.2rem); font-weight: 700;
+  letter-spacing: -.06em; line-height: 1.0; color: var(--accent);
+  margin-bottom: 24px; max-width: 780px; text-wrap: balance;
+}
+.intro-h1-v3 em { font-style: normal; }
+.intro-sub-v3 {
+  font-size: 19px; color: var(--text2); line-height: 1.7;
+  max-width: 580px; font-weight: 400; margin-bottom: 38px;
+  letter-spacing: -.01em;
+}
+.intro-cta-v3 {
+  padding: 14px 32px; border-radius: 10px; cursor: pointer;
+  font-size: 15px; font-weight: 600; color: #fff; letter-spacing: -.01em;
+  background: var(--accent); display: inline-flex; align-items: center; gap: 8px;
+  box-shadow: 0 4px 16px rgba(23,90,166,.25); border: none;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  transition: all .15s; margin-bottom: 48px;
+}
+.intro-cta-v3:hover {
+  background: var(--accent2); transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(23,90,166,.3);
+}
+.intro-cta-v3 .arr { opacity: .5; font-size: 18px; }
+
+/* ─── INTRO PREVIEW CARD ─────────────────────────────── */
+.intro-preview {
+  width: 100%; max-width: 920px; position: relative;
+  border-radius: 16px; overflow: hidden;
+  box-shadow: 0 20px 60px rgba(28,33,41,.12), 0 4px 16px rgba(28,33,41,.06);
+  border: 1px solid var(--border); background: var(--surface);
+}
+.intro-preview-shell {
+  display: flex; height: 420px; overflow: hidden;
+}
+.intro-preview-sb {
+  width: 44px; background: #1C2129; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center;
+  padding-top: 12px; gap: 4px;
+}
+.intro-preview-sb-icon {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: rgba(255,255,255,.08); display: flex;
+  align-items: center; justify-content: center; margin-bottom: 10px;
+}
+.intro-preview-sb-item {
+  width: 30px; height: 30px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: rgba(255,255,255,.3);
+}
+.intro-preview-sb-item.on { background: rgba(255,255,255,.1); color: #fff; }
+.intro-preview-main { flex: 1; display: flex; flex-direction: column; }
+.intro-preview-hdr {
+  display: flex; align-items: center; gap: 8px; padding: 8px 20px;
+  border-bottom: 1px solid var(--border); font-size: 11px;
+}
+.intro-preview-tabs {
+  display: flex; gap: 0; padding: 0 20px; border-bottom: 1.5px solid var(--rule);
+}
+.intro-preview-tab {
+  padding: 9px 14px; font-size: 11px; font-weight: 500;
+  color: var(--text4); border-bottom: 2px solid transparent; margin-bottom: -1.5px;
+}
+.intro-preview-tab.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.intro-preview-content { flex: 1; padding: 14px 20px; overflow: hidden; }
+
+/* Verdict card (inside preview) */
+.intro-pv-verdict {
+  display: grid; grid-template-columns: 1fr auto; align-items: center;
+  padding: 12px 14px; margin-bottom: 10px;
+  background: rgba(191,128,30,.024); border: 1px solid rgba(191,128,30,.08);
+  border-radius: 10px;
+}
+.intro-pv-verdict-title { font-size: 14px; font-weight: 700; color: var(--gold); letter-spacing: -.02em; }
+.intro-pv-verdict-meta { font-size: 9px; color: var(--text4); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+.intro-pv-score {
+  font-size: 28px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+  color: var(--text); line-height: 1; letter-spacing: -.04em;
+}
+.intro-pv-score-den { font-size: 11px; color: var(--text4); font-weight: 400; }
+
+/* Severity bar (inside preview) */
+.intro-pv-sev { display: flex; height: 4px; border-radius: 2px; overflow: hidden; gap: 2px; margin-bottom: 12px; }
+.intro-pv-sev-seg { border-radius: 2px; }
+
+/* Finding rows (inside preview) */
+.intro-pv-finding {
+  padding: 8px 12px; margin-bottom: 5px;
+  border-left-width: 3px; border-left-style: solid; border-radius: 0 7px 7px 0;
+  border: 1px solid rgba(28,33,41,.05);
+}
+.intro-pv-finding-badge {
+  font-size: 7.5px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+  padding: 1px 5px; border-radius: 3px; display: inline-block;
+}
+.intro-pv-finding-title { font-size: 11px; font-weight: 600; color: var(--text); letter-spacing: -.01em; }
+
+/* AI block (inside preview) */
+.intro-pv-ai {
+  margin-top: 8px; padding: 8px 12px;
+  border-left: 2px solid rgba(23,90,166,.2); border-radius: 0 7px 7px 0;
+  background: rgba(23,90,166,.02);
+}
+.intro-pv-ai-badge {
+  font-size: 7.5px; font-family: 'IBM Plex Mono', monospace; font-weight: 700;
+  color: var(--accent); letter-spacing: 1px; opacity: .6;
+}
+.intro-pv-ai-text { font-size: 10px; color: var(--text3); line-height: 1.5; margin-top: 3px; }
+
+/* ─── FEATURE STRIP ──────────────────────────────────── */
+.intro-features {
+  display: flex; gap: 40px; margin-top: 36px; justify-content: center;
+}
+.intro-feat { max-width: 240px; text-align: left; }
+.intro-feat-bar {
+  width: 3px; height: 14px; border-radius: 2px; background: var(--accent);
+  display: inline-block; vertical-align: middle; margin-right: 6px;
+}
+.intro-feat-title {
+  font-size: 13px; font-weight: 700; color: var(--text);
+  display: inline; vertical-align: middle;
+}
+.intro-feat-desc { font-size: 12px; color: var(--text3); line-height: 1.6; font-weight: 300; margin-top: 4px; }
+
+/* ─── CONNECT v3 OVERRIDES ───────────────────────────── */
+.connect-card { border-radius: 16px; box-shadow: 0 8px 32px rgba(28,33,41,.08); }
+.connect-body { padding: 28px 32px; }
+.connect-field input { border-radius: 8px; background: var(--bg); }
+.connect-field input:focus { border-color: var(--accent); }
+
+/* ─── PICKER v3 OVERRIDES ────────────────────────────── */
+.picker-inner { max-width: 700px; }
+.model-card { border-radius: 12px; transition: all .15s; }
+.model-card.selected {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 3px rgba(23,90,166,.06);
+}
+
+/* ─── ANALYSIS SHELL OVERRIDE ────────────────────────── */
+#s-analysis.active { display: flex; } /* Override .screen.active display:block */
+#s-analysis > .app-shell { width: 100%; height: 100vh; }
+
+/* Hide old header when inside app-shell */
+#s-analysis > .hdr { display: none; }
+
+/* Override anl-shell width for sidebar layout */
+#s-analysis .anl-shell { max-width: 860px; padding: 28px 32px 80px; }
+
+/* ─── RESPONSIVE ─────────────────────────────────────── */
+@media (max-width: 900px) {
+  .intro-h1-v3 { font-size: clamp(2.4rem, 5vw, 3.4rem); }
+  .intro-features { flex-direction: column; gap: 16px; align-items: center; }
+  .intro-preview-shell { height: 300px; }
+  .app-sidebar { width: 44px; }
+  :root { --sidebar-w: 44px; }
+}
+@media (max-width: 600px) {
+  .intro-nav-v3 { padding: 20px 24px; }
+  .intro-center { padding: 0 24px 32px; }
+  .intro-sub-v3 { font-size: 16px; }
+  .app-header { padding: 8px 16px; }
+  .app-tabs { padding: 0 16px; }
+}
